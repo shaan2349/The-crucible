@@ -8,7 +8,7 @@ type BootPhase = 'flare' | 'fadeout' | null
 export function Landing() {
   const navigate = useNavigate()
   const [bootPhase, setBootPhase] = useState<BootPhase>('flare')
-  const { bgUrl } = useRotatingBackground(30000)
+  const { bgUrl, bgPosition } = useRotatingBackground(30000)
 
   useEffect(() => {
     const t1 = setTimeout(() => setBootPhase('fadeout'), 750)
@@ -64,7 +64,7 @@ export function Landing() {
           <div
             key={bgUrl}
             className="absolute inset-0 animate-[backdropFade_1.4s_ease] bg-cover"
-            style={{ backgroundImage: `url(${bgUrl})`, backgroundPosition: '50% 18%', filter: 'url(#duotone-neutral)' }}
+            style={{ backgroundImage: `url(${bgUrl})`, backgroundPosition: bgPosition, filter: 'url(#duotone-neutral)' }}
           />
         )}
         <div

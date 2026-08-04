@@ -210,10 +210,32 @@ export const PHILOSOPHER_PHOTOS: Record<string, string> = {
   anscombe: 'Elisabeth Anscombe.jpg',
 }
 
-export const BG_FILES = Object.values(PHILOSOPHER_PHOTOS)
+/**
+ * Per-philosopher background-position override, for photos where the
+ * default top-biased heuristic (see photoPosition below) is wrong —
+ * mainly full statues/sculptures and scroll paintings, which don't
+ * frame like a standard bust portrait. Extend this as specific bad
+ * crops get reported rather than guessing at all 47 blind.
+ */
+const PHOTO_POSITION_OVERRIDES: Record<string, string> = {
+  ibnrushd: '50% 35%', // full statue, not a headshot
+  buddha: '50% 30%', // seated statue
+  laozi: '50% 40%', // figure riding an ox, not a bust
+  confucius: '50% 40%', // wide fresco scene
+}
 
-export function wikimediaFilePath(name: string): string {
-  return `https://en.wikipedia.org/wiki/Special:FilePath/${encodeURIComponent(name)}`
+export function photoPosition(id: string): string {
+  return PHOTO_POSITION_OVERRIDES[id] ?? '50% 18%'
+}
+
+/**
+ * Special:FilePath serves the full-resolution original by default, which
+ * for some of these (historical scans, museum photography) can be
+ * several megabytes — the actual cause of photos loading slowly or not
+ * at all. Requesting a scaled thumbnail via `width` fixes both.
+ */
+export function wikimediaFilePath(name: string, width = 1200): string {
+  return `https://en.wikipedia.org/wiki/Special:FilePath/${encodeURIComponent(name)}?width=${width}`
 }
 
 /** The two opposing accent colors used throughout a debate: gold vs. indigo. */

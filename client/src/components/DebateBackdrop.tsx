@@ -1,6 +1,6 @@
 import { usePortrait } from '../hooks/usePortrait'
 import { Bust } from './Bust'
-import { SIDE_ACCENT } from '../data/philosophers'
+import { SIDE_ACCENT, photoPosition } from '../data/philosophers'
 
 const DUOTONE_FILTER = ['url(#duotone-gold)', 'url(#duotone-indigo)']
 
@@ -21,8 +21,20 @@ export function DebateBackdrop({ philosopherIds }: { philosopherIds: string[] })
   return (
     <div className="fixed inset-0 z-0 overflow-hidden bg-parchment-100">
       <div className="absolute inset-0 flex">
-        <Side url={portrait1.url} failed={portrait1.failed} accent={SIDE_ACCENT[0]} duotone={DUOTONE_FILTER[0]} />
-        <Side url={portrait2.url} failed={portrait2.failed} accent={SIDE_ACCENT[1]} duotone={DUOTONE_FILTER[1]} />
+        <Side
+          url={portrait1.url}
+          failed={portrait1.failed}
+          accent={SIDE_ACCENT[0]}
+          duotone={DUOTONE_FILTER[0]}
+          position={id1 ? photoPosition(id1) : undefined}
+        />
+        <Side
+          url={portrait2.url}
+          failed={portrait2.failed}
+          accent={SIDE_ACCENT[1]}
+          duotone={DUOTONE_FILTER[1]}
+          position={id2 ? photoPosition(id2) : undefined}
+        />
       </div>
       <div
         className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2"
@@ -44,11 +56,13 @@ function Side({
   failed,
   accent,
   duotone,
+  position,
 }: {
   url: string | null
   failed: boolean
   accent: string
   duotone: string
+  position?: string
 }) {
   return (
     <div className="relative h-full w-1/2 overflow-hidden">
@@ -56,7 +70,7 @@ function Side({
         <div
           key={url}
           className="absolute inset-0 animate-[backdropFade_1s_ease] bg-cover"
-          style={{ backgroundImage: `url(${url})`, backgroundPosition: '50% 18%', filter: duotone }}
+          style={{ backgroundImage: `url(${url})`, backgroundPosition: position ?? '50% 18%', filter: duotone }}
         />
       )}
       {!url && failed && (

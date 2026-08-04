@@ -1,8 +1,8 @@
 import { usePortrait } from '../hooks/usePortrait'
-import { initials } from '../data/philosophers'
+import { initials, photoPosition } from '../data/philosophers'
 
 export function PhilosopherAvatar({ id, name, size = 36 }: { id: string; name: string; size?: number }) {
-  const { url } = usePortrait(id)
+  const { url } = usePortrait(id, 150)
 
   if (url) {
     return (
@@ -12,7 +12,7 @@ export function PhilosopherAvatar({ id, name, size = 36 }: { id: string; name: s
         width={size}
         height={size}
         className="shrink-0 rounded-full object-cover"
-        style={{ width: size, height: size, objectPosition: '50% 20%', filter: 'url(#duotone-neutral)' }}
+        style={{ width: size, height: size, objectPosition: photoPosition(id), filter: 'url(#duotone-neutral)' }}
       />
     )
   }

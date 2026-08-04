@@ -7,7 +7,10 @@ import { PHILOSOPHER_PHOTOS, wikimediaFilePath } from '../data/philosophers'
  * file doesn't load — callers should treat both the same way (fall back
  * to the bust illustration) rather than distinguish them.
  */
-export function usePortrait(philosopherId: string | undefined): { url: string | null; failed: boolean } {
+export function usePortrait(
+  philosopherId: string | undefined,
+  width = 1200,
+): { url: string | null; failed: boolean } {
   const [url, setUrl] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
 
@@ -23,7 +26,7 @@ export function usePortrait(philosopherId: string | undefined): { url: string | 
     }
 
     let cancelled = false
-    const target = wikimediaFilePath(filename)
+    const target = wikimediaFilePath(filename, width)
     const img = new Image()
     img.onload = () => {
       if (!cancelled) setUrl(target)
@@ -36,7 +39,7 @@ export function usePortrait(philosopherId: string | undefined): { url: string | 
     return () => {
       cancelled = true
     }
-  }, [philosopherId])
+  }, [philosopherId, width])
 
   return { url, failed }
 }

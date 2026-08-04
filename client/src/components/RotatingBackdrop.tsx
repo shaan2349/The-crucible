@@ -12,7 +12,7 @@ import { Bust } from './Bust'
  * common state — the scrim is tuned assuming a photo is usually there.
  */
 export function RotatingBackdrop() {
-  const { bgUrl, failed } = useRotatingBackground(30000)
+  const { bgUrl, bgPosition, failed } = useRotatingBackground(30000)
   const variant = useRotatingBustVariant(30000)
 
   return (
@@ -21,7 +21,7 @@ export function RotatingBackdrop() {
         <div
           key={bgUrl}
           className="absolute inset-0 animate-[backdropFade_1.2s_ease] bg-cover"
-          style={{ backgroundImage: `url(${bgUrl})`, backgroundPosition: '50% 18%', filter: 'url(#duotone-neutral)' }}
+          style={{ backgroundImage: `url(${bgUrl})`, backgroundPosition: bgPosition, filter: 'url(#duotone-neutral)' }}
         />
       )}
       {!bgUrl && failed && (
