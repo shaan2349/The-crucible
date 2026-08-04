@@ -196,6 +196,7 @@ export const PHILOSOPHER_PHOTOS: Record<string, string> = {
   camus: 'Albert Camus, gagnant de prix Nobel, portrait en buste, posé au bureau, faisant face à gauche, cigarette de tabagisme.jpg',
   beauvoir: 'Simone de Beauvoir2.png',
   foucault: 'Michel Foucault 1974 Brasil.jpg',
+  fanon: 'Photograph of Frantz Fanon from Black Skin White Masks (1967) dust jacket.webp',
   confucius: 'Confucius, fresco from a Western Han tomb of Dongping County, Shandong province, China.jpg',
   mencius: 'Half Portraits of the Great Sage and Virtuous Men of Old - Meng Ke (孟軻).jpg',
   laozi: 'Zhang Lu-Laozi Riding an Ox (cropped).jpg',
@@ -205,6 +206,7 @@ export const PHILOSOPHER_PHOTOS: Record<string, string> = {
   nussbaum: 'Martha Nussbaum wikipedia 10-10.jpg',
   thomson: 'Judith_Jarvis_Thomson,_philosopher_(1929_-_2020).jpg',
   sen: 'Amartya Sen 2012.jpg',
+  parfit: 'Derek Parfit at Harvard-April 21, 2015-Effective Altruism (cropped).jpg',
   anscombe: 'Elisabeth Anscombe.jpg',
 }
 
