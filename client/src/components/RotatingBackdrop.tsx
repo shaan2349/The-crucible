@@ -3,10 +3,13 @@ import { Bust } from './Bust'
 
 /**
  * Fixed full-bleed backdrop behind the whole app. A real portrait rotates
- * in every 30s where one loads; a radial parchment scrim keeps it faint
- * enough that screen content (which also sits on its own translucent
- * cards) stays legible regardless of which photo is showing. Falls back
- * to a faint bust illustration if no photo loads.
+ * in every 30s where one loads, rendered in the shared neutral duotone
+ * (see DuotoneDefs) so it reads as one deliberate system alongside the
+ * gold/indigo duotones used during a debate, rather than a raw filter
+ * chain whose look shifted with each source photo's original grading.
+ * All 47 philosophers now have a mapped photo, so the bust fallback
+ * below is a rare edge case (a renamed/deleted Commons file), not a
+ * common state — the scrim is tuned assuming a photo is usually there.
  */
 export function RotatingBackdrop() {
   const { bgUrl, failed } = useRotatingBackground(30000)
@@ -18,10 +21,7 @@ export function RotatingBackdrop() {
         <div
           key={bgUrl}
           className="absolute inset-0 animate-[backdropFade_1.2s_ease] bg-cover bg-center"
-          style={{
-            backgroundImage: `url(${bgUrl})`,
-            filter: 'grayscale(0.3) sepia(0.2) brightness(1.05) contrast(0.95)',
-          }}
+          style={{ backgroundImage: `url(${bgUrl})`, filter: 'url(#duotone-neutral)' }}
         />
       )}
       {!bgUrl && failed && (
@@ -36,7 +36,7 @@ export function RotatingBackdrop() {
         className="absolute inset-0"
         style={{
           background:
-            'radial-gradient(circle at 50% 45%, rgba(248,242,230,0.55) 0%, rgba(248,242,230,0.85) 60%, rgba(248,242,230,0.97) 100%)',
+            'radial-gradient(circle at 50% 45%, rgba(248,242,230,0.45) 0%, rgba(248,242,230,0.78) 60%, rgba(248,242,230,0.94) 100%)',
         }}
       />
     </div>

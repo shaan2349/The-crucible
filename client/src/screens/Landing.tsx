@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CrucibleMark } from '../components/CrucibleMark'
-import { Bust } from '../components/Bust'
+import { useRotatingBackground } from '../hooks/useRotatingBackground'
 
 type BootPhase = 'flare' | 'fadeout' | null
 
 export function Landing() {
   const navigate = useNavigate()
   const [bootPhase, setBootPhase] = useState<BootPhase>('flare')
+  const { bgUrl } = useRotatingBackground(30000)
 
   useEffect(() => {
     const t1 = setTimeout(() => setBootPhase('fadeout'), 750)
@@ -51,9 +52,28 @@ export function Landing() {
         </div>
       )}
 
-      <div className="pointer-events-none absolute inset-0 opacity-[0.06]">
-        <Bust laurel className="absolute -left-10 top-10 h-64 w-64 -rotate-6 text-parchment-900" />
-        <Bust bearded plinth className="absolute -right-14 bottom-0 h-80 w-80 rotate-3 text-parchment-900" />
+      {/*
+        Restrained duotone portrait — barely-there texture behind the
+        hero, not competing with the CTA. Ties Landing into the same
+        photographic system as the rest of the app (see DuotoneDefs)
+        instead of the flat illustration-only treatment this had before
+        the photo coverage was reliable enough to trust here.
+      */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {bgUrl && (
+          <div
+            key={bgUrl}
+            className="absolute inset-0 animate-[backdropFade_1.4s_ease] bg-cover bg-center"
+            style={{ backgroundImage: `url(${bgUrl})`, filter: 'url(#duotone-neutral)' }}
+          />
+        )}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(circle at 50% 40%, rgba(248,242,230,0.78) 0%, rgba(248,242,230,0.93) 55%, rgba(248,242,230,0.99) 100%)',
+          }}
+        />
       </div>
 
       <div className="relative mx-auto flex min-h-svh max-w-md flex-col items-center justify-center px-8 py-16 text-center">

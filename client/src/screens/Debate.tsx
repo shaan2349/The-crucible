@@ -445,7 +445,10 @@ function DebateView({
 
       {debate.phase === 'verdict' && debate.verdict && (
         <div className="mt-8">
-          <div className="mb-5 flex items-center gap-2">
+          <div
+            className="mb-5 flex items-center gap-2"
+            style={{ animation: 'verdictReveal 0.5s ease both' }}
+          >
             <span
               className="h-px flex-1"
               style={{ background: 'linear-gradient(90deg, transparent, #c2531d55)' }}
@@ -457,7 +460,10 @@ function DebateView({
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+            style={{ animation: 'verdictReveal 0.5s ease both', animationDelay: '120ms' }}
+          >
             <div className="rounded-xl border border-parchment-300 bg-parchment-50 p-4">
               <p className="mb-1 font-display text-[13px] italic text-forge-ember">Weakest premise</p>
               <p className="text-sm leading-relaxed text-parchment-800">{debate.verdict.weakestReason}</p>
@@ -470,7 +476,12 @@ function DebateView({
 
           <div
             className="mt-3 rounded-2xl p-5 shadow-embossed"
-            style={{ background: 'linear-gradient(155deg, #f3ddb0 0%, #f8f2e6 55%)', border: '1px solid #e8a33d55' }}
+            style={{
+              background: 'linear-gradient(155deg, #f3ddb0 0%, #f8f2e6 55%)',
+              border: '1px solid #e8a33d55',
+              animation: 'verdictReveal 0.5s ease both',
+              animationDelay: '240ms',
+            }}
           >
             <p className="mb-2 font-display text-sm font-medium uppercase tracking-wide text-forge-ember">
               Sharpened claim
@@ -478,7 +489,11 @@ function DebateView({
             <p className="font-display text-xl leading-snug text-parchment-900">{debate.verdict.sharpenedClaim}</p>
           </div>
 
-          <Button className="mt-5 w-full py-3" onClick={saveAndFinish}>
+          <Button
+            className="mt-5 w-full py-3"
+            onClick={saveAndFinish}
+            style={{ animation: 'verdictReveal 0.5s ease both', animationDelay: '360ms' }}
+          >
             Save & finish
           </Button>
         </div>

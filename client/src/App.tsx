@@ -5,10 +5,12 @@ import { Debate } from './screens/Debate'
 import { Library } from './screens/Library'
 import { Train } from './screens/Train'
 import { History } from './screens/History'
+import { DuotoneDefs } from './components/DuotoneDefs'
 
 function App() {
   return (
     <BrowserRouter>
+      <DuotoneDefs />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/app" element={<AppShell />}>
