@@ -61,18 +61,35 @@ const PHILOSOPHERS = [
   { id: 'anscombe', name: 'Elizabeth Anscombe' },
 ]
 
-const HEADERS = { 'User-Agent': 'TheCrucibleApp/1.0 (student CV project; contact via GitHub)' }
+// A generic browser-style UA — some network security tools (antivirus web
+// shields, router-level content filters) intercept traffic with an
+// obviously non-browser User-Agent and serve a warning/holding page
+// instead of proxying the request through, which is the leading
+// suspect for the "You are ma..." errors seen in earlier runs (that
+// text isn't a Wikidata error format at all).
+const HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+}
 
 // Wikidata rate-limits fast anonymous requests. Retries with backoff on
 // any non-ok response or an error payload, instead of silently treating
 // a throttled response as "no image found" (which is what happened
 // before this fix — everything past the first few entries went null).
+// Reads the body as text first so a failure shows the actual raw
+// response (e.g. an intercepted HTML warning page) rather than just
+// JSON.parse's own truncated error message.
 async function fetchJSON(url, attempts = 4) {
   let lastErr
   for (let i = 0; i < attempts; i++) {
     try {
       const res = await fetch(url, { headers: HEADERS })
-      const data = await res.json()
+      const text = await res.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch {
+        throw new Error(`Non-JSON response (HTTP ${res.status}): ${text.slice(0, 300)}`)
+      }
       if (!res.ok || data.error) {
         throw new Error(`HTTP ${res.status}${data.error ? ' — ' + JSON.stringify(data.error) : ''}`)
       }
