@@ -3,6 +3,16 @@ import { PHILOSOPHER_PHOTOS, photoPosition, wikimediaFilePath } from '../data/ph
 
 const PHOTO_ENTRIES = Object.entries(PHILOSOPHER_PHOTOS)
 
+// Every screen mounts its own RotatingBackdrop instance (see AppShell —
+// intentional, so Debate can swap to the two-portrait backdrop). Without
+// this, switching tabs remounted the hook each time and threw away
+// whatever photo had already loaded, showing a blank flash on every
+// navigation while it redid the whole load cascade from scratch. A
+// module-level cache (outside React state, so it survives unmount)
+// means a screen can render the last known-good photo immediately and
+// only blank-flash once, on the very first load of the session.
+let cache: { url: string; position: string } | null = null
+
 /**
  * Preloads real philosopher portraits and rotates through them. Each
  * candidate is loaded via `Image()` before it's used, so a renamed or
@@ -13,8 +23,8 @@ const PHOTO_ENTRIES = Object.entries(PHILOSOPHER_PHOTOS)
  * that varies per photo (see photoPosition).
  */
 export function useRotatingBackground(intervalMs = 30000) {
-  const [bgUrl, setBgUrl] = useState<string | null>(null)
-  const [bgPosition, setBgPosition] = useState('50% 18%')
+  const [bgUrl, setBgUrl] = useState<string | null>(cache?.url ?? null)
+  const [bgPosition, setBgPosition] = useState(cache?.position ?? '50% 18%')
   const [failed, setFailed] = useState(false)
   const indexRef = useRef(Math.floor(Math.random() * PHOTO_ENTRIES.length))
 
@@ -24,7 +34,9 @@ export function useRotatingBackground(intervalMs = 30000) {
     function tryLoad(attemptsLeft: number) {
       if (cancelled) return
       if (attemptsLeft <= 0) {
-        setFailed(true)
+        // Only give up visibly if there's nothing cached to fall back
+        // to — otherwise keep showing the last known-good photo.
+        if (!cache) setFailed(true)
         return
       }
       const [id, name] = PHOTO_ENTRIES[indexRef.current % PHOTO_ENTRIES.length]
@@ -33,8 +45,10 @@ export function useRotatingBackground(intervalMs = 30000) {
       const img = new Image()
       img.onload = () => {
         if (!cancelled) {
+          const position = photoPosition(id)
+          cache = { url, position }
           setBgUrl(url)
-          setBgPosition(photoPosition(id))
+          setBgPosition(position)
           setFailed(false)
         }
       }
