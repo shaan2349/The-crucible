@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, BookOpen } from 'lucide-react'
 import { philosopherById } from '../data/philosophers'
 import { Card } from '../components/Card'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
@@ -24,111 +24,166 @@ export function History() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
 
+  const openEntry = openId != null ? debates.find((d) => d.id === openId) ?? null : null
+
   return (
     <>
       <RotatingBackdrop />
       <div className="relative z-[1] px-6 pb-10 pt-8">
-        <header className="mb-6">
-          <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">
-            The Ledger
-          </p>
-          <h1 className="font-display text-2xl font-medium text-parchment-900">Your fingerprint</h1>
-          <p className="mt-1 text-sm text-parchment-600">
-            Which frameworks you tend to lean on, across debates.
-          </p>
-        </header>
-
-        {debates.length === 0 && (
-          <Card className="border-dashed py-14 text-center text-sm text-parchment-500" style={{ boxShadow: 'none' }}>
-            No debates saved yet — finish one in the Crucible to start building your profile.
-          </Card>
-        )}
-
-        {top.length > 0 && (
-          <Card className="p-5">
-            {top.map(([framework, count], i) => (
-              <div key={framework} className={i > 0 ? 'mt-3' : undefined}>
-                <div className="mb-1 flex items-baseline justify-between gap-3">
-                  <span className="font-display text-sm italic text-parchment-800">{framework}</span>
-                  <span className="shrink-0 font-display text-xs text-parchment-500">{count}×</span>
-                </div>
-                <div
-                  className="h-2 overflow-hidden rounded-full bg-parchment-200"
-                  style={{ boxShadow: 'inset 0 1px 2px rgba(74,61,42,0.15)' }}
-                >
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${(count / debates.length) * 100}%`,
-                      background: 'linear-gradient(90deg, #e8a33d, #c2531d)',
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </Card>
-        )}
-
-        {debates.length > 0 && (
+        {openEntry ? (
+          <JournalEntry debate={openEntry} onBack={() => setOpenId(null)} />
+        ) : (
           <>
-            <p className="mb-3 mt-8 font-display text-xl font-medium text-parchment-900">Past debates</p>
-            <div className="space-y-2.5">
-              {debates
-                .slice()
-                .reverse()
-                .map((d) => {
-                  const date = new Date(d.id)
-                  const day = date.getDate()
-                  const month = date.toLocaleDateString(undefined, { month: 'short' })
-                  return (
-                    <Card key={d.id} className="overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setOpenId(openId === d.id ? null : d.id)}
-                        className="flex w-full items-start gap-3.5 p-4 text-left"
-                      >
-                        <div className="flex w-11 shrink-0 flex-col items-center rounded-lg bg-parchment-200 py-1.5">
-                          <span className="font-display text-lg font-semibold leading-none text-parchment-900">
-                            {day}
-                          </span>
-                          <span className="mt-0.5 text-[10px] uppercase tracking-wide text-parchment-500">
-                            {month}
-                          </span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm leading-snug text-parchment-900">{d.claim}</p>
-                          <p className="mt-1.5 text-xs text-parchment-500">
-                            {d.philosopherIds.map((id) => philosopherById(id)?.name).join(' and ')}
-                          </p>
-                        </div>
-                        {openId === d.id ? (
-                          <ChevronUp className="mt-1 h-4 w-4 shrink-0 text-parchment-500" />
-                        ) : (
-                          <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-parchment-500" />
-                        )}
-                      </button>
-                      {openId === d.id && d.verdict && (
-                        <div
-                          className="space-y-2.5 border-t border-parchment-300 px-4 pb-4 pt-3 text-sm text-parchment-800"
-                          style={{ animation: 'revealUp 0.3s ease both' }}
+            <header className="mb-6">
+              <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">
+                The Journal
+              </p>
+              <h1 className="font-display text-2xl font-medium text-parchment-900">Your philosophical journal</h1>
+              <p className="mt-1 text-sm text-parchment-600">Which frameworks you tend to reach for, across debates.</p>
+            </header>
+
+            {debates.length === 0 && (
+              <div
+                className="relative mt-2 flex flex-col items-center overflow-hidden rounded-2xl border border-parchment-300/70 bg-parchment-50 px-6 py-14 text-center"
+                style={{ boxShadow: 'var(--shadow-card)' }}
+              >
+                <BookOpen className="h-9 w-9 text-parchment-400" />
+                <p className="mt-4 font-display text-lg text-parchment-700">A blank page</p>
+                <p className="mt-1.5 max-w-[30ch] text-sm text-parchment-500">
+                  Finish a debate in the Crucible and it'll be entered here.
+                </p>
+              </div>
+            )}
+
+            {top.length > 0 && (
+              <Card className="p-5">
+                <p className="mb-3 font-display text-[13px] italic text-forge-ember">Recurring threads</p>
+                {top.map(([framework, count], i) => (
+                  <div key={framework} className={i > 0 ? 'mt-3' : undefined}>
+                    <div className="mb-1 flex items-baseline justify-between gap-3">
+                      <span className="font-display text-sm italic text-parchment-800">{framework}</span>
+                      <span className="shrink-0 font-display text-xs text-parchment-500">{count}×</span>
+                    </div>
+                    <div
+                      className="h-2 overflow-hidden rounded-full bg-parchment-200"
+                      style={{ boxShadow: 'inset 0 1px 2px rgba(74,61,42,0.15)' }}
+                    >
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${(count / debates.length) * 100}%`,
+                          background: 'linear-gradient(90deg, #e8a33d, #c2531d)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </Card>
+            )}
+
+            {debates.length > 0 && (
+              <>
+                <p className="mb-3 mt-8 font-display text-xl font-medium text-parchment-900">Entries</p>
+                <div className="space-y-3">
+                  {debates
+                    .slice()
+                    .reverse()
+                    .map((d, i) => {
+                      const date = new Date(d.id)
+                      const day = date.getDate()
+                      const month = date.toLocaleDateString(undefined, { month: 'short' })
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => setOpenId(d.id)}
+                          className="block w-full text-left"
+                          style={{ animation: 'revealUp 0.35s ease both', animationDelay: `${Math.min(i, 6) * 50}ms` }}
                         >
-                          <p>
-                            <span className="font-medium text-parchment-600">Sharpened claim:</span>{' '}
-                            {d.verdict.sharpenedClaim}
-                          </p>
-                          <p>
-                            <span className="font-medium text-parchment-600">Leaned on:</span>{' '}
-                            {d.verdict.leanedFramework}
-                          </p>
-                        </div>
-                      )}
-                    </Card>
-                  )
-                })}
-            </div>
+                          <Card className="relative overflow-hidden p-4">
+                            <div
+                              className="absolute right-0 top-0 h-5 w-5"
+                              style={{
+                                background:
+                                  'linear-gradient(135deg, transparent 50%, var(--color-parchment-300) 50%)',
+                              }}
+                            />
+                            <div className="flex items-start gap-3.5">
+                              <div className="flex w-11 shrink-0 flex-col items-center rounded-lg bg-parchment-200 py-1.5">
+                                <span className="font-display text-lg font-semibold leading-none text-parchment-900">
+                                  {day}
+                                </span>
+                                <span className="mt-0.5 text-[10px] uppercase tracking-wide text-parchment-500">
+                                  {month}
+                                </span>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-display text-[15px] italic leading-snug text-parchment-900">
+                                  &ldquo;{d.claim}&rdquo;
+                                </p>
+                                <p className="mt-1.5 text-xs text-parchment-500">
+                                  with {d.philosopherIds.map((id) => philosopherById(id)?.name).join(' and ')}
+                                </p>
+                              </div>
+                            </div>
+                          </Card>
+                        </button>
+                      )
+                    })}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
     </>
+  )
+}
+
+function JournalEntry({ debate, onBack }: { debate: Debate; onBack: () => void }) {
+  const date = new Date(debate.id)
+  const dateStr = date.toLocaleDateString(undefined, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+
+  return (
+    <div style={{ animation: 'unfurl 0.45s ease both', transformOrigin: 'top center' }}>
+      <button
+        type="button"
+        onClick={onBack}
+        className="mb-5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500 hover:text-forge-ember"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back to the journal
+      </button>
+
+      <p className="mb-1.5 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">{dateStr}</p>
+      <p className="font-display text-xl italic leading-snug text-parchment-900">&ldquo;{debate.claim}&rdquo;</p>
+      <p className="mt-2 text-sm text-parchment-500">
+        Debated with {debate.philosopherIds.map((id) => philosopherById(id)?.name).join(' and ')}
+      </p>
+
+      {debate.verdict && (
+        <div className="mt-6 space-y-3">
+          <Card variant="hero" className="p-5">
+            <p className="mb-1.5 font-display text-sm font-medium uppercase tracking-wide text-forge-ember">
+              Sharpened claim
+            </p>
+            <p className="font-display text-lg leading-snug text-parchment-900">{debate.verdict.sharpenedClaim}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="mb-1 font-display text-[13px] italic text-forge-ember">Weakest premise</p>
+            <p className="text-sm leading-relaxed text-parchment-800">{debate.verdict.weakestReason}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="mb-1 font-display text-[13px] italic text-forge-ember">You leaned on</p>
+            <p className="text-sm leading-relaxed text-parchment-800">{debate.verdict.leanedFramework}</p>
+          </Card>
+        </div>
+      )}
+    </div>
   )
 }
