@@ -63,24 +63,46 @@ const PHILOSOPHERS = [
 
 const HEADERS = { 'User-Agent': 'TheCrucibleApp/1.0 (student CV project; contact via GitHub)' }
 
+// Wikidata rate-limits fast anonymous requests. Retries with backoff on
+// any non-ok response or an error payload, instead of silently treating
+// a throttled response as "no image found" (which is what happened
+// before this fix — everything past the first few entries went null).
+async function fetchJSON(url, attempts = 4) {
+  let lastErr
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url, { headers: HEADERS })
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        throw new Error(`HTTP ${res.status}${data.error ? ' — ' + JSON.stringify(data.error) : ''}`)
+      }
+      return data
+    } catch (e) {
+      lastErr = e
+      const wait = 1000 * (i + 1)
+      if (i < attempts - 1) await new Promise((r) => setTimeout(r, wait))
+    }
+  }
+  throw lastErr
+}
+
 async function searchEntity(name) {
   const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(name)}&language=en&format=json&type=item&limit=5`
-  const res = await fetch(url, { headers: HEADERS })
-  const data = await res.json()
+  const data = await fetchJSON(url)
   return (data.search || []).map((c) => c.id)
 }
 
 async function getEntities(qids) {
   if (qids.length === 0) return {}
   const url = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${qids.join('|')}&props=descriptions|claims&languages=en&format=json`
-  const res = await fetch(url, { headers: HEADERS })
-  const data = await res.json()
+  const data = await fetchJSON(url)
   return data.entities || {}
 }
 
 async function findPortrait(name) {
   const qids = await searchEntity(name)
   if (qids.length === 0) return null
+  await new Promise((r) => setTimeout(r, 400))
   const entities = await getEntities(qids)
 
   let chosen = qids.find((qid) => /philosoph/i.test(entities[qid]?.descriptions?.en?.value || ''))
@@ -102,7 +124,7 @@ async function main() {
       results[p.id] = null
       console.log(`ERR  ${p.id.padEnd(16)} ${e.message}`)
     }
-    await new Promise((r) => setTimeout(r, 250)) // be polite to the API
+    await new Promise((r) => setTimeout(r, 600)) // be polite to the API
   }
 
   const found = Object.values(results).filter(Boolean).length
