@@ -20,8 +20,8 @@ export function RotatingBackdrop() {
       {bgUrl && (
         <div
           key={bgUrl}
-          className="absolute inset-0 animate-[backdropFade_1.2s_ease] bg-cover bg-center"
-          style={{ backgroundImage: `url(${bgUrl})`, filter: 'url(#duotone-neutral)' }}
+          className="absolute inset-0 animate-[backdropFade_1.2s_ease] bg-cover"
+          style={{ backgroundImage: `url(${bgUrl})`, backgroundPosition: '50% 18%', filter: 'url(#duotone-neutral)' }}
         />
       )}
       {!bgUrl && failed && (

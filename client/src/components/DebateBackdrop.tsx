@@ -55,8 +55,8 @@ function Side({
       {url && (
         <div
           key={url}
-          className="absolute inset-0 animate-[backdropFade_1s_ease] bg-cover bg-center"
-          style={{ backgroundImage: `url(${url})`, filter: duotone }}
+          className="absolute inset-0 animate-[backdropFade_1s_ease] bg-cover"
+          style={{ backgroundImage: `url(${url})`, backgroundPosition: '50% 18%', filter: duotone }}
         />
       )}
       {!url && failed && (

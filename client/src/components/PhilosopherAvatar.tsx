@@ -12,7 +12,7 @@ export function PhilosopherAvatar({ id, name, size = 36 }: { id: string; name: s
         width={size}
         height={size}
         className="shrink-0 rounded-full object-cover"
-        style={{ width: size, height: size, filter: 'grayscale(0.2) sepia(0.15)' }}
+        style={{ width: size, height: size, objectPosition: '50% 20%', filter: 'url(#duotone-neutral)' }}
       />
     )
   }
