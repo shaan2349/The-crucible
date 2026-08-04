@@ -129,7 +129,11 @@ async function findViaWikipediaSummary(name) {
     const data = await fetchJSON(url)
     const src = data.originalimage?.source
     if (!src) return null
-    return decodeURIComponent(src.split('/').pop())
+    // Strip any query string (Wikipedia sometimes appends tracking params
+    // like ?utm_source=... to the image URL) — Special:FilePath needs a
+    // bare filename.
+    const lastSegment = src.split('/').pop().split('?')[0]
+    return decodeURIComponent(lastSegment)
   } catch {
     return null
   }
@@ -158,9 +162,12 @@ async function findPortrait(name) {
 // photo, instead of re-fetching everyone from scratch each time.
 const ALREADY_HAVE = new Set([
   'socrates', 'plato', 'aristotle', 'epicurus', 'marcus', 'augustine', 'aquinas',
-  'descartes', 'hobbes', 'locke', 'hume', 'rousseau', 'kant', 'bentham', 'mill',
-  'hegel', 'marx', 'kierkegaard', 'nietzsche', 'berlin', 'hayek', 'keynes',
-  'sartre', 'camus', 'beauvoir', 'buddha', 'ibnrushd', 'singer', 'nussbaum', 'sen',
+  'descartes', 'hobbes', 'locke', 'hume', 'rousseau', 'kant', 'smith', 'machiavelli',
+  'burke', 'wollstonecraft', 'bentham', 'mill', 'hegel', 'marx', 'kierkegaard',
+  'nietzsche', 'rawls', 'nozick', 'wittgenstein', 'popper', 'arendt', 'berlin',
+  'hayek', 'keynes', 'sartre', 'camus', 'beauvoir', 'foucault', 'confucius',
+  'mencius', 'laozi', 'buddha', 'ibnrushd', 'singer', 'nussbaum', 'thomson', 'sen',
+  'anscombe',
 ])
 
 async function main() {
@@ -181,7 +188,7 @@ async function main() {
   }
 
   const found = Object.values(results).filter(Boolean).length
-  console.log(`\nDone: ${found}/${PHILOSOPHERS.length} portraits found.`)
+  console.log(`\nDone: ${found}/${todo.length} new portraits found (${ALREADY_HAVE.size + found}/${PHILOSOPHERS.length} total).`)
   console.log('\n--- RESULTS (copy from here down) ---\n')
   console.log(JSON.stringify(results, null, 2))
 }
