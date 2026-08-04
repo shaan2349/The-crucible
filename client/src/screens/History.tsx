@@ -98,7 +98,7 @@ export function History() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm leading-snug text-parchment-900">{d.claim}</p>
                           <p className="mt-1.5 text-xs text-parchment-500">
-                            {d.philosopherIds.map((id) => philosopherById(id)?.name).join(' vs ')}
+                            {d.philosopherIds.map((id) => philosopherById(id)?.name).join(' and ')}
                           </p>
                         </div>
                         {openId === d.id ? (

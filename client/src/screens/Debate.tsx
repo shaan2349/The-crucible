@@ -5,13 +5,17 @@ import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { Loader } from '../components/Loader'
 import { PremiseRow } from '../components/PremiseRow'
-import { PhilosopherTag } from '../components/PhilosopherTag'
+import { PhilosopherAvatar } from '../components/PhilosopherAvatar'
+import { PortraitFrame } from '../components/PortraitFrame'
+import { Bust } from '../components/Bust'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { DebateBackdrop } from '../components/DebateBackdrop'
 import { PHILOSOPHERS, philosopherById, initials, SUGGESTED_TOPICS, SIDE_ACCENT } from '../data/philosophers'
 import * as api from '../lib/api'
 import { loadDebates, saveDebates } from '../lib/storage'
 import type { Debate as DebateState, OpponentMode, Round } from '../types'
+
+const SIDE_DUOTONE = ['url(#duotone-gold)', 'url(#duotone-indigo)']
 
 const MAX_ROUNDS = 3
 
@@ -77,14 +81,29 @@ function Composer({ onStart }: { onStart: (d: DebateState) => void }) {
     })
   }
 
+  const presence = Math.min(claim.trim().length / 80, 1)
+
   return (
     <div className="relative z-[1] px-6 pb-10 pt-8">
+      <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">
+        The Arena
+      </p>
       <h1 className="mb-6 font-display text-2xl font-medium text-parchment-900">Debate</h1>
 
-      <p className="text-parchment-700">
-        State a position you actually hold. Not a hypothetical — something you'd defend at
-        dinner.
-      </p>
+      <div className="relative">
+        <div
+          className="pointer-events-none absolute -inset-x-2 -top-6 flex justify-between transition-opacity duration-700"
+          style={{ opacity: 0.08 + presence * 0.22 }}
+        >
+          <Bust laurel className="h-20 w-20 -translate-x-2 -rotate-6 text-side-gold" />
+          <Bust bearded className="h-20 w-20 translate-x-2 rotate-6 text-side-indigo" />
+        </div>
+
+        <p className="relative text-parchment-700">
+          State a position you actually hold. Not a hypothetical — something you'd defend at
+          dinner.
+        </p>
+      </div>
 
       <textarea
         value={claim}
@@ -149,14 +168,30 @@ function Composer({ onStart }: { onStart: (d: DebateState) => void }) {
 
             {mode === 'manual' && (
               <div className="mt-3">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  {manualIds.map((id) => (
-                    <PhilosopherTag key={id} id={id} />
-                  ))}
-                  {manualIds.length < 2 && (
-                    <span className="text-xs text-parchment-500">Pick {2 - manualIds.length} more</span>
-                  )}
-                </div>
+                {manualIds.length > 0 ? (
+                  <div className="mb-3 flex items-center justify-center gap-3">
+                    {[0, 1].map((slot) => {
+                      const id = manualIds[slot]
+                      return id ? (
+                        <div key={id} className="w-28 text-center" style={{ animation: 'castReveal 0.5s ease both' }}>
+                          <PortraitFrame id={id} size={300} duotone={SIDE_DUOTONE[slot]} className="w-full" />
+                          <p className="mt-1.5 font-display text-xs font-medium text-parchment-800">
+                            {philosopherById(id)?.name}
+                          </p>
+                        </div>
+                      ) : (
+                        <div
+                          key={slot}
+                          className="flex aspect-[3/4] w-28 items-center justify-center rounded-xl border border-dashed border-parchment-400 text-xs text-parchment-400"
+                        >
+                          ?
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="mb-2 text-xs text-parchment-500">Pick 2 philosophers to see them here.</p>
+                )}
                 <input
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
@@ -344,6 +379,22 @@ function DebateView({
 
       <p className="text-sm italic text-parchment-700">"{debate.claim}"</p>
 
+      {debate.philosopherIds.length === 2 && (
+        <div
+          className="mt-5 flex items-center justify-center gap-4"
+          style={{ animation: 'castReveal 0.6s ease both' }}
+        >
+          {debate.philosopherIds.map((id, i) => (
+            <div key={id} className="w-24 text-center sm:w-32">
+              <PortraitFrame id={id} size={400} duotone={SIDE_DUOTONE[i]} className="w-full" />
+              <p className="mt-1.5 font-display text-xs font-medium uppercase tracking-wide" style={{ color: SIDE_ACCENT[i] }}>
+                {philosopherById(id)?.name}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {debate.conclusion && (
         <div className="mt-5">
           <Card variant="hero" className="px-5 py-4" style={{ animation: 'revealUp 0.5s ease both' }}>
@@ -360,14 +411,6 @@ function DebateView({
         </div>
       )}
 
-      {debate.philosopherIds.length > 0 && (
-        <div className="mt-4 flex gap-2">
-          {debate.philosopherIds.map((id, i) => (
-            <PhilosopherTag key={id} id={id} accent={SIDE_ACCENT[i]} />
-          ))}
-        </div>
-      )}
-
       <div className="mt-6 space-y-6">
         {debate.rounds.map((r, ri) => (
           <div key={ri} className="space-y-3">
@@ -381,19 +424,25 @@ function DebateView({
               const accent = SIDE_ACCENT[sideIdx] ?? SIDE_ACCENT[0]
               const ph = philosopherById(a.philosopherId)
               if (!ph) return null
+              const delay = ai * 90
               return (
                 <Card
                   key={ai}
-                  className="flex gap-3 border-l-[3px] p-4"
-                  style={{ borderLeftColor: accent, animation: 'revealUp 0.45s ease both', animationDelay: `${ai * 90}ms` }}
+                  className="relative flex gap-3 overflow-hidden border-l-[3px] p-4"
+                  style={{ borderLeftColor: accent, animation: 'revealUp 0.45s ease both', animationDelay: `${delay}ms` }}
                 >
-                  <span
-                    className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-display text-xs font-bold text-parchment-50"
-                    style={{ background: accent, boxShadow: 'var(--shadow-embossed)' }}
-                  >
-                    {initials(ph.name)}
-                  </span>
-                  <div>
+                  <div
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      backgroundImage: `linear-gradient(100deg, transparent 40%, ${accent}33 50%, transparent 60%)`,
+                      backgroundSize: '300% 100%',
+                      animation: `spotlightSweep 1.1s ease ${delay + 150}ms both`,
+                    }}
+                  />
+                  <div className="relative shrink-0 overflow-hidden rounded-full" style={{ boxShadow: 'var(--shadow-embossed)' }}>
+                    <PhilosopherAvatar id={a.philosopherId} name={ph.name} size={40} />
+                  </div>
+                  <div className="relative">
                     <p
                       className="mb-1.5 font-display text-xs font-semibold uppercase tracking-wide"
                       style={{ color: accent }}
@@ -461,15 +510,41 @@ function DebateView({
 
       {debate.phase === 'verdict' && debate.verdict && (
         <div className="mt-8">
+          {debate.philosopherIds.length === 2 && (
+            <div
+              className="relative mb-7 flex items-center justify-center gap-7"
+              style={{ animation: 'revealUp 0.6s ease both' }}
+            >
+              {debate.philosopherIds.map((id, i) => (
+                <div key={id} className="relative w-24 text-center sm:w-28">
+                  <div
+                    className="pointer-events-none absolute -inset-3 rounded-full blur-md"
+                    style={{
+                      background: `radial-gradient(circle, ${SIDE_ACCENT[i]}55 0%, transparent 70%)`,
+                      animation: `triumphantGlow 2.6s ease-in-out ${i * 0.4}s infinite`,
+                    }}
+                  />
+                  <PortraitFrame id={id} size={400} duotone={SIDE_DUOTONE[i]} className="relative w-full" />
+                  <p
+                    className="mt-1.5 font-display text-[11px] font-medium uppercase tracking-wide"
+                    style={{ color: SIDE_ACCENT[i] }}
+                  >
+                    {philosopherById(id)?.name}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div
             className="mb-5 flex items-center gap-2"
-            style={{ animation: 'revealUp 0.5s ease both' }}
+            style={{ animation: 'revealUp 0.5s ease both', animationDelay: '100ms' }}
           >
             <span
               className="h-px flex-1"
               style={{ background: 'linear-gradient(90deg, transparent, #c2531d55)' }}
             />
-            <p className="font-display text-sm uppercase tracking-wide text-forge-ember">Verdict</p>
+            <p className="font-display text-sm uppercase tracking-wide text-forge-ember">The crucible has spoken</p>
             <span
               className="h-px flex-1"
               style={{ background: 'linear-gradient(90deg, #c2531d55, transparent)' }}
