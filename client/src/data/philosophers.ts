@@ -56,6 +56,61 @@ export const PHILOSOPHERS: Philosopher[] = [
   { id: 'anscombe', name: 'Elizabeth Anscombe', era: 'England, 1919–2001', framework: 'Moral language needs grounding in intention and character', attack: 'Attacks consequentialist language detached from real intention and virtue' },
 ]
 
+/**
+ * Short standard-label tag per philosopher, for a quick-scan pill in the
+ * Library — derived directly from each entry's `framework` text above
+ * (e.g. Kant's framework already says "Deontology"), not a separate claim.
+ */
+export const PHILOSOPHER_TAGS: Record<string, string> = {
+  socrates: 'Elenctic Method',
+  plato: 'Idealism',
+  aristotle: 'Virtue Ethics',
+  epicurus: 'Hedonism',
+  marcus: 'Stoicism',
+  augustine: 'Christian Neoplatonism',
+  aquinas: 'Natural Law',
+  descartes: 'Rationalism',
+  hobbes: 'Social Contract',
+  locke: 'Liberalism',
+  hume: 'Empiricism',
+  rousseau: 'Social Contract',
+  kant: 'Deontology',
+  smith: 'Classical Economics',
+  machiavelli: 'Political Realism',
+  burke: 'Conservatism',
+  wollstonecraft: 'Liberal Feminism',
+  bentham: 'Utilitarianism',
+  mill: 'Utilitarianism',
+  hegel: 'Dialectical Idealism',
+  marx: 'Historical Materialism',
+  kierkegaard: 'Existentialism',
+  nietzsche: 'Will to Power',
+  rawls: 'Justice as Fairness',
+  nozick: 'Libertarianism',
+  wittgenstein: 'Ordinary Language',
+  popper: 'Falsificationism',
+  arendt: 'Political Theory',
+  berlin: 'Liberty Pluralism',
+  hayek: 'Classical Liberalism',
+  keynes: 'Keynesian Economics',
+  sartre: 'Existentialism',
+  camus: 'Absurdism',
+  beauvoir: 'Existentialist Feminism',
+  foucault: 'Post-Structuralism',
+  fanon: 'Anti-Colonial Theory',
+  confucius: 'Virtue Ethics',
+  mencius: 'Confucianism',
+  laozi: 'Daoism',
+  buddha: 'Buddhist Philosophy',
+  ibnrushd: 'Islamic Rationalism',
+  singer: 'Utilitarianism',
+  nussbaum: 'Capabilities Approach',
+  thomson: 'Analytic Ethics',
+  sen: 'Capabilities Approach',
+  parfit: 'Personal Identity Theory',
+  anscombe: 'Virtue Ethics',
+}
+
 export const PHILOSOPHER_CATEGORIES = [
   { name: 'Ancient', ids: ['socrates', 'plato', 'aristotle', 'epicurus', 'marcus'] },
   { name: 'Medieval', ids: ['augustine', 'aquinas'] },
@@ -92,28 +147,37 @@ export function initials(name: string): string {
 }
 
 /**
- * Rotating background portraits. Filenames are real Wikimedia Commons
- * files (verified during prototyping via search — not verifiable from
- * this dev environment, whose network policy blocks Wikipedia entirely).
- * Resolved through Wikipedia's Special:FilePath redirect, which finds the
- * file regardless of which Commons subdirectory it lives in. Each is
- * preloaded before use and falls back to a Bust illustration on failure
- * (see useRotatingBackground), so a renamed/deleted file degrades
- * gracefully instead of breaking the rotation.
+ * Portraits, keyed by philosopher id rather than a flat list, so a
+ * specific debate can show its two actual combatants instead of a random
+ * pair. Filenames are real Wikimedia Commons files (verified during
+ * prototyping via search — not verifiable from this dev environment,
+ * whose network policy blocks Wikipedia entirely). Resolved through
+ * Wikipedia's Special:FilePath redirect, which finds the file regardless
+ * of which Commons subdirectory it lives in. Each is preloaded before use
+ * and falls back to a Bust illustration on failure (see
+ * useRotatingBackground / usePortrait), so a renamed/deleted file, or a
+ * philosopher not yet in this map, degrades gracefully instead of
+ * breaking the layout. Only 10 of 47 are covered so far — extend as more
+ * filenames are verified.
  */
-export const BG_FILES = [
-  'Socrates_Louvre.jpg',
-  'Plato_Silanion_Musei_Capitolini_MC1377.jpg',
-  'Aristotle_Altemps_Inv8575.jpg',
-  'Immanuel_Kant_(painted_portrait).jpg',
-  'Nietzsche187a.jpg',
-  'Karl_Marx_001.jpg',
-  'John_Locke_by_Herman_Verelst.png',
-  'Thomas_Hobbes_(portrait).jpg',
-  'Descartes.jpg',
-  'David_Hume.jpg',
-]
+export const PHILOSOPHER_PHOTOS: Record<string, string> = {
+  socrates: 'Socrates_Louvre.jpg',
+  plato: 'Plato_Silanion_Musei_Capitolini_MC1377.jpg',
+  aristotle: 'Aristotle_Altemps_Inv8575.jpg',
+  kant: 'Immanuel_Kant_(painted_portrait).jpg',
+  nietzsche: 'Nietzsche187a.jpg',
+  marx: 'Karl_Marx_001.jpg',
+  locke: 'John_Locke_by_Herman_Verelst.png',
+  hobbes: 'Thomas_Hobbes_(portrait).jpg',
+  descartes: 'Descartes.jpg',
+  hume: 'David_Hume.jpg',
+}
+
+export const BG_FILES = Object.values(PHILOSOPHER_PHOTOS)
 
 export function wikimediaFilePath(name: string): string {
   return `https://en.wikipedia.org/wiki/Special:FilePath/${encodeURIComponent(name)}`
 }
+
+/** The two opposing accent colors used throughout a debate: gold vs. indigo. */
+export const SIDE_ACCENT = ['#9c6a16', '#4b3a82'] as const

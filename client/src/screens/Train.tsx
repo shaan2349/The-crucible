@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Shuffle, RotateCcw } from 'lucide-react'
 import { Button } from '../components/Button'
 import { Loader } from '../components/Loader'
+import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { generateChallenge, scoreChallenge, type TrainDirection, type TrainLevel, type TrainGenerateResponse, type TrainScoreResponse } from '../lib/api'
 import { loadTrainingStats, saveTrainingStats } from '../lib/storage'
 
@@ -67,7 +68,9 @@ export function Train() {
   }
 
   return (
-    <div className="px-6 pb-10 pt-8">
+    <>
+      <RotatingBackdrop />
+      <div className="relative z-[1] px-6 pb-10 pt-8">
       <header className="mb-6">
         <h1 className="font-display text-2xl font-medium text-parchment-900">Deconstruction training</h1>
         <p className="mt-1 text-sm text-parchment-600">
@@ -191,6 +194,7 @@ export function Train() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }

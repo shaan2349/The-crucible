@@ -1,12 +1,56 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CrucibleMark } from '../components/CrucibleMark'
 import { Bust } from '../components/Bust'
 
+type BootPhase = 'flare' | 'fadeout' | null
+
 export function Landing() {
   const navigate = useNavigate()
+  const [bootPhase, setBootPhase] = useState<BootPhase>('flare')
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setBootPhase('fadeout'), 750)
+    const t2 = setTimeout(() => setBootPhase(null), 1350)
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+    }
+  }, [])
 
   return (
     <div className="relative min-h-svh overflow-hidden bg-parchment-100">
+      {bootPhase && (
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center bg-parchment-100 transition-opacity duration-500 ${
+            bootPhase === 'fadeout' ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
+          <div className="relative flex flex-col items-center">
+            <div className="relative flex h-16 w-16 items-center justify-center">
+              <span
+                className="absolute h-3 w-3 rounded-full"
+                style={{ background: '#e8a33d', animation: 'emberRing 1s ease-out' }}
+              />
+              <span
+                className="absolute h-3 w-3 rounded-full"
+                style={{
+                  background: '#e8a33d',
+                  boxShadow: '0 0 18px 6px rgba(217,119,6,0.7)',
+                  animation: 'emberCore 0.9s ease-out',
+                }}
+              />
+            </div>
+            <p
+              className="mt-4 font-display text-sm uppercase text-forge-ember"
+              style={{ animation: 'bootTitleReveal 0.9s ease-out forwards' }}
+            >
+              The Crucible
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="pointer-events-none absolute inset-0 opacity-[0.06]">
         <Bust laurel className="absolute -left-10 top-10 h-64 w-64 -rotate-6 text-parchment-900" />
         <Bust bearded plinth className="absolute -right-14 bottom-0 h-80 w-80 rotate-3 text-parchment-900" />

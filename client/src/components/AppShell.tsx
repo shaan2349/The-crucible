@@ -1,12 +1,14 @@
 import { Outlet } from 'react-router-dom'
 import { TabBar } from './TabBar'
-import { RotatingBackdrop } from './RotatingBackdrop'
 import { CrucibleMark } from './CrucibleMark'
 
+// Each screen mounts its own backdrop (RotatingBackdrop or, for an active
+// debate, DebateBackdrop) rather than one shared here — only one route is
+// ever visible at a time, and this lets Debate swap backdrops based on
+// whether opponents have been picked yet.
 export function AppShell() {
   return (
     <div className="relative flex min-h-svh flex-col">
-      <RotatingBackdrop />
       <header className="sticky top-0 z-10 border-b border-parchment-300 bg-parchment-50/90 backdrop-blur">
         <div className="mx-auto flex max-w-md items-center gap-2 px-6 py-3">
           <span

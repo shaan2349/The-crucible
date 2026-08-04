@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { philosopherById } from '../data/philosophers'
+import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { loadDebates } from '../lib/storage'
 import type { Debate } from '../types'
 
@@ -23,7 +24,9 @@ export function History() {
     .slice(0, 5)
 
   return (
-    <div className="px-6 pb-10 pt-8">
+    <>
+      <RotatingBackdrop />
+      <div className="relative z-[1] px-6 pb-10 pt-8">
       <header className="mb-6">
         <h1 className="font-display text-2xl font-medium text-parchment-900">Your fingerprint</h1>
         <p className="mt-1 text-sm text-parchment-600">
@@ -99,6 +102,7 @@ export function History() {
           </div>
         </>
       )}
-    </div>
+      </div>
+    </>
   )
 }

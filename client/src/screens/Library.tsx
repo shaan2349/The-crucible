@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
-import { PHILOSOPHER_CATEGORIES, PHILOSOPHERS, philosopherById, initials } from '../data/philosophers'
+import { PHILOSOPHER_CATEGORIES, PHILOSOPHERS, PHILOSOPHER_TAGS, philosopherById } from '../data/philosophers'
 import { Loader } from '../components/Loader'
 import { Button } from '../components/Button'
+import { PhilosopherAvatar } from '../components/PhilosopherAvatar'
+import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { fetchBio, type BioResponse } from '../lib/api'
 import { loadBios, saveBios } from '../lib/storage'
 
@@ -45,7 +47,9 @@ export function Library() {
     : PHILOSOPHER_CATEGORIES
 
   return (
-    <div className="px-6 pb-10 pt-8">
+    <>
+      <RotatingBackdrop />
+      <div className="relative z-[1] px-6 pb-10 pt-8">
       <header className="mb-6">
         <h1 className="font-display text-2xl font-medium text-parchment-900">Library</h1>
         <p className="mt-1 text-sm text-parchment-600">
@@ -79,11 +83,16 @@ export function Library() {
                           onClick={() => toggle(id)}
                           className="flex w-full items-center gap-3 p-3 text-left"
                         >
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-side-gold-soft text-xs font-bold text-parchment-900">
-                            {initials(p.name)}
-                          </span>
+                          <PhilosopherAvatar id={id} name={p.name} />
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-parchment-900">{p.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-parchment-900">{p.name}</p>
+                              {PHILOSOPHER_TAGS[id] && (
+                                <span className="hidden shrink-0 rounded-full bg-parchment-200 px-2 py-0.5 text-[10px] text-parchment-600 sm:inline">
+                                  {PHILOSOPHER_TAGS[id]}
+                                </span>
+                              )}
+                            </div>
                             <p className="truncate text-xs text-parchment-500">{p.era}</p>
                           </div>
                           {isOpen ? (
@@ -101,7 +110,8 @@ export function Library() {
             ),
         )}
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 
@@ -113,6 +123,11 @@ function PhilosopherDetail({ id, bio, onRetry }: { id: string; bio: BioState; on
   return (
     <div className="border-t border-parchment-300 px-4 pb-4 pt-3">
       <div className="space-y-3 text-sm">
+        {PHILOSOPHER_TAGS[id] && (
+          <span className="inline-block rounded-full bg-parchment-200 px-2.5 py-1 text-[11px] font-medium text-parchment-700 sm:hidden">
+            {PHILOSOPHER_TAGS[id]}
+          </span>
+        )}
         <div>
           <p className="mb-1 font-display text-[13px] italic text-forge-ember">Framework</p>
           <p className="leading-relaxed text-parchment-800">{p.framework}</p>

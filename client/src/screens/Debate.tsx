@@ -5,19 +5,32 @@ import { Button } from '../components/Button'
 import { Loader } from '../components/Loader'
 import { PremiseRow } from '../components/PremiseRow'
 import { PhilosopherTag } from '../components/PhilosopherTag'
-import { PHILOSOPHERS, philosopherById, initials, SUGGESTED_TOPICS } from '../data/philosophers'
+import { RotatingBackdrop } from '../components/RotatingBackdrop'
+import { DebateBackdrop } from '../components/DebateBackdrop'
+import { PHILOSOPHERS, philosopherById, initials, SUGGESTED_TOPICS, SIDE_ACCENT } from '../data/philosophers'
 import * as api from '../lib/api'
 import { loadDebates, saveDebates } from '../lib/storage'
 import type { Debate as DebateState, OpponentMode, Round } from '../types'
 
 const MAX_ROUNDS = 3
-const SIDE_ACCENT = ['#9c6a16', '#4b3a82']
 
 export function Debate() {
   const [debate, setDebate] = useState<DebateState | null>(null)
 
-  if (!debate) return <Composer onStart={setDebate} />
-  return <DebateView debate={debate} setDebate={setDebate} onExit={() => setDebate(null)} />
+  return (
+    <>
+      {debate && debate.philosopherIds.length === 2 ? (
+        <DebateBackdrop philosopherIds={debate.philosopherIds} />
+      ) : (
+        <RotatingBackdrop />
+      )}
+      {!debate ? (
+        <Composer onStart={setDebate} />
+      ) : (
+        <DebateView debate={debate} setDebate={setDebate} onExit={() => setDebate(null)} />
+      )}
+    </>
+  )
 }
 
 /* --------------------------------- Composer --------------------------------- */
@@ -64,7 +77,7 @@ function Composer({ onStart }: { onStart: (d: DebateState) => void }) {
   }
 
   return (
-    <div className="px-6 pb-10 pt-8">
+    <div className="relative z-[1] px-6 pb-10 pt-8">
       <h1 className="mb-6 font-display text-2xl font-medium text-parchment-900">Debate</h1>
 
       <p className="text-parchment-700">
@@ -323,7 +336,7 @@ function DebateView({
   }
 
   return (
-    <div className="px-6 pb-10 pt-8">
+    <div className="relative z-[1] px-6 pb-10 pt-8">
       <button type="button" onClick={onExit} className="mb-4 text-xs text-parchment-500 hover:text-forge-ember">
         ← New position
       </button>
@@ -431,19 +444,41 @@ function DebateView({
       )}
 
       {debate.phase === 'verdict' && debate.verdict && (
-        <div className="mt-6 rounded-xl border border-forge-gold/50 bg-side-gold-soft/40 p-5">
-          <p className="mb-3 font-display text-lg font-semibold text-forge-ember">Verdict</p>
-          <p className="mb-1 text-sm text-parchment-800">
-            <span className="text-parchment-500">Weakest premise:</span> {debate.verdict.weakestReason}
-          </p>
-          <p className="mb-1 mt-2 text-sm text-parchment-800">
-            <span className="text-parchment-500">You leaned on:</span> {debate.verdict.leanedFramework}
-          </p>
-          <p className="mt-2 text-sm text-parchment-800">
-            <span className="text-parchment-500">Sharpened claim:</span>{' '}
-            <span className="text-parchment-900">{debate.verdict.sharpenedClaim}</span>
-          </p>
-          <Button className="mt-4" onClick={saveAndFinish}>
+        <div className="mt-8">
+          <div className="mb-5 flex items-center gap-2">
+            <span
+              className="h-px flex-1"
+              style={{ background: 'linear-gradient(90deg, transparent, #c2531d55)' }}
+            />
+            <p className="font-display text-sm uppercase tracking-wide text-forge-ember">Verdict</p>
+            <span
+              className="h-px flex-1"
+              style={{ background: 'linear-gradient(90deg, #c2531d55, transparent)' }}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-parchment-300 bg-parchment-50 p-4">
+              <p className="mb-1 font-display text-[13px] italic text-forge-ember">Weakest premise</p>
+              <p className="text-sm leading-relaxed text-parchment-800">{debate.verdict.weakestReason}</p>
+            </div>
+            <div className="rounded-xl border border-parchment-300 bg-parchment-50 p-4">
+              <p className="mb-1 font-display text-[13px] italic text-forge-ember">You leaned on</p>
+              <p className="text-sm leading-relaxed text-parchment-800">{debate.verdict.leanedFramework}</p>
+            </div>
+          </div>
+
+          <div
+            className="mt-3 rounded-2xl p-5 shadow-embossed"
+            style={{ background: 'linear-gradient(155deg, #f3ddb0 0%, #f8f2e6 55%)', border: '1px solid #e8a33d55' }}
+          >
+            <p className="mb-2 font-display text-sm font-medium uppercase tracking-wide text-forge-ember">
+              Sharpened claim
+            </p>
+            <p className="font-display text-xl leading-snug text-parchment-900">{debate.verdict.sharpenedClaim}</p>
+          </div>
+
+          <Button className="mt-5 w-full py-3" onClick={saveAndFinish}>
             Save & finish
           </Button>
         </div>
