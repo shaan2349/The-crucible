@@ -2,6 +2,7 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Shuffle, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '../components/Button'
+import { Card } from '../components/Card'
 import { Loader } from '../components/Loader'
 import { PremiseRow } from '../components/PremiseRow'
 import { PhilosopherTag } from '../components/PhilosopherTag'
@@ -345,15 +346,15 @@ function DebateView({
 
       {debate.conclusion && (
         <div className="mt-5">
-          <div className="rounded-xl border border-parchment-300 bg-parchment-50 px-4 py-3">
-            <p className="mb-1 font-display text-[13px] italic text-forge-ember">Your conclusion</p>
-            <p className="font-display text-base text-parchment-900">{debate.conclusion}</p>
-          </div>
+          <Card variant="hero" className="px-5 py-4" style={{ animation: 'revealUp 0.5s ease both' }}>
+            <p className="mb-1.5 font-display text-[13px] italic text-forge-ember">Your conclusion</p>
+            <p className="font-display text-lg leading-snug text-parchment-900">{debate.conclusion}</p>
+          </Card>
 
-          <div className="relative mt-4 pl-6">
+          <div className="relative mt-5 pl-6">
             <div className="absolute bottom-1 left-[7px] top-1 w-px bg-parchment-300" />
-            {debate.premises.map((p) => (
-              <PremiseRow key={p.id} premise={p} />
+            {debate.premises.map((p, i) => (
+              <PremiseRow key={p.id} premise={p} index={i} />
             ))}
           </div>
         </div>
@@ -367,46 +368,61 @@ function DebateView({
         </div>
       )}
 
-      <div className="mt-5 space-y-5">
+      <div className="mt-6 space-y-6">
         {debate.rounds.map((r, ri) => (
           <div key={ri} className="space-y-3">
-            <p className="font-display text-[13px] italic text-forge-ember">Round {r.round}</p>
+            <div className="mb-1 flex items-center gap-2">
+              <span className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, #c2531d40)' }} />
+              <p className="font-display text-xs uppercase tracking-wide text-forge-ember">Round {r.round}</p>
+              <span className="h-px flex-1" style={{ background: 'linear-gradient(90deg, #c2531d40, transparent)' }} />
+            </div>
             {r.attacks.map((a, ai) => {
               const sideIdx = debate.philosopherIds.indexOf(a.philosopherId)
               const accent = SIDE_ACCENT[sideIdx] ?? SIDE_ACCENT[0]
               const ph = philosopherById(a.philosopherId)
               if (!ph) return null
               return (
-                <div
+                <Card
                   key={ai}
-                  className="flex gap-3 rounded-xl border-l-[3px] bg-parchment-50 p-3.5 shadow-sm"
-                  style={{ borderLeftColor: accent }}
+                  className="flex gap-3 border-l-[3px] p-4"
+                  style={{ borderLeftColor: accent, animation: 'revealUp 0.45s ease both', animationDelay: `${ai * 90}ms` }}
                 >
                   <span
-                    className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-parchment-50"
-                    style={{ background: accent }}
+                    className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-display text-xs font-bold text-parchment-50"
+                    style={{ background: accent, boxShadow: 'var(--shadow-embossed)' }}
                   >
                     {initials(ph.name)}
                   </span>
                   <div>
-                    <p className="mb-1 font-display text-xs font-semibold" style={{ color: accent }}>
+                    <p
+                      className="mb-1.5 font-display text-xs font-semibold uppercase tracking-wide"
+                      style={{ color: accent }}
+                    >
                       {ph.name}
                     </p>
-                    <p className="text-sm leading-relaxed text-parchment-800">{a.text}</p>
+                    <p className="text-[15px] leading-relaxed text-parchment-800">{a.text}</p>
                   </div>
-                </div>
+                </Card>
               )
             })}
             {r.userResponse && (
-              <div className="ml-5 flex gap-3 rounded-xl border-l-[3px] border-forge-gold bg-side-gold-soft/50 p-3.5 shadow-sm">
-                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-forge-gold text-xs font-bold text-parchment-50">
+              <Card
+                className="ml-5 flex gap-3 border-l-[3px] border-l-forge-gold bg-side-gold-soft/40 p-4"
+                style={{ animation: 'revealUp 0.45s ease both', animationDelay: `${r.attacks.length * 90}ms` }}
+              >
+                <span
+                  className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-forge-gold font-display text-xs font-bold text-parchment-50"
+                  style={{ boxShadow: 'var(--shadow-embossed)' }}
+                >
                   You
                 </span>
                 <div>
-                  <p className="mb-1 font-display text-xs font-semibold text-side-gold">You</p>
-                  <p className="text-sm leading-relaxed text-parchment-800">{r.userResponse}</p>
+                  <p className="mb-1.5 font-display text-xs font-semibold uppercase tracking-wide text-side-gold">
+                    You
+                  </p>
+                  <p className="text-[15px] leading-relaxed text-parchment-800">{r.userResponse}</p>
                 </div>
-              </div>
+              </Card>
             )}
           </div>
         ))}
@@ -447,7 +463,7 @@ function DebateView({
         <div className="mt-8">
           <div
             className="mb-5 flex items-center gap-2"
-            style={{ animation: 'verdictReveal 0.5s ease both' }}
+            style={{ animation: 'revealUp 0.5s ease both' }}
           >
             <span
               className="h-px flex-1"
@@ -462,37 +478,33 @@ function DebateView({
 
           <div
             className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-            style={{ animation: 'verdictReveal 0.5s ease both', animationDelay: '120ms' }}
+            style={{ animation: 'revealUp 0.5s ease both', animationDelay: '120ms' }}
           >
-            <div className="rounded-xl border border-parchment-300 bg-parchment-50 p-4">
+            <Card className="p-4">
               <p className="mb-1 font-display text-[13px] italic text-forge-ember">Weakest premise</p>
               <p className="text-sm leading-relaxed text-parchment-800">{debate.verdict.weakestReason}</p>
-            </div>
-            <div className="rounded-xl border border-parchment-300 bg-parchment-50 p-4">
+            </Card>
+            <Card className="p-4">
               <p className="mb-1 font-display text-[13px] italic text-forge-ember">You leaned on</p>
               <p className="text-sm leading-relaxed text-parchment-800">{debate.verdict.leanedFramework}</p>
-            </div>
+            </Card>
           </div>
 
-          <div
-            className="mt-3 rounded-2xl p-5 shadow-embossed"
-            style={{
-              background: 'linear-gradient(155deg, #f3ddb0 0%, #f8f2e6 55%)',
-              border: '1px solid #e8a33d55',
-              animation: 'verdictReveal 0.5s ease both',
-              animationDelay: '240ms',
-            }}
+          <Card
+            variant="hero"
+            className="mt-3 p-5"
+            style={{ animation: 'revealUp 0.5s ease both', animationDelay: '240ms' }}
           >
             <p className="mb-2 font-display text-sm font-medium uppercase tracking-wide text-forge-ember">
               Sharpened claim
             </p>
             <p className="font-display text-xl leading-snug text-parchment-900">{debate.verdict.sharpenedClaim}</p>
-          </div>
+          </Card>
 
           <Button
             className="mt-5 w-full py-3"
             onClick={saveAndFinish}
-            style={{ animation: 'verdictReveal 0.5s ease both', animationDelay: '360ms' }}
+            style={{ animation: 'revealUp 0.5s ease both', animationDelay: '360ms' }}
           >
             Save & finish
           </Button>

@@ -12,8 +12,13 @@ const STATUS_DOT: Record<Premise['status'], string> = {
   weakened: '#c08a2e',
   conceded: '#b23a3a',
 }
+const STATUS_LABEL: Record<Premise['status'], string> = {
+  standing: 'Standing',
+  weakened: 'Weakened',
+  conceded: 'Conceded',
+}
 
-export function PremiseRow({ premise }: { premise: Premise }) {
+export function PremiseRow({ premise, index = 0 }: { premise: Premise; index?: number }) {
   const prevStatus = useRef(premise.status)
   const [pulsing, setPulsing] = useState(false)
 
@@ -27,9 +32,12 @@ export function PremiseRow({ premise }: { premise: Premise }) {
   }, [premise.status])
 
   return (
-    <div className="relative mb-2.5 last:mb-0">
+    <div
+      className="relative mb-2.5 last:mb-0"
+      style={{ animation: 'revealUp 0.45s ease both', animationDelay: `${index * 70}ms` }}
+    >
       <span
-        className="absolute -left-[19px] top-2.5 h-2.5 w-2.5 rounded-full border-2 border-parchment-100"
+        className="absolute -left-[19px] top-3 h-2.5 w-2.5 rounded-full border-2 border-parchment-100"
         style={{
           background: STATUS_DOT[premise.status],
           animation: pulsing ? 'pulseDot 0.7s ease-out' : 'none',
@@ -37,16 +45,19 @@ export function PremiseRow({ premise }: { premise: Premise }) {
       />
       <div
         className={clsx(
-          'rounded-lg px-3 py-2 text-sm transition-all duration-500',
+          'flex items-start gap-2.5 rounded-lg px-3.5 py-2.5 text-sm leading-relaxed transition-all duration-500',
           STATUS_STYLE[premise.status],
           pulsing && 'ring-2 ring-forge-gold/60',
         )}
+        style={{ boxShadow: 'var(--shadow-card)' }}
       >
-        <span className="mr-2 font-mono text-[10px] opacity-50">{premise.id}</span>
-        {premise.text}
+        <span className="mt-px shrink-0 font-display text-xs italic text-parchment-500">
+          {premise.id.replace(/^p/, '')}.
+        </span>
+        <span className="flex-1">{premise.text}</span>
         {premise.status !== 'standing' && (
-          <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide opacity-80">
-            {premise.status}
+          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide opacity-80">
+            {STATUS_LABEL[premise.status]}
           </span>
         )}
       </div>
