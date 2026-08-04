@@ -116,18 +116,37 @@ async function getEntities(qids) {
   return data.entities || {}
 }
 
+// Fallback for anyone Wikidata has no P18 (image) claim for: Wikipedia's
+// own page-summary endpoint often has an infobox image even when it was
+// never synced to Wikidata as a structured claim.
+async function findViaWikipediaSummary(name) {
+  const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name.replace(/ /g, '_'))}`
+  try {
+    const data = await fetchJSON(url)
+    const src = data.originalimage?.source
+    if (!src) return null
+    return decodeURIComponent(src.split('/').pop())
+  } catch {
+    return null
+  }
+}
+
 async function findPortrait(name) {
   const qids = await searchEntity(name)
-  if (qids.length === 0) return null
-  await new Promise((r) => setTimeout(r, 400))
-  const entities = await getEntities(qids)
+  if (qids.length > 0) {
+    await new Promise((r) => setTimeout(r, 400))
+    const entities = await getEntities(qids)
 
-  let chosen = qids.find((qid) => /philosoph/i.test(entities[qid]?.descriptions?.en?.value || ''))
-  if (!chosen) chosen = qids[0]
+    let chosen = qids.find((qid) => /philosoph/i.test(entities[qid]?.descriptions?.en?.value || ''))
+    if (!chosen) chosen = qids[0]
 
-  const claims = entities[chosen]?.claims
-  const image = claims?.P18?.[0]?.mainsnak?.datavalue?.value
-  return image || null
+    const claims = entities[chosen]?.claims
+    const image = claims?.P18?.[0]?.mainsnak?.datavalue?.value
+    if (image) return image
+  }
+
+  await new Promise((r) => setTimeout(r, 300))
+  return findViaWikipediaSummary(name)
 }
 
 async function main() {
