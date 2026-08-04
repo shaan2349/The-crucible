@@ -2,7 +2,9 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import { rateLimit } from 'express-rate-limit'
-import { premisesRouter } from './routes/premises.js'
+import { debateRouter } from './routes/debate.js'
+import { libraryRouter } from './routes/library.js'
+import { trainRouter } from './routes/train.js'
 
 const app = express()
 const port = process.env.PORT ?? 8787
@@ -23,7 +25,9 @@ app.use(
   }),
 )
 
-app.use('/api/claude/premises', premisesRouter)
+app.use('/api/claude/debate', debateRouter)
+app.use('/api/claude/library', libraryRouter)
+app.use('/api/claude/train', trainRouter)
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true })
