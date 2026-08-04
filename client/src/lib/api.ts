@@ -1,8 +1,14 @@
+// In local dev this stays empty and Vite's dev-server proxy (vite.config.ts)
+// forwards /api to the backend. When client and server are deployed as
+// separate services (e.g. Render static site + web service), this points
+// at the backend's public URL, set at build time via a dashboard env var.
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
+
 async function postJSON<T>(path: string, body: unknown, attempts = 3): Promise<T> {
   let lastErr: unknown
   for (let i = 0; i < attempts; i++) {
     try {
-      const res = await fetch(`/api${path}`, {
+      const res = await fetch(`${API_BASE}/api${path}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

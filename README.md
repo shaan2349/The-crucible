@@ -24,6 +24,11 @@ npm install
 npm run dev              # http://localhost:5173, proxies /api to :8787
 ```
 
+## Deploying (no terminal needed)
+
+See [DEPLOY.md](./DEPLOY.md) — dashboard-only steps for Render, including
+where to paste your API key.
+
 ## Status
 
 Project scaffold and app shell (landing screen, bottom tab bar, Debate/
