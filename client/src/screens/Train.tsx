@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Shuffle, RotateCcw } from 'lucide-react'
+import { Shuffle, RotateCcw, Feather, PenLine } from 'lucide-react'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { Loader } from '../components/Loader'
@@ -122,10 +122,21 @@ export function Train() {
         </div>
 
         {!challenge && !loading && !error && (
-          <Button className="mt-5" onClick={generate}>
-            <Shuffle className="-mt-0.5 mr-1.5 inline h-4 w-4" />
-            Generate a challenge
-          </Button>
+          <div
+            className="relative mt-8 flex flex-col items-center overflow-hidden rounded-2xl border border-parchment-300/70 bg-parchment-50 px-6 py-14 text-center"
+            style={{ boxShadow: 'var(--shadow-card)' }}
+          >
+            <Feather className="pointer-events-none absolute -right-5 -top-5 h-32 w-32 rotate-[18deg] text-parchment-300/40" />
+            <Feather className="h-9 w-9 text-parchment-400" />
+            <p className="relative mt-4 font-display text-lg text-parchment-700">An unopened manuscript awaits</p>
+            <p className="relative mt-1.5 max-w-[28ch] text-sm text-parchment-500">
+              Extract the hidden premises from a real-style argument, or build one from scratch.
+            </p>
+            <Button className="relative mt-5" onClick={generate}>
+              <Shuffle className="-mt-0.5 mr-1.5 inline h-4 w-4" />
+              Begin a new manuscript
+            </Button>
+          </div>
         )}
         {loading && <Loader label="Working…" />}
         {error && !loading && (
@@ -136,32 +147,39 @@ export function Train() {
         )}
 
         {challenge && !loading && (
-          <div className="mt-5" style={{ animation: 'revealUp 0.4s ease both' }}>
-            {direction === 'forward' ? (
-              <Card className="relative overflow-hidden p-5">
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-[0.35]"
-                  style={{
-                    backgroundImage:
-                      'repeating-linear-gradient(180deg, transparent, transparent 27px, rgba(74,61,42,0.08) 28px)',
-                  }}
-                />
-                <p className="relative font-body text-[15px] leading-loose text-parchment-800 first-letter:float-left first-letter:mr-2 first-letter:font-display first-letter:text-5xl first-letter:font-medium first-letter:leading-[0.8] first-letter:text-forge-ember">
-                  {challenge.passage}
-                </p>
-              </Card>
-            ) : (
-              <Card variant="hero" className="p-5">
-                <p className="mb-1.5 font-display text-[13px] italic text-forge-ember">The conclusion</p>
-                <p className="font-display text-lg leading-snug text-parchment-900">{challenge.conclusion}</p>
-              </Card>
-            )}
+          <div className="mt-8">
+            <div className="relative" style={{ animation: 'unfurl 0.5s ease both', transformOrigin: 'top center' }}>
+              <div
+                className="absolute inset-0 translate-x-1.5 translate-y-1.5 rounded-2xl border border-parchment-400/50 bg-parchment-100"
+                style={{ transform: 'rotate(1.1deg)' }}
+              />
+              {direction === 'forward' ? (
+                <Card className="relative overflow-hidden p-5" style={{ transform: 'rotate(-0.6deg)' }}>
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-[0.35]"
+                    style={{
+                      backgroundImage:
+                        'repeating-linear-gradient(180deg, transparent, transparent 27px, rgba(74,61,42,0.08) 28px)',
+                    }}
+                  />
+                  <p className="relative font-body text-[15px] leading-loose text-parchment-800 first-letter:float-left first-letter:mr-2 first-letter:font-display first-letter:text-5xl first-letter:font-medium first-letter:leading-[0.8] first-letter:text-forge-ember">
+                    {challenge.passage}
+                  </p>
+                </Card>
+              ) : (
+                <Card variant="hero" className="relative p-5" style={{ transform: 'rotate(-0.6deg)' }}>
+                  <p className="mb-1.5 font-display text-[13px] italic text-forge-ember">The conclusion</p>
+                  <p className="font-display text-lg leading-snug text-parchment-900">{challenge.conclusion}</p>
+                </Card>
+              )}
+            </div>
 
             {!feedback && (
-              <div className="mt-5 space-y-3">
+              <div className="mt-8 space-y-4 border-l-2 border-dashed border-parchment-400/70 pl-4">
                 {direction === 'forward' && (
                   <label className="block">
-                    <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-parchment-500">
+                    <span className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">
+                      <PenLine className="h-3 w-3" />
                       What is the passage's conclusion?
                     </span>
                     <input
@@ -174,7 +192,8 @@ export function Train() {
                 )}
                 {premiseInputs.map((p, i) => (
                   <label key={i} className="block">
-                    <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-parchment-500">
+                    <span className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">
+                      <PenLine className="h-3 w-3" />
                       Premise {i + 1}
                     </span>
                     <input
@@ -205,37 +224,45 @@ export function Train() {
             )}
 
             {feedback && (
-              <Card className="mt-5 p-5" style={{ animation: 'revealUp 0.4s ease both' }}>
-                <div className="mb-3 flex items-center gap-3">
+              <div className="mt-8" style={{ animation: 'revealUp 0.4s ease both' }}>
+                <div className="flex flex-col items-center text-center">
                   <div
-                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full font-display text-lg font-bold text-parchment-50"
+                    className="flex h-20 w-20 items-center justify-center rounded-full border-4 font-display text-xl font-bold"
                     style={{
-                      background: 'linear-gradient(155deg, #e8a33d 0%, #c2531d 55%, #8a2a12 100%)',
-                      boxShadow: 'var(--shadow-embossed)',
+                      borderColor: '#8a2a1266',
+                      color: '#8a2a12',
+                      background: 'radial-gradient(circle, #f3ddb055, transparent 70%)',
+                      animation: 'stampDown 0.5s ease both',
                     }}
                   >
                     {feedback.score}/5
                   </div>
-                  <p className="font-display text-sm uppercase tracking-wide text-forge-ember">
+                  <p
+                    className="mt-2.5 font-display text-sm uppercase tracking-[0.15em] text-forge-char"
+                    style={{ transform: 'rotate(-8deg)' }}
+                  >
                     {feedback.score >= 4 ? 'Sharp reading' : feedback.score >= 3 ? 'Solid attempt' : 'Worth another pass'}
                   </p>
                 </div>
-                {feedback.trueConclusion && (
-                  <p className="mb-1 text-xs text-parchment-600">
-                    <span className="font-medium text-parchment-700">Actual conclusion:</span> {feedback.trueConclusion}
-                  </p>
-                )}
-                {feedback.truePremises && (
-                  <p className="mb-3 text-xs text-parchment-600">
-                    <span className="font-medium text-parchment-700">Actual premises:</span>{' '}
-                    {feedback.truePremises.join(' · ')}
-                  </p>
-                )}
-                <p className="text-sm leading-relaxed text-parchment-800">{feedback.feedback}</p>
-                <Button className="mt-4" onClick={generate}>
-                  Next challenge
-                </Button>
-              </Card>
+
+                <Card className="mt-5 p-5">
+                  {feedback.trueConclusion && (
+                    <p className="mb-1 text-xs text-parchment-600">
+                      <span className="font-medium text-parchment-700">Actual conclusion:</span> {feedback.trueConclusion}
+                    </p>
+                  )}
+                  {feedback.truePremises && (
+                    <p className="mb-3 text-xs text-parchment-600">
+                      <span className="font-medium text-parchment-700">Actual premises:</span>{' '}
+                      {feedback.truePremises.join(' · ')}
+                    </p>
+                  )}
+                  <p className="text-sm leading-relaxed text-parchment-800">{feedback.feedback}</p>
+                  <Button className="mt-4" onClick={generate}>
+                    Next challenge
+                  </Button>
+                </Card>
+              </div>
             )}
           </div>
         )}

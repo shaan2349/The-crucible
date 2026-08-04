@@ -192,3 +192,29 @@ h3,
     transform: scale(1.06);
   }
 }
+
+@keyframes unfurl {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.92) translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+@keyframes stampDown {
+  0% {
+    opacity: 0;
+    transform: scale(1.7) rotate(-8deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.94) rotate(-8deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+}
