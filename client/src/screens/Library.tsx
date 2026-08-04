@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Search } from 'lucide-react'
 import { PHILOSOPHER_CATEGORIES, PHILOSOPHERS, PHILOSOPHER_TAGS, philosopherById } from '../data/philosophers'
+import { relationshipsFor } from '../data/relationships'
 import { Card } from '../components/Card'
 import { Loader } from '../components/Loader'
 import { Button } from '../components/Button'
 import { PortraitFrame } from '../components/PortraitFrame'
+import { FirmamentPlate } from '../components/FirmamentPlate'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { fetchBio, type BioResponse } from '../lib/api'
 import { loadBios, saveBios } from '../lib/storage'
@@ -18,6 +20,12 @@ export function Library() {
 
   useEffect(() => {
     setBios(loadBios())
+  }, [])
+
+  const clusterNameOf = useMemo(() => {
+    const map: Record<string, string> = {}
+    PHILOSOPHER_CATEGORIES.forEach((cat) => cat.ids.forEach((id) => (map[id] = cat.name)))
+    return (id: string) => map[id] ?? ''
   }, [])
 
   async function loadBio(id: string) {
@@ -42,10 +50,6 @@ export function Library() {
   const query = search.trim().toLowerCase()
   const filtered = query ? PHILOSOPHERS.filter((p) => p.name.toLowerCase().includes(query)) : null
 
-  const categories = filtered
-    ? [{ name: 'Results', ids: filtered.map((p) => p.id) }]
-    : PHILOSOPHER_CATEGORIES
-
   return (
     <>
       <RotatingBackdrop />
@@ -56,16 +60,19 @@ export function Library() {
             bio={bios[openId]}
             onRetry={() => loadBio(openId)}
             onBack={() => setOpenId(null)}
+            onJump={open}
+            clusterNameOf={clusterNameOf}
           />
         ) : (
           <>
             <header className="mb-6">
               <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">
-                The Archive
+                The Firmament
               </p>
               <h1 className="font-display text-2xl font-medium text-parchment-900">Library</h1>
               <p className="mt-1 text-sm text-parchment-600">
-                {PHILOSOPHERS.length} minds held in the collection — pull one from the shelf.
+                {PHILOSOPHERS.length} minds, charted by tradition — the lines between them are real history,
+                not decoration.
               </p>
             </header>
 
@@ -80,39 +87,41 @@ export function Library() {
               />
             </div>
 
-            <div className="mt-7 space-y-8">
-              {categories.map(
-                (cat) =>
-                  cat.ids.length > 0 && (
-                    <div key={cat.name}>
-                      <div className="mb-3.5 border-b-2 border-double border-parchment-400/70 pb-1.5">
-                        <p className="font-display text-xs font-semibold uppercase tracking-[0.15em] text-parchment-600">
-                          {cat.name}
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-                        {cat.ids.map((id, i) => {
-                          const p = philosopherById(id)
-                          if (!p) return null
-                          return (
-                            <button
-                              key={id}
-                              type="button"
-                              onClick={() => open(id)}
-                              className="text-center"
-                              style={{ animation: 'revealUp 0.35s ease both', animationDelay: `${Math.min(i, 8) * 40}ms` }}
-                            >
-                              <PortraitFrame id={id} size={260} className="w-full transition-transform active:scale-[0.97]" />
-                              <p className="mt-1.5 truncate font-display text-[13px] font-medium text-parchment-900">
-                                {p.name}
-                              </p>
-                              <p className="truncate text-[11px] text-parchment-500">{p.era}</p>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  ),
+            <div className="mt-8">
+              {filtered ? (
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                  {filtered.map((p, i) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => open(p.id)}
+                      className="text-center"
+                      style={{ animation: 'revealUp 0.35s ease both', animationDelay: `${Math.min(i, 8) * 40}ms` }}
+                    >
+                      <PortraitFrame id={p.id} size={260} className="w-full transition-transform active:scale-[0.97]" />
+                      <p className="mt-1.5 truncate font-display text-[13px] font-medium text-parchment-900">
+                        {p.name}
+                      </p>
+                      <p className="truncate text-[11px] text-parchment-500">{p.era}</p>
+                    </button>
+                  ))}
+                  {filtered.length === 0 && (
+                    <p className="col-span-full py-8 text-center text-sm text-parchment-500">
+                      No one in the collection matches that.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                PHILOSOPHER_CATEGORIES.map((cat, i) => (
+                  <FirmamentPlate
+                    key={cat.name}
+                    name={cat.name}
+                    plateNumber={i + 1}
+                    ids={[...cat.ids]}
+                    onSelect={open}
+                    clusterNameOf={clusterNameOf}
+                  />
+                ))
               )}
             </div>
           </>
@@ -127,15 +136,20 @@ function PhilosopherDetail({
   bio,
   onRetry,
   onBack,
+  onJump,
+  clusterNameOf,
 }: {
   id: string
   bio: BioState
   onRetry: () => void
   onBack: () => void
+  onJump: (id: string) => void
+  clusterNameOf: (id: string) => string
 }) {
   const p = philosopherById(id)
   if (!p) return null
   const isError = bio && 'error' in bio
+  const connections = relationshipsFor(id)
 
   return (
     <div style={{ animation: 'revealUp 0.3s ease both' }}>
@@ -145,7 +159,7 @@ function PhilosopherDetail({
         className="mb-5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500 hover:text-forge-ember"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Back to the archive
+        Back to the Firmament
       </button>
 
       <div
@@ -197,6 +211,37 @@ function PhilosopherDetail({
               <p className="leading-relaxed text-parchment-800">{bio.legacy}</p>
             </Card>
           </>
+        )}
+
+        {connections.length > 0 && (
+          <Card className="p-4">
+            <p className="mb-2.5 font-display text-[13px] italic text-forge-ember">Their constellation</p>
+            <div className="space-y-2.5">
+              {connections.map((c) => {
+                const other = philosopherById(c.otherId)
+                if (!other) return null
+                return (
+                  <button
+                    key={c.otherId}
+                    type="button"
+                    onClick={() => onJump(c.otherId)}
+                    className="flex w-full items-start gap-2.5 text-left"
+                  >
+                    <span
+                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+                      style={{ background: c.kind === 'rivalry' ? '#8a2a12' : '#c17f1f' }}
+                    />
+                    <span className="text-sm text-parchment-800">
+                      <span className="font-medium text-parchment-900">{other.name}</span>
+                      <span className="text-parchment-500"> · {clusterNameOf(c.otherId)}</span>
+                      <br />
+                      <span className="text-xs italic text-parchment-600">{c.note}</span>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </Card>
         )}
       </div>
     </div>

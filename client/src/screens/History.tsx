@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, BookOpen } from 'lucide-react'
 import { philosopherById } from '../data/philosophers'
 import { Card } from '../components/Card'
+import { PersonalSky } from '../components/PersonalSky'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { loadDebates } from '../lib/storage'
 import type { Debate } from '../types'
@@ -15,10 +16,14 @@ export function History() {
   }, [])
 
   const tally: Record<string, number> = {}
+  const visited: Record<string, number> = {}
   debates.forEach((d) => {
     if (d.verdict?.leanedFramework) {
       tally[d.verdict.leanedFramework] = (tally[d.verdict.leanedFramework] ?? 0) + 1
     }
+    d.philosopherIds.forEach((id) => {
+      visited[id] = (visited[id] ?? 0) + 1
+    })
   })
   const top = Object.entries(tally)
     .sort((a, b) => b[1] - a[1])
@@ -55,8 +60,18 @@ export function History() {
               </div>
             )}
 
+            {debates.length > 0 && (
+              <Card className="overflow-hidden p-5">
+                <p className="mb-1 font-display text-[13px] italic text-forge-ember">Your Firmament</p>
+                <p className="mb-3 text-xs text-parchment-500">
+                  The same sky as the Library — but only the minds you've actually crossed paths with are lit.
+                </p>
+                <PersonalSky visited={visited} />
+              </Card>
+            )}
+
             {top.length > 0 && (
-              <Card className="p-5">
+              <Card className="mt-5 p-5">
                 <p className="mb-3 font-display text-[13px] italic text-forge-ember">Recurring threads</p>
                 {top.map(([framework, count], i) => (
                   <div key={framework} className={i > 0 ? 'mt-3' : undefined}>
