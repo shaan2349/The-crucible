@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+@import '@fontsource/fraunces/400.css';
+@import '@fontsource/fraunces/500.css';
+@import '@fontsource/fraunces/600.css';
+@import '@fontsource/fraunces/600-italic.css';
+@import '@fontsource/fraunces/700.css';
+@import '@fontsource/source-serif-4/400.css';
+@import '@fontsource/source-serif-4/500.css';
+@import '@fontsource/source-serif-4/600.css';
+@import '@fontsource/source-serif-4/400-italic.css';
+
+@theme {
+  /* Parchment / warm neutral ground */
+  --color-parchment-50: #fdfbf6;
+  --color-parchment-100: #f8f2e6;
+  --color-parchment-200: #f0e6d2;
+  --color-parchment-300: #e4d3b3;
+  --color-parchment-400: #d1b98c;
+  --color-parchment-500: #b99b68;
+  --color-parchment-600: #957a4f;
+  --color-parchment-700: #6f5b3c;
+  --color-parchment-800: #4a3d2a;
+  --color-parchment-900: #2c2318;
+
+  /* Forge: molten gold -> ember red, for high-intensity moments only */
+  --color-forge-gold: #e8a33d;
+  --color-forge-ember: #c2531d;
+  --color-forge-char: #8a2a12;
+
+  /* The two opposing debate accents */
+  --color-side-gold: #c17f1f;
+  --color-side-gold-soft: #f3ddb0;
+  --color-side-indigo: #38366e;
+  --color-side-indigo-soft: #d8d6ee;
+
+  --font-display: 'Fraunces', 'Iowan Old Style', serif;
+  --font-body: 'Source Serif 4', Georgia, serif;
+
+  --shadow-embossed: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 1px 2px rgba(74, 61, 42, 0.12);
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-parchment-100);
+  color: var(--color-parchment-900);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+}
