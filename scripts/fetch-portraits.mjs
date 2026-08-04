@@ -61,24 +61,21 @@ const PHILOSOPHERS = [
   { id: 'anscombe', name: 'Elizabeth Anscombe' },
 ]
 
-// A generic browser-style UA — some network security tools (antivirus web
-// shields, router-level content filters) intercept traffic with an
-// obviously non-browser User-Agent and serve a warning/holding page
-// instead of proxying the request through, which is the leading
-// suspect for the "You are ma..." errors seen in earlier runs (that
-// text isn't a Wikidata error format at all).
+// Confirmed by an earlier run's diagnostics: this is genuine anonymous
+// rate-limiting from Wikimedia's API (HTTP 429 — "You are making too
+// many requests"), not a network security tool as first suspected. A
+// real browser UA is still good practice, but the actual fix is
+// respecting the limit properly below.
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
 }
 
-// Wikidata rate-limits fast anonymous requests. Retries with backoff on
-// any non-ok response or an error payload, instead of silently treating
-// a throttled response as "no image found" (which is what happened
-// before this fix — everything past the first few entries went null).
-// Reads the body as text first so a failure shows the actual raw
-// response (e.g. an intercepted HTML warning page) rather than just
-// JSON.parse's own truncated error message.
-async function fetchJSON(url, attempts = 4) {
+// On a 429, honor the Retry-After header if Wikimedia sends one;
+// otherwise back off hard (10s, 20s, 30s...) rather than the previous
+// 1s/2s/3s, which was nowhere near long enough for this limit. Reads
+// the body as text first so any failure shows the real raw response
+// instead of JSON.parse's own truncated error message.
+async function fetchJSON(url, attempts = 6) {
   let lastErr
   for (let i = 0; i < attempts; i++) {
     try {
@@ -90,14 +87,21 @@ async function fetchJSON(url, attempts = 4) {
       } catch {
         throw new Error(`Non-JSON response (HTTP ${res.status}): ${text.slice(0, 300)}`)
       }
+      if (res.status === 429) {
+        const retryAfter = Number(res.headers.get('retry-after'))
+        const wait = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 10000 * (i + 1)
+        lastErr = new Error(`HTTP 429, waiting ${Math.round(wait / 1000)}s before retry`)
+        console.log(`  ...rate limited, waiting ${Math.round(wait / 1000)}s`)
+        if (i < attempts - 1) await new Promise((r) => setTimeout(r, wait))
+        continue
+      }
       if (!res.ok || data.error) {
         throw new Error(`HTTP ${res.status}${data.error ? ' — ' + JSON.stringify(data.error) : ''}`)
       }
       return data
     } catch (e) {
       lastErr = e
-      const wait = 1000 * (i + 1)
-      if (i < attempts - 1) await new Promise((r) => setTimeout(r, wait))
+      if (i < attempts - 1) await new Promise((r) => setTimeout(r, 2000 * (i + 1)))
     }
   }
   throw lastErr
@@ -149,9 +153,22 @@ async function findPortrait(name) {
   return findViaWikipediaSummary(name)
 }
 
+// Already confirmed and in the app — skip these so a re-run only spends
+// the (very limited) rate-limit budget on philosophers still missing a
+// photo, instead of re-fetching everyone from scratch each time.
+const ALREADY_HAVE = new Set([
+  'socrates', 'plato', 'aristotle', 'epicurus', 'marcus', 'augustine', 'aquinas',
+  'descartes', 'hobbes', 'locke', 'hume', 'rousseau', 'kant', 'bentham', 'mill',
+  'hegel', 'marx', 'kierkegaard', 'nietzsche', 'berlin', 'hayek', 'keynes',
+  'sartre', 'camus', 'beauvoir', 'buddha', 'ibnrushd', 'singer', 'nussbaum', 'sen',
+])
+
 async function main() {
+  const todo = PHILOSOPHERS.filter((p) => !ALREADY_HAVE.has(p.id))
+  console.log(`Skipping ${PHILOSOPHERS.length - todo.length} already-covered philosophers, fetching ${todo.length}.\n`)
+
   const results = {}
-  for (const p of PHILOSOPHERS) {
+  for (const p of todo) {
     try {
       const filename = await findPortrait(p.name)
       results[p.id] = filename
@@ -160,7 +177,7 @@ async function main() {
       results[p.id] = null
       console.log(`ERR  ${p.id.padEnd(16)} ${e.message}`)
     }
-    await new Promise((r) => setTimeout(r, 600)) // be polite to the API
+    await new Promise((r) => setTimeout(r, 1500)) // stay well under Wikimedia's anonymous rate limit
   }
 
   const found = Object.values(results).filter(Boolean).length
