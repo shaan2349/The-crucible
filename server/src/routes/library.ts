@@ -8,6 +8,8 @@ interface BioResult {
   life: string
   works: string
   legacy: string
+  coreIdeas: string[]
+  modernTakes: { topic: string; take: string }[]
 }
 
 libraryRouter.post('/bio', async (req, res) => {
@@ -40,10 +42,38 @@ libraryRouter.post('/bio', async (req, res) => {
             type: 'string',
             description: '1-2 sentences on why they still matter today, ideally tied to a live modern debate or field.',
           },
+          coreIdeas: {
+            type: 'array',
+            minItems: 3,
+            maxItems: 5,
+            items: { type: 'string' },
+            description:
+              'Their core ideas as short, punchy one-line principles, not paragraphs — e.g. "Treat persons as ends, never merely means." Each should stand alone.',
+          },
+          modernTakes: {
+            type: 'array',
+            minItems: 2,
+            maxItems: 3,
+            items: {
+              type: 'object',
+              properties: {
+                topic: {
+                  type: 'string',
+                  description: 'A genuinely modern topic this specific thinker illuminates well, e.g. "Artificial intelligence", "Social media", "Climate change" — pick topics that fit THIS philosopher, not a generic list.',
+                },
+                take: {
+                  type: 'string',
+                  description: "One to two sentences on how they'd approach that topic, reasoned from their actual framework — not a generic modern opinion wearing their name.",
+                },
+              },
+              required: ['topic', 'take'],
+            },
+            description: 'How this philosopher would approach 2-3 genuinely modern topics, reasoned from their real framework.',
+          },
         },
-        required: ['life', 'works', 'legacy'],
+        required: ['life', 'works', 'legacy', 'coreIdeas', 'modernTakes'],
       },
-      maxTokens: 500,
+      maxTokens: 700,
     })
     res.json(result)
   } catch (err) {

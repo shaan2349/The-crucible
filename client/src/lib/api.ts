@@ -94,6 +94,8 @@ export interface BioResponse {
   life: string
   works: string
   legacy: string
+  coreIdeas: string[]
+  modernTakes: { topic: string; take: string }[]
 }
 export function fetchBio(philosopherId: string) {
   return postJSON<BioResponse>('/claude/library/bio', { philosopherId })

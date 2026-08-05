@@ -209,6 +209,19 @@ function PhilosopherDetail({
               <p className="mb-1 font-display text-[13px] italic text-forge-ember">Life & ideas</p>
               <p className="leading-relaxed text-parchment-800">{bio.life}</p>
             </Card>
+            {bio.coreIdeas?.length > 0 && (
+              <Card className="p-4">
+                <p className="mb-2 font-display text-[13px] italic text-forge-ember">Core ideas</p>
+                <ul className="space-y-1.5">
+                  {bio.coreIdeas.map((idea, i) => (
+                    <li key={i} className="flex gap-2 text-sm leading-relaxed text-parchment-800">
+                      <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-forge-ember" />
+                      {idea}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
             <Card className="p-4">
               <p className="mb-1 font-display text-[13px] italic text-forge-ember">Key works</p>
               <p className="leading-relaxed text-parchment-800">{bio.works}</p>
@@ -217,6 +230,19 @@ function PhilosopherDetail({
               <p className="mb-1 font-display text-[13px] italic text-forge-ember">Why they still matter</p>
               <p className="leading-relaxed text-parchment-800">{bio.legacy}</p>
             </Card>
+            {bio.modernTakes?.length > 0 && (
+              <Card className="p-4">
+                <p className="mb-2.5 font-display text-[13px] italic text-forge-ember">Modern relevance</p>
+                <div className="space-y-3">
+                  {bio.modernTakes.map((t, i) => (
+                    <div key={i}>
+                      <p className="mb-0.5 text-xs font-semibold uppercase tracking-wide text-parchment-500">{t.topic}</p>
+                      <p className="text-sm leading-relaxed text-parchment-800">{t.take}</p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
           </>
         )}
 
