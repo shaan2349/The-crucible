@@ -1,6 +1,6 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Plus, X } from 'lucide-react'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { Loader } from '../components/Loader'
@@ -10,14 +10,13 @@ import { PortraitFrame } from '../components/PortraitFrame'
 import { Bust } from '../components/Bust'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { DebateBackdrop } from '../components/DebateBackdrop'
-import { philosopherById, SUGGESTED_TOPICS, SIDE_ACCENT } from '../data/philosophers'
+import { PHILOSOPHERS, philosopherById, SUGGESTED_TOPICS, SIDE_ACCENT, SIDE_DUOTONE } from '../data/philosophers'
 import * as api from '../lib/api'
 import { loadDebates, saveDebates, loadReflectDraft, saveReflectDraft, clearReflectDraft } from '../lib/storage'
 import type { Debate as DebateState, Round } from '../types'
 
-const SIDE_DUOTONE = ['url(#duotone-gold)', 'url(#duotone-indigo)']
-
 const MAX_ROUNDS = 3
+const MAX_COUNCIL = 5
 
 const HERO_QUESTIONS = [
   "What's occupying your mind today?",
@@ -329,6 +328,20 @@ function DebateView({
     navigate('/app/journal')
   }
 
+  function addThinker(id: string) {
+    updateDebate((d) =>
+      d.philosopherIds.includes(id) || d.philosopherIds.length >= MAX_COUNCIL
+        ? d
+        : { ...d, philosopherIds: [...d.philosopherIds, id] },
+    )
+  }
+
+  function removeThinker(id: string) {
+    updateDebate((d) =>
+      d.philosopherIds.length <= 2 ? d : { ...d, philosopherIds: d.philosopherIds.filter((x) => x !== id) },
+    )
+  }
+
   const busyLabels: Record<string, string> = {
     selecting: 'Choosing your opponents…',
     decomposing: 'Breaking your position into premises…',
@@ -345,15 +358,18 @@ function DebateView({
 
       <p className="text-sm italic text-parchment-700">"{debate.claim}"</p>
 
-      {debate.philosopherIds.length === 2 && (
+      {debate.philosopherIds.length > 0 && (
         <div
-          className="mt-5 flex items-center justify-center gap-4"
+          className="mt-5 flex flex-wrap items-start justify-center gap-4"
           style={{ animation: 'castReveal 0.6s ease both' }}
         >
           {debate.philosopherIds.map((id, i) => (
-            <div key={id} className="w-24 text-center sm:w-32">
-              <PortraitFrame id={id} size={400} duotone={SIDE_DUOTONE[i]} className="w-full" />
-              <p className="mt-1.5 font-display text-xs font-medium uppercase tracking-wide" style={{ color: SIDE_ACCENT[i] }}>
+            <div key={id} className="w-20 text-center sm:w-28">
+              <PortraitFrame id={id} size={400} duotone={SIDE_DUOTONE[i % SIDE_DUOTONE.length]} className="w-full" />
+              <p
+                className="mt-1.5 font-display text-xs font-medium uppercase tracking-wide"
+                style={{ color: SIDE_ACCENT[i % SIDE_ACCENT.length] }}
+              >
                 {philosopherById(id)?.name}
               </p>
             </div>
@@ -387,7 +403,7 @@ function DebateView({
             </div>
             {r.attacks.map((a, ai) => {
               const sideIdx = debate.philosopherIds.indexOf(a.philosopherId)
-              const accent = SIDE_ACCENT[sideIdx] ?? SIDE_ACCENT[0]
+              const accent = SIDE_ACCENT[sideIdx % SIDE_ACCENT.length] ?? SIDE_ACCENT[0]
               const ph = philosopherById(a.philosopherId)
               if (!ph) return null
               const delay = ai * 90
@@ -456,6 +472,7 @@ function DebateView({
 
       {debate.phase === 'awaiting-response' && (
         <div className="mt-4">
+          <CouncilControls philosopherIds={debate.philosopherIds} onAdd={addThinker} onRemove={removeThinker} />
           <textarea
             value={response}
             onChange={(e) => setResponse(e.target.value)}
@@ -476,24 +493,24 @@ function DebateView({
 
       {debate.phase === 'verdict' && debate.verdict && (
         <div className="mt-8">
-          {debate.philosopherIds.length === 2 && (
+          {debate.philosopherIds.length > 0 && (
             <div
-              className="relative mb-7 flex items-center justify-center gap-7"
+              className="relative mb-7 flex flex-wrap items-center justify-center gap-7"
               style={{ animation: 'revealUp 0.6s ease both' }}
             >
               {debate.philosopherIds.map((id, i) => (
-                <div key={id} className="relative w-24 text-center sm:w-28">
+                <div key={id} className="relative w-20 text-center sm:w-28">
                   <div
                     className="pointer-events-none absolute -inset-3 rounded-full blur-md"
                     style={{
-                      background: `radial-gradient(circle, ${SIDE_ACCENT[i]}55 0%, transparent 70%)`,
+                      background: `radial-gradient(circle, ${SIDE_ACCENT[i % SIDE_ACCENT.length]}55 0%, transparent 70%)`,
                       animation: `triumphantGlow 2.6s ease-in-out ${i * 0.4}s infinite`,
                     }}
                   />
-                  <PortraitFrame id={id} size={400} duotone={SIDE_DUOTONE[i]} className="relative w-full" />
+                  <PortraitFrame id={id} size={400} duotone={SIDE_DUOTONE[i % SIDE_DUOTONE.length]} className="relative w-full" />
                   <p
                     className="mt-1.5 font-display text-[11px] font-medium uppercase tracking-wide"
-                    style={{ color: SIDE_ACCENT[i] }}
+                    style={{ color: SIDE_ACCENT[i % SIDE_ACCENT.length] }}
                   >
                     {philosopherById(id)?.name}
                   </p>
@@ -549,6 +566,98 @@ function DebateView({
           >
             Save & finish
           </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ----------------------------- CouncilControls ----------------------------- */
+
+function CouncilControls({
+  philosopherIds,
+  onAdd,
+  onRemove,
+}: {
+  philosopherIds: string[]
+  onAdd: (id: string) => void
+  onRemove: (id: string) => void
+}) {
+  const [inviting, setInviting] = useState(false)
+  const [filter, setFilter] = useState('')
+
+  const available = PHILOSOPHERS.filter(
+    (p) => !philosopherIds.includes(p.id) && p.name.toLowerCase().includes(filter.toLowerCase()),
+  )
+
+  function add(id: string) {
+    onAdd(id)
+    setInviting(false)
+    setFilter('')
+  }
+
+  return (
+    <div className="mb-4">
+      <div className="flex flex-wrap items-center gap-2">
+        {philosopherIds.map((id, i) => {
+          const p = philosopherById(id)
+          if (!p) return null
+          const accent = SIDE_ACCENT[i % SIDE_ACCENT.length]
+          return (
+            <span
+              key={id}
+              className="flex items-center gap-1.5 rounded-full py-1 pl-3 pr-1.5 text-xs font-medium"
+              style={{ background: `${accent}1a`, color: accent }}
+            >
+              {p.name}
+              {philosopherIds.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => onRemove(id)}
+                  aria-label={`Remove ${p.name} from the council`}
+                  className="flex h-4 w-4 items-center justify-center rounded-full hover:bg-black/10"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              )}
+            </span>
+          )
+        })}
+        {philosopherIds.length < MAX_COUNCIL && (
+          <button
+            type="button"
+            onClick={() => setInviting((v) => !v)}
+            className="flex items-center gap-1 rounded-full border border-dashed border-parchment-400 px-3 py-1 text-xs text-parchment-500 transition-colors hover:border-forge-ember hover:text-forge-ember"
+          >
+            <Plus className="h-3 w-3" /> Invite a thinker
+          </button>
+        )}
+      </div>
+
+      {inviting && (
+        <div className="mt-2.5" style={{ animation: 'revealUp 0.3s ease both' }}>
+          <input
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Search philosophers…"
+            autoFocus
+            className="w-full rounded-lg border border-parchment-300 bg-parchment-50 px-3 py-2 text-sm text-parchment-900 outline-none focus:border-forge-ember"
+          />
+          <div className="mt-2 grid max-h-36 grid-cols-2 gap-1.5 overflow-y-auto pr-1">
+            {available.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => add(p.id)}
+                className="truncate rounded-lg border border-parchment-300 px-2 py-1.5 text-left text-xs text-parchment-700 hover:border-forge-ember"
+              >
+                {p.name}
+              </button>
+            ))}
+            {available.length === 0 && (
+              <p className="col-span-full py-2 text-center text-xs text-parchment-500">No match.</p>
+            )}
+          </div>
         </div>
       )}
     </div>

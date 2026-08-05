@@ -42,6 +42,8 @@ export function DuotoneDefs() {
         <DuotoneFilter id="duotone-gold" shadow="#2c2318" highlight="#e8a33d" />
         <DuotoneFilter id="duotone-indigo" shadow="#2c2318" highlight="#a79cdb" />
         <DuotoneFilter id="duotone-neutral" shadow="#2c2318" highlight="#f3ddb0" />
+        <DuotoneFilter id="duotone-forest" shadow="#2c2318" highlight="#8fb59a" />
+        <DuotoneFilter id="duotone-burgundy" shadow="#2c2318" highlight="#c98f95" />
       </defs>
     </svg>
   )

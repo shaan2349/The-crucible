@@ -238,5 +238,19 @@ export function wikimediaFilePath(name: string, width = 1200): string {
   return `https://en.wikipedia.org/wiki/Special:FilePath/${encodeURIComponent(name)}?width=${width}`
 }
 
-/** The two opposing accent colors used throughout a debate: gold vs. indigo. */
-export const SIDE_ACCENT = ['#9c6a16', '#4b3a82'] as const
+/**
+ * Per-seat accent colors for the Council — gold and indigo cover the
+ * default 2-philosopher debate; forest/burgundy/slate extend this to a
+ * council of up to 5 once a thinker is invited mid-conversation. Reuses
+ * the same hues as the status tokens in index.css for one consistent
+ * palette rather than inventing council-only colors.
+ */
+export const SIDE_ACCENT = ['#9c6a16', '#4b3a82', '#3f6b4c', '#7a2530', '#4a5568'] as const
+
+export const SIDE_DUOTONE = [
+  'url(#duotone-gold)',
+  'url(#duotone-indigo)',
+  'url(#duotone-forest)',
+  'url(#duotone-burgundy)',
+  'url(#duotone-neutral)',
+] as const
