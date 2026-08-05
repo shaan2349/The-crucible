@@ -1,6 +1,6 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, Volume2, Square, Mic } from 'lucide-react'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { Loader } from '../components/Loader'
@@ -13,6 +13,8 @@ import { PHILOSOPHERS, philosopherById, SIDE_ACCENT, SIDE_DUOTONE } from '../dat
 import * as api from '../lib/api'
 import { loadDebates, saveDebates } from '../lib/storage'
 import { useDebateContext } from '../context/DebateContext'
+import { useTextToSpeech } from '../hooks/useTextToSpeech'
+import { useSpeechToText } from '../hooks/useSpeechToText'
 import type { Debate as DebateState, Round } from '../types'
 
 const MAX_ROUNDS = 3
@@ -106,6 +108,19 @@ function CouncilView({
   const [thinkingId, setThinkingId] = useState<string | null>(null)
   const [reflectionText, setReflectionText] = useState('')
   const navigate = useNavigate()
+  const tts = useTextToSpeech()
+  const stt = useSpeechToText()
+  const [micField, setMicField] = useState<'response' | 'reflection' | null>(null)
+
+  function toggleMic(field: 'response' | 'reflection', append: (text: string) => void) {
+    if (stt.listening && micField === field) {
+      stt.stop()
+      setMicField(null)
+      return
+    }
+    setMicField(field)
+    stt.start((text) => append(text))
+  }
 
   function updateDebate(fn: (d: DebateState) => DebateState) {
     setDebate((prev) => (prev ? fn(prev) : prev))
@@ -115,6 +130,10 @@ function CouncilView({
     runNext()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debate.phase])
+
+  useEffect(() => {
+    if (!stt.listening) setMicField(null)
+  }, [stt.listening])
 
   async function runNext() {
     try {
@@ -308,6 +327,8 @@ function CouncilView({
               const ph = philosopherById(a.philosopherId)
               if (!ph) return null
               const delay = ai * 90
+              const speechId = `${ri}-${ai}`
+              const isSpeaking = tts.speakingId === speechId
               return (
                 <Card
                   key={ai}
@@ -325,13 +346,22 @@ function CouncilView({
                   <div className="relative shrink-0 overflow-hidden rounded-full" style={{ boxShadow: 'var(--shadow-embossed)' }}>
                     <PhilosopherAvatar id={a.philosopherId} name={ph.name} size={40} />
                   </div>
-                  <div className="relative">
-                    <p
-                      className="mb-1.5 font-display text-xs font-semibold uppercase tracking-wide"
-                      style={{ color: accent }}
-                    >
-                      {ph.name}
-                    </p>
+                  <div className="relative min-w-0 flex-1">
+                    <div className="mb-1.5 flex items-start justify-between gap-2">
+                      <p className="font-display text-xs font-semibold uppercase tracking-wide" style={{ color: accent }}>
+                        {ph.name}
+                      </p>
+                      {tts.supported && (
+                        <button
+                          type="button"
+                          onClick={() => tts.speak(speechId, a.text)}
+                          aria-label={isSpeaking ? `Stop reading ${ph.name}'s response` : `Read ${ph.name}'s response aloud`}
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-parchment-400 transition-colors hover:text-forge-ember"
+                        >
+                          {isSpeaking ? <Square className="h-3 w-3" /> : <Volume2 className="h-3.5 w-3.5" />}
+                        </button>
+                      )}
+                    </div>
                     <p className="text-[15px] leading-relaxed text-parchment-800">{a.text}</p>
                   </div>
                 </Card>
@@ -374,13 +404,30 @@ function CouncilView({
       {debate.phase === 'awaiting-response' && (
         <div className="mt-4">
           <CouncilControls philosopherIds={debate.philosopherIds} onAdd={addThinker} onRemove={removeThinker} />
-          <textarea
-            value={response}
-            onChange={(e) => setResponse(e.target.value)}
-            placeholder="Defend your premise, concede, or refine your position…"
-            rows={4}
-            className="w-full resize-none rounded-2xl border border-parchment-300 bg-parchment-50 p-3.5 text-sm text-parchment-900 outline-none placeholder:text-parchment-400 focus:border-forge-ember"
-          />
+          <div className="relative">
+            <textarea
+              value={response}
+              onChange={(e) => setResponse(e.target.value)}
+              placeholder="Defend your premise, concede, or refine your position…"
+              rows={4}
+              className="w-full resize-none rounded-2xl border border-parchment-300 bg-parchment-50 p-3.5 pr-12 text-sm text-parchment-900 outline-none placeholder:text-parchment-400 focus:border-forge-ember"
+            />
+            {stt.supported && (
+              <button
+                type="button"
+                onClick={() => toggleMic('response', (text) => setResponse((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text)))}
+                aria-label={micField === 'response' && stt.listening ? 'Stop dictating' : 'Dictate your response'}
+                className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                style={
+                  micField === 'response' && stt.listening
+                    ? { background: 'var(--color-forge-ember)', color: 'var(--color-parchment-50)' }
+                    : { color: 'var(--color-parchment-400)' }
+                }
+              >
+                <Mic className="h-4 w-4" />
+              </button>
+            )}
+          </div>
           <div className="mt-2 flex gap-2">
             <Button onClick={submitResponse} disabled={!response.trim()}>
               Respond
@@ -469,14 +516,35 @@ function CouncilView({
               <p className="mb-3 text-xs italic leading-relaxed text-parchment-500">{summarizeConversation(debate)}</p>
             )}
             <p className="mb-3 font-display text-lg leading-snug text-parchment-900">{reflectionPrompt(debate.id)}</p>
-            <textarea
-              value={reflectionText}
-              onChange={(e) => setReflectionText(e.target.value)}
-              placeholder="Write honestly. Nobody else will read this."
-              rows={5}
-              className="w-full resize-none rounded-2xl bg-parchment-50 p-5 text-[15px] leading-relaxed text-parchment-900 outline-none placeholder:text-parchment-400"
-              style={{ boxShadow: 'var(--shadow-card)' }}
-            />
+            <div className="relative">
+              <textarea
+                value={reflectionText}
+                onChange={(e) => setReflectionText(e.target.value)}
+                placeholder="Write honestly. Nobody else will read this."
+                rows={5}
+                className="w-full resize-none rounded-2xl bg-parchment-50 p-5 pr-14 text-[15px] leading-relaxed text-parchment-900 outline-none placeholder:text-parchment-400"
+                style={{ boxShadow: 'var(--shadow-card)' }}
+              />
+              {stt.supported && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    toggleMic('reflection', (text) =>
+                      setReflectionText((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text)),
+                    )
+                  }
+                  aria-label={micField === 'reflection' && stt.listening ? 'Stop dictating' : 'Dictate your reflection'}
+                  className="absolute bottom-4 right-4 flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                  style={
+                    micField === 'reflection' && stt.listening
+                      ? { background: 'var(--color-forge-ember)', color: 'var(--color-parchment-50)' }
+                      : { color: 'var(--color-parchment-400)' }
+                  }
+                >
+                  <Mic className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           <Button

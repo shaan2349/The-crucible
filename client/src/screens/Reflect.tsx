@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Mic } from 'lucide-react'
 import { Bust } from '../components/Bust'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { SUGGESTED_TOPICS } from '../data/philosophers'
 import { loadReflectDraft, saveReflectDraft, clearReflectDraft, loadInterests } from '../lib/storage'
 import { useDebateContext } from '../context/DebateContext'
+import { useSpeechToText } from '../hooks/useSpeechToText'
 import type { Debate as DebateState } from '../types'
 
 const HERO_QUESTIONS = [
@@ -59,6 +60,15 @@ export function Reflect() {
 
   const [claim, setClaim] = useState('')
   const [savedDraft, setSavedDraft] = useState<string | null>(null)
+  const stt = useSpeechToText()
+
+  function toggleMic() {
+    if (stt.listening) {
+      stt.stop()
+      return
+    }
+    stt.start((text) => setClaim((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text)))
+  }
 
   useEffect(() => {
     setSavedDraft(loadReflectDraft())
@@ -133,9 +143,24 @@ export function Reflect() {
             placeholder="Write freely…"
             rows={4}
             autoFocus
-            className="w-full resize-none rounded-[28px] bg-parchment-50 p-7 pr-20 text-base text-parchment-900 outline-none placeholder:text-parchment-400"
+            className="w-full resize-none rounded-[28px] bg-parchment-50 p-7 pr-32 text-base text-parchment-900 outline-none placeholder:text-parchment-400"
             style={{ boxShadow: 'var(--shadow-card)' }}
           />
+          {stt.supported && (
+            <button
+              type="button"
+              onClick={toggleMic}
+              aria-label={stt.listening ? 'Stop dictating' : 'Dictate your position'}
+              className="absolute bottom-6 right-[4.75rem] flex h-10 w-10 items-center justify-center rounded-full transition-colors"
+              style={
+                stt.listening
+                  ? { background: 'var(--color-forge-ember)', color: 'var(--color-parchment-50)' }
+                  : { color: 'var(--color-parchment-400)' }
+              }
+            >
+              <Mic className="h-4 w-4" />
+            </button>
+          )}
           <button
             type="button"
             onClick={enter}
