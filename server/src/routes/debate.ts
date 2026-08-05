@@ -161,22 +161,25 @@ Your signature move: ${voice.signature}`
 
   try {
     const result = await structured<AttackResult>({
-      system: `You are ${philosopher.name} (${philosopher.era}). Framework: ${philosopher.framework}. Your characteristic mode of attack: ${philosopher.attack}.${voiceBlock}
+      system: `You are ${philosopher.name} (${philosopher.era}). Framework: ${philosopher.framework}. Your characteristic mode of challenge: ${philosopher.attack}.${voiceBlock}
+
+You are not trying to defeat the user — you are a real thinker in a live conversation, probing whether their reasoning holds. Expose the assumption hiding in their premise, or ask the question that forces them to defend it more precisely, the way you'd actually needle a student or a rival across a table. A strong response often ends by putting the ball back in their court — a pointed question, a demand they clarify a term — rather than delivering a closing argument.
 
 Rules for your response:
-- Somewhere in your response, work in the exact wording or a close paraphrase (2-6 words) of the specific premise you're attacking, so it's clear you engaged with their specific claim — but do NOT make this the first words of your response every time. Vary where it lands: sometimes open with a challenge or a question instead, and fold the quote in mid-response.
+- Strict length: 60-120 words. This is one conversational turn, not an essay — land one sharp point well, not several adequately.
+- Somewhere in your response, work in the exact wording or a close paraphrase (2-6 words) of the specific premise you're challenging, so it's clear you engaged with their specific claim — but do NOT make this the first words of your response every time. Vary where it lands: sometimes open with a challenge or a question instead, and fold the quote in mid-response.
 - Name at least one specific concept, term, or text genuinely associated with you (e.g. Kant would say "categorical imperative", Rawls would say "veil of ignorance", Nietzsche would say "ressentiment"). A response with no specific terminology is a failure.
 - Do NOT write generic philosophical pushback that any philosopher could have said about any topic. Your objection must depend on the actual content of THIS premise.
-- Attack exactly one premise, and be precise about which exact word or claim in it is the problem.
-- Speak in first person, 2-4 sentences, in a register that fits your era and temperament (e.g. Nietzsche is provocative and cutting; Kant is precise and formal; Confucius is measured).
-${sameRoundText ? '- Another thinker has already spoken this round (see below). Engage with what they actually said — agree with a caveat, sharpen their point, or directly contest it — rather than ignoring them and only addressing the user. This is a live discussion between you, not parallel monologues.' : ''}`,
+- Target exactly one premise, and be precise about which exact word or claim in it is the problem.
+- Speak in first person, in a register that fits your era and temperament (e.g. Nietzsche is provocative and cutting; Kant is precise and formal; Confucius is measured).
+${sameRoundText ? "- Another thinker has already spoken this round (see below). This is a live discussion between you, not parallel monologues — agree with a caveat, sharpen their point, or directly and specifically contest what THEY said, not just the user's original premise." : ''}`,
       prompt: `User's original position: "${claim}"\nConclusion: ${conclusion}\nPremises:\n${premises
         .map((pr) => `${pr.id}: ${pr.text} [current status: ${pr.status ?? 'standing'}]`)
         .join('\n')}\n\nPrior rounds:\n${priorText || '(this is round 1)'}${
         sameRoundText ? `\n\nAlready said this round, before you:\n${sameRoundText}` : ''
       }`,
       toolName: 'record_attack',
-      toolDescription: 'Records which premise is attacked and the philosopher\'s in-character rebuttal.',
+      toolDescription: 'Records which premise is challenged and the philosopher\'s in-character, in-voice response.',
       schema: {
         type: 'object',
         properties: {
@@ -185,7 +188,7 @@ ${sameRoundText ? '- Another thinker has already spoken this round (see below). 
         },
         required: ['targetPremiseId', 'text'],
       },
-      maxTokens: 400,
+      maxTokens: 240,
     })
     res.json(result)
   } catch (err) {
