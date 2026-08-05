@@ -33,6 +33,12 @@
   --color-side-indigo: #38366e;
   --color-side-indigo-soft: #d8d6ee;
 
+  /* Status colors, muted to sit quietly in the parchment world rather than
+     reading as generic app chrome — never a bright pure hue. */
+  --color-status-success: #3f6b4c;
+  --color-status-warning: #a3762b;
+  --color-status-danger: #7a2530;
+
   --font-display: 'Fraunces', 'Iowan Old Style', serif;
   --font-body: 'Source Serif 4', Georgia, serif;
 

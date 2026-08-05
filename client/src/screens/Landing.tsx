@@ -97,7 +97,7 @@ export function Landing() {
 
         <button
           type="button"
-          onClick={() => navigate('/app/debate')}
+          onClick={() => navigate('/app/reflect')}
           className="group relative overflow-hidden rounded-full px-9 py-4 font-display text-lg font-medium text-parchment-50 shadow-embossed transition-transform active:scale-[0.98]"
           style={{ background: 'linear-gradient(120deg, #e8a33d 0%, #c2531d 55%, #8a2a12 100%)' }}
         >
@@ -106,7 +106,7 @@ export function Landing() {
 
         <button
           type="button"
-          onClick={() => navigate('/app/library')}
+          onClick={() => navigate('/app/archive')}
           className="mt-6 font-body text-sm text-parchment-600 underline decoration-parchment-400 underline-offset-4 hover:text-parchment-800"
         >
           Or browse the philosophers first

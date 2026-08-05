@@ -14,11 +14,11 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/app" element={<AppShell />}>
-          <Route index element={<Navigate to="debate" replace />} />
-          <Route path="debate" element={<Debate />} />
-          <Route path="library" element={<Library />} />
+          <Route index element={<Navigate to="reflect" replace />} />
+          <Route path="reflect" element={<Debate />} />
+          <Route path="archive" element={<Library />} />
           <Route path="train" element={<Train />} />
-          <Route path="history" element={<History />} />
+          <Route path="journal" element={<History />} />
         </Route>
       </Routes>
     </BrowserRouter>

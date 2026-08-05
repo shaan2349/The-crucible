@@ -360,7 +360,7 @@ function DebateView({
     const history = loadDebates()
     saveDebates([...history, debate])
     onExit()
-    navigate('/app/history')
+    navigate('/app/journal')
   }
 
   const busyLabels: Record<string, string> = {

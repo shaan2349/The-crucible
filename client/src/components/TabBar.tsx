@@ -2,10 +2,10 @@ import { NavLink } from 'react-router-dom'
 import { clsx } from 'clsx'
 
 const TABS = [
-  { to: '/app/debate', label: 'Debate' },
-  { to: '/app/library', label: 'Library' },
+  { to: '/app/reflect', label: 'Reflect' },
+  { to: '/app/archive', label: 'Archive' },
   { to: '/app/train', label: 'Train' },
-  { to: '/app/history', label: 'History' },
+  { to: '/app/journal', label: 'Journal' },
 ] as const
 
 export function TabBar() {
