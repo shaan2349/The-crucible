@@ -101,6 +101,23 @@ export function fetchBio(philosopherId: string) {
   return postJSON<BioResponse>('/claude/library/bio', { philosopherId })
 }
 
+export interface CompareResponse {
+  positionA: string
+  positionB: string
+  keyDisagreement: string
+  sharedGround: string
+}
+export function compareThinkers(philosopherAId: string, philosopherBId: string, topic: string) {
+  return postJSON<CompareResponse>('/claude/library/compare', { philosopherAId, philosopherBId, topic })
+}
+
+export interface SearchResponse {
+  matches: { philosopherId: string; reason: string }[]
+}
+export function searchThinkers(query: string) {
+  return postJSON<SearchResponse>('/claude/library/search', { query })
+}
+
 export type TrainLevel = 'easy' | 'medium' | 'hard'
 export type TrainDirection = 'forward' | 'reverse'
 

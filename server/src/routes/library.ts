@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { structured } from '../claude.js'
-import { philosopherById } from '../data/philosophers.js'
+import { PHILOSOPHERS, philosopherById } from '../data/philosophers.js'
 
 export const libraryRouter = Router()
 
@@ -78,6 +78,106 @@ libraryRouter.post('/bio', async (req, res) => {
     res.json(result)
   } catch (err) {
     console.error('bio failed', err)
+    res.status(502).json({ error: 'Claude request failed' })
+  }
+})
+
+/* --------------------------------- compare --------------------------------- */
+
+interface CompareResult {
+  positionA: string
+  positionB: string
+  keyDisagreement: string
+  sharedGround: string
+}
+
+libraryRouter.post('/compare', async (req, res) => {
+  const { philosopherAId, philosopherBId, topic } = req.body ?? {}
+  const a = typeof philosopherAId === 'string' ? philosopherById(philosopherAId) : undefined
+  const b = typeof philosopherBId === 'string' ? philosopherById(philosopherBId) : undefined
+  const topicText = typeof topic === 'string' ? topic.trim() : ''
+  if (!a || !b) return res.status(400).json({ error: 'philosopherAId and philosopherBId must be valid' })
+  if (!topicText) return res.status(400).json({ error: 'topic is required' })
+  if (a.id === b.id) return res.status(400).json({ error: 'choose two different philosophers' })
+
+  try {
+    const result = await structured<CompareResult>({
+      system:
+        'You compare two philosophers on a topic for a curious student. Each position must be reasoned ' +
+        "from that philosopher's actual framework, in their voice — never a generic modern opinion wearing " +
+        'their name. Be concrete: name the actual concept or principle each would invoke, not just a vague ' +
+        'stance.',
+      prompt: `Topic: "${topicText}"\n\nPhilosopher A: ${a.name} (${a.era}). Framework: ${a.framework}.\nPhilosopher B: ${b.name} (${b.era}). Framework: ${b.framework}.`,
+      toolName: 'record_comparison',
+      toolDescription: 'Records how each philosopher approaches the topic and where they conflict and agree.',
+      schema: {
+        type: 'object',
+        properties: {
+          positionA: { type: 'string', description: `${a.name}'s position on the topic, 2-3 sentences, in their voice.` },
+          positionB: { type: 'string', description: `${b.name}'s position on the topic, 2-3 sentences, in their voice.` },
+          keyDisagreement: { type: 'string', description: 'The single sharpest point where they actually conflict, 1-2 sentences.' },
+          sharedGround: { type: 'string', description: 'Any real common ground between them, if genuine — otherwise say plainly there is none.' },
+        },
+        required: ['positionA', 'positionB', 'keyDisagreement', 'sharedGround'],
+      },
+      maxTokens: 600,
+    })
+    res.json(result)
+  } catch (err) {
+    console.error('compare failed', err)
+    res.status(502).json({ error: 'Claude request failed' })
+  }
+})
+
+/* ---------------------------------- search --------------------------------- */
+
+interface SearchResult {
+  matches: { philosopherId: string; reason: string }[]
+}
+
+const PHILOSOPHER_IDS = PHILOSOPHERS.map((p) => p.id)
+
+libraryRouter.post('/search', async (req, res) => {
+  const query = typeof req.body?.query === 'string' ? req.body.query.trim() : ''
+  if (!query) return res.status(400).json({ error: 'query is required' })
+  if (query.length > 300) return res.status(400).json({ error: 'query is too long' })
+
+  const roster = PHILOSOPHERS.map((p) => `${p.id}: ${p.name} (${p.era}) — ${p.framework}`).join('\n')
+
+  try {
+    const result = await structured<SearchResult>({
+      system:
+        'You interpret a free-text search query against a roster of philosophers and return whichever ' +
+        'genuinely match — by name, era, school, idea, or relationship to other thinkers (e.g. "who ' +
+        'disagreed with Plato" should return philosophers who actually did). Return 0-8 matches. Never ' +
+        'invent a philosopher not in the roster, and never include a weak or generic match just to fill ' +
+        'the list — an empty result is correct if nothing genuinely fits.',
+      prompt: `Query: "${query}"\n\nRoster:\n${roster}`,
+      toolName: 'record_search_matches',
+      toolDescription: 'Records which philosophers match the query and why.',
+      schema: {
+        type: 'object',
+        properties: {
+          matches: {
+            type: 'array',
+            maxItems: 8,
+            items: {
+              type: 'object',
+              properties: {
+                philosopherId: { type: 'string', enum: PHILOSOPHER_IDS },
+                reason: { type: 'string', description: 'One short clause on why this thinker matches the query.' },
+              },
+              required: ['philosopherId', 'reason'],
+            },
+          },
+        },
+        required: ['matches'],
+      },
+      maxTokens: 500,
+    })
+    res.json(result)
+  } catch (err) {
+    console.error('search failed', err)
     res.status(502).json({ error: 'Claude request failed' })
   }
 })
