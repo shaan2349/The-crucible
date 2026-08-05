@@ -48,7 +48,16 @@ export function Library() {
   }
 
   const query = search.trim().toLowerCase()
-  const filtered = query ? PHILOSOPHERS.filter((p) => p.name.toLowerCase().includes(query)) : null
+  const filtered = query
+    ? PHILOSOPHERS.filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          p.era.toLowerCase().includes(query) ||
+          p.framework.toLowerCase().includes(query) ||
+          (PHILOSOPHER_TAGS[p.id]?.toLowerCase().includes(query) ?? false) ||
+          clusterNameOf(p.id).toLowerCase().includes(query),
+      )
+    : null
 
   return (
     <>
