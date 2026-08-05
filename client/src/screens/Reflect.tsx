@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { Bust } from '../components/Bust'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { SUGGESTED_TOPICS } from '../data/philosophers'
-import { loadReflectDraft, saveReflectDraft, clearReflectDraft } from '../lib/storage'
+import { loadReflectDraft, saveReflectDraft, clearReflectDraft, loadInterests } from '../lib/storage'
 import { useDebateContext } from '../context/DebateContext'
 import type { Debate as DebateState } from '../types'
 
@@ -35,9 +35,16 @@ function heroQuestion(): string {
   return HERO_QUESTIONS[weekOfYear() % HERO_QUESTIONS.length]
 }
 
+/** Rotates daily, but topics matching an onboarding interest sort first —
+ * the interest picker actually does something rather than sitting unused. */
 function dailySuggestions(): typeof SUGGESTED_TOPICS {
   const offset = dayOfYear() % SUGGESTED_TOPICS.length
-  return Array.from({ length: 4 }, (_, i) => SUGGESTED_TOPICS[(offset + i) % SUGGESTED_TOPICS.length])
+  const rotated = SUGGESTED_TOPICS.map((_, i) => SUGGESTED_TOPICS[(offset + i) % SUGGESTED_TOPICS.length])
+  const interests = loadInterests()
+  const ranked = interests.length
+    ? [...rotated].sort((a, b) => Number(interests.includes(b.domain)) - Number(interests.includes(a.domain)))
+    : rotated
+  return ranked.slice(0, 4)
 }
 
 export function Reflect() {

@@ -8,6 +8,7 @@ const KEYS = {
   reflectDraft: 'crucible:reflectDraft',
   preferences: 'crucible:preferences',
   onboarded: 'crucible:onboarded',
+  interests: 'crucible:interests',
 } as const
 
 export interface Preferences {
@@ -86,6 +87,13 @@ export function hasOnboarded(): boolean {
 }
 export function markOnboarded(): void {
   save(KEYS.onboarded, true)
+}
+
+export function loadInterests(): string[] {
+  return load<string[]>(KEYS.interests, [])
+}
+export function saveInterests(interests: string[]): void {
+  save(KEYS.interests, interests)
 }
 
 /** Every key this app has ever written to localStorage — used by Settings'

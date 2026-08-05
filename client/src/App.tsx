@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Landing } from './screens/Landing'
+import { Onboarding } from './screens/Onboarding'
 import { AppShell } from './components/AppShell'
 import { Reflect } from './screens/Reflect'
 import { Council } from './screens/Council'
@@ -20,6 +21,7 @@ function App() {
         <DebateProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/app" element={<AppShell />}>
               <Route index element={<Navigate to="reflect" replace />} />
               <Route path="reflect" element={<Reflect />} />

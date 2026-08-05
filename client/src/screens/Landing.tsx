@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CrucibleMark } from '../components/CrucibleMark'
 import { useRotatingBackground } from '../hooks/useRotatingBackground'
+import { hasOnboarded } from '../lib/storage'
 
 type BootPhase = 'flare' | 'fadeout' | null
 
@@ -97,7 +98,7 @@ export function Landing() {
 
         <button
           type="button"
-          onClick={() => navigate('/app/reflect')}
+          onClick={() => navigate(hasOnboarded() ? '/app/reflect' : '/onboarding')}
           className="group relative overflow-hidden rounded-full px-9 py-4 font-display text-lg font-medium text-parchment-50 shadow-embossed transition-transform active:scale-[0.98]"
           style={{ background: 'linear-gradient(120deg, #e8a33d 0%, #c2531d 55%, #8a2a12 100%)' }}
         >

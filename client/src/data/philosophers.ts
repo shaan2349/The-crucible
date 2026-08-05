@@ -122,17 +122,23 @@ export const PHILOSOPHER_CATEGORIES = [
   { name: 'Contemporary', ids: ['singer', 'nussbaum', 'thomson', 'sen', 'parfit', 'anscombe'] },
 ] as const
 
+/**
+ * `domain` matches the interest categories offered during onboarding
+ * (Philosophy/Economics/Politics/Psychology/History/Literature/Science) —
+ * Reflect's daily suggestions use it to prioritize topics the user
+ * actually said they care about, rather than the tag sitting unused.
+ */
 export const SUGGESTED_TOPICS = [
-  { short: 'Dad thinks philosophy is a waste of time', label: "My dad thinks I should drop philosophy for something 'practical' — but I think it's worth studying anyway" },
-  { short: "A good God wouldn't allow this suffering", label: 'A good God would not allow this much suffering in the world' },
-  { short: 'Staying silent makes you complicit', label: 'A friend copied my homework — I think staying quiet about it makes me complicit' },
-  { short: 'AI needs tight regulation', label: 'AI should be tightly regulated by governments' },
-  { short: 'Inheritance tax is unjust', label: 'Inheritance tax is fundamentally unjust' },
-  { short: "Study what you love, not 'safe'", label: "My parents want me to pick a 'safe' degree — I think you should study what you actually love" },
-  { short: 'No free will, no real punishment', label: 'Free will is an illusion, so punishment can never be truly justified' },
-  { short: 'Eating meat is now unjustifiable', label: "It's wrong to eat meat now that plant-based alternatives exist" },
-  { short: 'Lying to protect someone was right', label: 'I lied to a friend to protect their feelings, and I think that was the right call' },
-  { short: 'Countries can rightly close borders', label: "A country has the right to close its borders to protect its own citizens' interests" },
+  { short: 'Dad thinks philosophy is a waste of time', label: "My dad thinks I should drop philosophy for something 'practical' — but I think it's worth studying anyway", domain: 'Philosophy' },
+  { short: "A good God wouldn't allow this suffering", label: 'A good God would not allow this much suffering in the world', domain: 'Philosophy' },
+  { short: 'Staying silent makes you complicit', label: 'A friend copied my homework — I think staying quiet about it makes me complicit', domain: 'Psychology' },
+  { short: 'AI needs tight regulation', label: 'AI should be tightly regulated by governments', domain: 'Politics' },
+  { short: 'Inheritance tax is unjust', label: 'Inheritance tax is fundamentally unjust', domain: 'Economics' },
+  { short: "Study what you love, not 'safe'", label: "My parents want me to pick a 'safe' degree — I think you should study what you actually love", domain: 'Psychology' },
+  { short: 'No free will, no real punishment', label: 'Free will is an illusion, so punishment can never be truly justified', domain: 'Philosophy' },
+  { short: 'Eating meat is now unjustifiable', label: "It's wrong to eat meat now that plant-based alternatives exist", domain: 'Science' },
+  { short: 'Lying to protect someone was right', label: 'I lied to a friend to protect their feelings, and I think that was the right call', domain: 'Psychology' },
+  { short: 'Countries can rightly close borders', label: "A country has the right to close its borders to protect its own citizens' interests", domain: 'Politics' },
 ]
 
 export function philosopherById(id: string): Philosopher | undefined {
