@@ -1,5 +1,5 @@
 import { usePortrait } from '../hooks/usePortrait'
-import { Bust } from './Bust'
+import { PortraitFallback } from './PortraitFallback'
 import { SIDE_ACCENT, photoPosition } from '../data/philosophers'
 
 const DUOTONE_FILTER = ['url(#duotone-gold)', 'url(#duotone-indigo)']
@@ -10,8 +10,9 @@ const DUOTONE_FILTER = ['url(#duotone-gold)', 'url(#duotone-indigo)']
  * DuotoneDefs) rather than a generic sepia filter — the photo treatment
  * itself carries the two-opposing-sides identity, not just a color tint
  * layered on top. Static per debate — cycling would be confusing
- * mid-argument. Falls back to an accent-tinted bust per side if that
- * philosopher has no mapped photo or it fails to load.
+ * mid-argument. Each side always shows PortraitFallback (accent-tinted)
+ * underneath, so a missing or slow-loading photo never leaves a blank
+ * half — the real portrait just fades in on top once it arrives.
  *
  * Stacked top/bottom below the `sm` breakpoint, side by side above it —
  * a side-by-side split gives each portrait only half the (already
@@ -29,14 +30,12 @@ export function DebateBackdrop({ philosopherIds }: { philosopherIds: string[] })
       <div className="absolute inset-0 flex flex-col sm:flex-row">
         <Side
           url={portrait1.url}
-          failed={portrait1.failed}
           accent={SIDE_ACCENT[0]}
           duotone={DUOTONE_FILTER[0]}
           position={id1 ? photoPosition(id1) : undefined}
         />
         <Side
           url={portrait2.url}
-          failed={portrait2.failed}
           accent={SIDE_ACCENT[1]}
           duotone={DUOTONE_FILTER[1]}
           position={id2 ? photoPosition(id2) : undefined}
@@ -59,30 +58,25 @@ export function DebateBackdrop({ philosopherIds }: { philosopherIds: string[] })
 
 function Side({
   url,
-  failed,
   accent,
   duotone,
   position,
 }: {
   url: string | null
-  failed: boolean
   accent: string
   duotone: string
   position?: string
 }) {
   return (
     <div className="relative h-1/2 w-full overflow-hidden sm:h-full sm:w-1/2">
+      <PortraitFallback bustOpacity={0.18} />
+      <div className="absolute inset-0" style={{ background: `${accent}12` }} />
       {url && (
         <div
           key={url}
           className="absolute inset-0 animate-[backdropFade_1s_ease] bg-cover"
           style={{ backgroundImage: `url(${url})`, backgroundPosition: position ?? '50% 18%', filter: duotone }}
         />
-      )}
-      {!url && failed && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Bust className="h-40 w-40" tone={`${accent}35`} />
-        </div>
       )}
     </div>
   )

@@ -43,7 +43,19 @@ export function useRotatingBackground(intervalMs = 30000) {
       indexRef.current += 1
       const url = wikimediaFilePath(name)
       const img = new Image()
+      let settled = false
+      // A stalled request (slow/unreachable Wikimedia) never fires onload
+      // or onerror, which otherwise stalls the whole rotation on one bad
+      // candidate instead of moving on to the next photo.
+      const timeout = window.setTimeout(() => {
+        if (settled) return
+        settled = true
+        tryLoad(attemptsLeft - 1)
+      }, 7000)
       img.onload = () => {
+        if (settled) return
+        settled = true
+        window.clearTimeout(timeout)
         if (!cancelled) {
           const position = photoPosition(id)
           cache = { url, position }
@@ -52,7 +64,12 @@ export function useRotatingBackground(intervalMs = 30000) {
           setFailed(false)
         }
       }
-      img.onerror = () => tryLoad(attemptsLeft - 1)
+      img.onerror = () => {
+        if (settled) return
+        settled = true
+        window.clearTimeout(timeout)
+        tryLoad(attemptsLeft - 1)
+      }
       img.src = url
     }
 

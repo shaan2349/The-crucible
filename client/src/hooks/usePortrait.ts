@@ -49,21 +49,39 @@ export function usePortrait(
       return
     }
 
-    let cancelled = false
+    let unmounted = false
+    let settled = false
     const target = wikimediaFilePath(filename, width)
     const img = new Image()
+    // A stalled request (slow/unreachable Wikimedia, flaky connection)
+    // otherwise never resolves onload or onerror, leaving the caller in
+    // an indefinite "still loading" limbo with nothing to show — this
+    // timeout guarantees a fallback appears within a bounded time.
+    const timeout = window.setTimeout(() => {
+      if (settled) return
+      settled = true
+      cache.set(cacheKey, { url: null, failed: true })
+      if (!unmounted) setFailed(true)
+    }, 7000)
     img.onload = () => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timeout)
       cache.set(cacheKey, { url: target, failed: false })
-      if (!cancelled) setUrl(target)
+      if (!unmounted) setUrl(target)
     }
     img.onerror = () => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timeout)
       cache.set(cacheKey, { url: null, failed: true })
-      if (!cancelled) setFailed(true)
+      if (!unmounted) setFailed(true)
     }
     img.src = target
 
     return () => {
-      cancelled = true
+      unmounted = true
+      window.clearTimeout(timeout)
     }
   }, [philosopherId, width, cacheKey])
 

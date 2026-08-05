@@ -1,5 +1,5 @@
 import { usePortrait } from '../hooks/usePortrait'
-import { Bust } from './Bust'
+import { PortraitFallback } from './PortraitFallback'
 
 interface PortraitFrameProps {
   id: string
@@ -44,18 +44,15 @@ export function PortraitFrame({
         position: 'relative',
       }}
     >
+      {busted && <PortraitFallback bustOpacity={failed ? 0.3 : 0.16} />}
       {url && (
         <img
+          key={url}
           src={url}
           alt=""
           className="absolute inset-0 h-full w-full"
-          style={{ objectFit: 'contain', filter: duotone }}
+          style={{ objectFit: 'contain', filter: duotone, animation: 'backdropFade 0.5s ease' }}
         />
-      )}
-      {!url && failed && busted && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Bust className="h-2/3 w-2/3 text-parchment-600/40" />
-        </div>
       )}
     </div>
   )

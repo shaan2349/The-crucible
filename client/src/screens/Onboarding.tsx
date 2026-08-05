@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CrucibleMark } from '../components/CrucibleMark'
+import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { markOnboarded, saveInterests } from '../lib/storage'
 
 const INTERESTS = ['Philosophy', 'Economics', 'Politics', 'Psychology', 'History', 'Literature', 'Science']
@@ -39,15 +40,16 @@ export function Onboarding() {
   const current = steps[step]
 
   return (
-    <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-parchment-100 px-8 py-16 text-center">
+    <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-8 py-16 text-center">
+      <RotatingBackdrop />
       <div
-        className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl shadow-embossed"
+        className="relative z-[1] mb-8 flex h-16 w-16 items-center justify-center rounded-2xl shadow-embossed"
         style={{ background: 'linear-gradient(155deg, #e8a33d 0%, #c2531d 55%, #8a2a12 100%)' }}
       >
         <CrucibleMark size={36} className="text-parchment-50" />
       </div>
 
-      <div className="w-full max-w-sm" style={{ animation: 'revealUp 0.4s ease both' }}>
+      <div className="relative z-[1] w-full max-w-sm" style={{ animation: 'revealUp 0.4s ease both' }}>
         {current ? (
           <>
             <h1 className="mb-4 font-display text-3xl font-medium leading-snug text-parchment-900">
@@ -100,7 +102,7 @@ export function Onboarding() {
         )}
       </div>
 
-      <div className="mt-10 flex gap-1.5">
+      <div className="relative z-[1] mt-10 flex gap-1.5">
         {steps.map((_, i) => (
           <span
             key={i}
