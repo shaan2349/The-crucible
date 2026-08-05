@@ -56,7 +56,17 @@ export interface Bio {
   legacy: string
 }
 
+export interface TrainingSession {
+  date: number
+  level: 'easy' | 'medium' | 'hard'
+  direction: 'forward' | 'reverse'
+  score: number
+}
+
 export interface TrainingStats {
   correct: number
   total: number
+  sessions: TrainingSession[]
+  streak: number
+  lastSessionDate: number | null
 }

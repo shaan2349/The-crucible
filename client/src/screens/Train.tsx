@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Shuffle, RotateCcw, Feather, PenLine } from 'lucide-react'
+import { Shuffle, RotateCcw, Feather, PenLine, Flame } from 'lucide-react'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { EmptyState } from '../components/EmptyState'
@@ -7,6 +7,19 @@ import { Loader } from '../components/Loader'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { generateChallenge, scoreChallenge, type TrainDirection, type TrainLevel, type TrainGenerateResponse, type TrainScoreResponse } from '../lib/api'
 import { loadTrainingStats, saveTrainingStats } from '../lib/storage'
+import type { TrainingStats } from '../types'
+
+function startOfDay(ts: number): number {
+  const d = new Date(ts)
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+function daysBetween(a: number, b: number): number {
+  return Math.round((startOfDay(b) - startOfDay(a)) / 86_400_000)
+}
+
+const LEVELS: TrainLevel[] = ['easy', 'medium', 'hard']
 
 export function Train() {
   const [level, setLevel] = useState<TrainLevel>('easy')
@@ -17,7 +30,13 @@ export function Train() {
   const [premiseInputs, setPremiseInputs] = useState(['', ''])
   const [feedback, setFeedback] = useState<TrainScoreResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [stats, setStats] = useState({ correct: 0, total: 0 })
+  const [stats, setStats] = useState<TrainingStats>({
+    correct: 0,
+    total: 0,
+    sessions: [],
+    streak: 0,
+    lastSessionDate: null,
+  })
 
   useEffect(() => {
     setStats(loadTrainingStats())
@@ -52,7 +71,16 @@ export function Train() {
         userPremises: premiseInputs,
       })
       setFeedback(result)
-      const nextStats = { correct: stats.correct + (result.score >= 3 ? 1 : 0), total: stats.total + 1 }
+      const now = Date.now()
+      const gap = stats.lastSessionDate == null ? null : daysBetween(stats.lastSessionDate, now)
+      const streak = gap == null || gap > 1 ? 1 : gap === 0 ? Math.max(stats.streak, 1) : stats.streak + 1
+      const nextStats: TrainingStats = {
+        correct: stats.correct + (result.score >= 3 ? 1 : 0),
+        total: stats.total + 1,
+        sessions: [...stats.sessions, { date: now, level, direction, score: result.score }].slice(-30),
+        streak,
+        lastSessionDate: now,
+      }
       setStats(nextStats)
       saveTrainingStats(nextStats)
     } catch (e) {
@@ -79,18 +107,57 @@ export function Train() {
           </p>
           <h1 className="font-display text-2xl font-medium text-parchment-900">Deconstruction training</h1>
           <p className="mt-1 text-sm text-parchment-600">
-            {stats.total > 0
-              ? `${stats.correct}/${stats.total} solid extractions so far.`
-              : 'Extract hidden premises from real-style arguments, or build one from scratch.'}
+            Extract hidden premises from real-style arguments, or build one from scratch.
           </p>
         </header>
+
+        {stats.total > 0 && (
+          <div className="mb-6 grid grid-cols-3 gap-3">
+            <Card className="p-3.5 text-center">
+              <p className="font-display text-xl font-medium text-parchment-900">{stats.total}</p>
+              <p className="mt-0.5 text-[11px] text-parchment-500">Attempts</p>
+            </Card>
+            <Card className="p-3.5 text-center">
+              <p className="font-display text-xl font-medium text-parchment-900">
+                {Math.round((stats.correct / stats.total) * 100)}%
+              </p>
+              <p className="mt-0.5 text-[11px] text-parchment-500">Solid reads</p>
+            </Card>
+            <Card className="p-3.5 text-center">
+              <p className="flex items-center justify-center gap-1 font-display text-xl font-medium text-parchment-900">
+                {stats.streak > 0 && <Flame className="h-4 w-4 text-forge-ember" />}
+                {stats.streak}
+              </p>
+              <p className="mt-0.5 text-[11px] text-parchment-500">Day streak</p>
+            </Card>
+          </div>
+        )}
+
+        {stats.sessions.length > 0 && (
+          <div className="mb-6 flex flex-wrap items-center gap-1.5">
+            <p className="mr-1 text-[11px] uppercase tracking-wide text-parchment-500">Recent</p>
+            {stats.sessions.slice(-8).map((s, i) => (
+              <span
+                key={i}
+                title={`${s.level} · scored ${s.score}/5`}
+                className="flex h-6 w-6 items-center justify-center rounded-full font-display text-[11px] font-semibold"
+                style={{
+                  background: s.score >= 4 ? 'var(--color-side-gold-soft)' : s.score >= 3 ? '#c2531d22' : '#8a2a1218',
+                  color: s.score >= 4 ? 'var(--color-side-gold)' : s.score >= 3 ? '#a3441c' : '#8a2a12',
+                }}
+              >
+                {s.score}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <div
             className="flex gap-1 rounded-lg border border-parchment-300/70 bg-parchment-200 p-1"
             style={{ boxShadow: 'var(--shadow-embossed)' }}
           >
-            {(['easy', 'medium', 'hard'] as const).map((l) => (
+            {LEVELS.map((l) => (
               <button
                 key={l}
                 type="button"
@@ -121,6 +188,14 @@ export function Train() {
             </button>
           </div>
         </div>
+
+        {stats.sessions.length > 0 && (
+          <p className="mt-2 text-[11px] text-parchment-500">
+            {LEVELS.filter((l) => stats.sessions.some((s) => s.level === l))
+              .map((l) => `${l[0].toUpperCase()}${l.slice(1)} ${stats.sessions.filter((s) => s.level === l).length}`)
+              .join(' · ')}
+          </p>
+        )}
 
         {!challenge && !loading && !error && (
           <div className="mt-8">

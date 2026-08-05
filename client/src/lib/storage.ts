@@ -56,8 +56,19 @@ export function saveBios(bios: Record<string, BioResponse>): void {
   save(KEYS.bios, bios)
 }
 
+const DEFAULT_TRAINING_STATS: TrainingStats = {
+  correct: 0,
+  total: 0,
+  sessions: [],
+  streak: 0,
+  lastSessionDate: null,
+}
+
 export function loadTrainingStats(): TrainingStats {
-  return load<TrainingStats>(KEYS.trainingStats, { correct: 0, total: 0 })
+  // Merged over defaults, not just returned raw — older saved stats predate
+  // the sessions/streak fields, and a partial object would otherwise crash
+  // any code that reads them.
+  return { ...DEFAULT_TRAINING_STATS, ...load<Partial<TrainingStats>>(KEYS.trainingStats, {}) }
 }
 export function saveTrainingStats(stats: TrainingStats): void {
   save(KEYS.trainingStats, stats)
