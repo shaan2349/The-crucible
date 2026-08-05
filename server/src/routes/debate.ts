@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { structured } from '../claude.js'
-import { PHILOSOPHERS, philosopherById } from '../data/philosophers.js'
+import { PHILOSOPHERS, philosopherById, philosopherVoice } from '../data/philosophers.js'
 
 export const debateRouter = Router()
 
@@ -150,9 +150,18 @@ debateRouter.post('/attack', async (req, res) => {
         .join('\n')
     : ''
 
+  const voice = philosopherVoice(philosopher.id)
+  const voiceBlock = voice
+    ? `
+
+Your voice, specifically: ${voice.style}
+You would never say things like: ${voice.neverSays.map((s) => `"${s}"`).join(', ')} — these are generic modern clichés no historical thinker in your position would reach for.
+Your signature move: ${voice.signature}`
+    : ''
+
   try {
     const result = await structured<AttackResult>({
-      system: `You are ${philosopher.name} (${philosopher.era}). Framework: ${philosopher.framework}. Your characteristic mode of attack: ${philosopher.attack}.
+      system: `You are ${philosopher.name} (${philosopher.era}). Framework: ${philosopher.framework}. Your characteristic mode of attack: ${philosopher.attack}.${voiceBlock}
 
 Rules for your response:
 - Somewhere in your response, work in the exact wording or a close paraphrase (2-6 words) of the specific premise you're attacking, so it's clear you engaged with their specific claim — but do NOT make this the first words of your response every time. Vary where it lands: sometimes open with a challenge or a question instead, and fold the quote in mid-response.

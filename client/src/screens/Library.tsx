@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Search } from 'lucide-react'
-import { PHILOSOPHER_CATEGORIES, PHILOSOPHERS, PHILOSOPHER_TAGS, philosopherById } from '../data/philosophers'
+import { PHILOSOPHER_CATEGORIES, PHILOSOPHERS, PHILOSOPHER_TAGS, philosopherById, philosopherVoice } from '../data/philosophers'
 import { relationshipsFor } from '../data/relationships'
 import { Card } from '../components/Card'
 import { Loader } from '../components/Loader'
@@ -150,6 +150,7 @@ function PhilosopherDetail({
   if (!p) return null
   const isError = bio && 'error' in bio
   const connections = relationshipsFor(id)
+  const voice = philosopherVoice(id)
 
   return (
     <div style={{ animation: 'revealUp 0.3s ease both' }}>
@@ -188,6 +189,12 @@ function PhilosopherDetail({
           <p className="mb-1 font-display text-[13px] italic text-forge-ember">Characteristic move</p>
           <p className="leading-relaxed text-parchment-800">{p.attack}</p>
         </Card>
+        {voice && (
+          <Card className="p-4">
+            <p className="mb-1 font-display text-[13px] italic text-forge-ember">Voice</p>
+            <p className="leading-relaxed text-parchment-800">{voice.style}</p>
+          </Card>
+        )}
 
         {!bio && <Loader label="Reading their history…" />}
         {isError && (
