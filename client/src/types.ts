@@ -45,6 +45,9 @@ export interface Debate {
   phase: DebatePhase
   verdict: Verdict | null
   error?: string | null
+  /** The user's own written reflection, captured after the Council concludes —
+   * distinct from `verdict`, which is the AI's analysis. */
+  userReflection?: string
 }
 
 export interface Bio {

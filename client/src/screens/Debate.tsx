@@ -59,6 +59,32 @@ function thinkingLabel(id: string | null): string {
   return `${p.name} ${THINKING_VERBS[id.length % THINKING_VERBS.length]}…`
 }
 
+const REFLECTION_PROMPTS = [
+  'What challenged your thinking most?',
+  'Did anyone change your perspective?',
+  'Which argument will stay with you?',
+  'What assumption have you started questioning?',
+]
+
+function reflectionPrompt(debateId: number): string {
+  return REFLECTION_PROMPTS[debateId % REFLECTION_PROMPTS.length]
+}
+
+/** A short reminder of what was actually said, not a full transcript —
+ * the Reflection screen's job is to prompt the user's own thinking, not
+ * re-read the debate. */
+function summarizeConversation(debate: DebateState): string {
+  const lastRound = debate.rounds[debate.rounds.length - 1]
+  if (!lastRound) return ''
+  return lastRound.attacks
+    .map((a) => {
+      const p = philosopherById(a.philosopherId)
+      const snippet = a.text.length > 90 ? `${a.text.slice(0, 90).trim()}…` : a.text
+      return `${p?.name ?? a.philosopherId} pressed: "${snippet}"`
+    })
+    .join(' ')
+}
+
 export function Debate() {
   const [debate, setDebate] = useState<DebateState | null>(null)
 
@@ -212,6 +238,7 @@ function DebateView({
 }) {
   const [response, setResponse] = useState('')
   const [thinkingId, setThinkingId] = useState<string | null>(null)
+  const [reflectionText, setReflectionText] = useState('')
   const navigate = useNavigate()
 
   function updateDebate(fn: (d: DebateState) => DebateState) {
@@ -323,7 +350,10 @@ function DebateView({
 
   function saveAndFinish() {
     const history = loadDebates()
-    saveDebates([...history, debate])
+    const toSave: DebateState = reflectionText.trim()
+      ? { ...debate, userReflection: reflectionText.trim() }
+      : debate
+    saveDebates([...history, toSave])
     onExit()
     navigate('/app/journal')
   }
@@ -559,12 +589,31 @@ function DebateView({
             <p className="font-display text-xl leading-snug text-parchment-900">{debate.verdict.sharpenedClaim}</p>
           </Card>
 
+          <div
+            className="mt-8 border-t border-parchment-300 pt-6"
+            style={{ animation: 'revealUp 0.5s ease both', animationDelay: '300ms' }}
+          >
+            <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">Reflection</p>
+            {summarizeConversation(debate) && (
+              <p className="mb-3 text-xs italic leading-relaxed text-parchment-500">{summarizeConversation(debate)}</p>
+            )}
+            <p className="mb-3 font-display text-lg leading-snug text-parchment-900">{reflectionPrompt(debate.id)}</p>
+            <textarea
+              value={reflectionText}
+              onChange={(e) => setReflectionText(e.target.value)}
+              placeholder="Write honestly. Nobody else will read this."
+              rows={5}
+              className="w-full resize-none rounded-2xl bg-parchment-50 p-5 text-[15px] leading-relaxed text-parchment-900 outline-none placeholder:text-parchment-400"
+              style={{ boxShadow: 'var(--shadow-card)' }}
+            />
+          </div>
+
           <Button
             className="mt-5 w-full py-3"
             onClick={saveAndFinish}
             style={{ animation: 'revealUp 0.5s ease both', animationDelay: '360ms' }}
           >
-            Save & finish
+            Save reflection
           </Button>
         </div>
       )}

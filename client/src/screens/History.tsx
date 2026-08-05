@@ -36,7 +36,12 @@ export function History() {
       <RotatingBackdrop />
       <div className="relative z-[1] px-6 pb-10 pt-8">
         {openEntry ? (
-          <JournalEntry debate={openEntry} onBack={() => setOpenId(null)} />
+          <JournalEntry
+            debate={openEntry}
+            allDebates={debates}
+            onBack={() => setOpenId(null)}
+            onJump={setOpenId}
+          />
         ) : (
           <>
             <header className="mb-6">
@@ -155,7 +160,28 @@ export function History() {
   )
 }
 
-function JournalEntry({ debate, onBack }: { debate: Debate; onBack: () => void }) {
+function relatedEntries(debate: Debate, all: Debate[]): Debate[] {
+  return all
+    .filter((d) => d.id !== debate.id)
+    .filter(
+      (d) =>
+        (debate.verdict && d.verdict?.leanedFramework === debate.verdict.leanedFramework) ||
+        d.philosopherIds.some((id) => debate.philosopherIds.includes(id)),
+    )
+    .slice(0, 3)
+}
+
+function JournalEntry({
+  debate,
+  allDebates,
+  onBack,
+  onJump,
+}: {
+  debate: Debate
+  allDebates: Debate[]
+  onBack: () => void
+  onJump: (id: number) => void
+}) {
   const date = new Date(debate.id)
   const dateStr = date.toLocaleDateString(undefined, {
     weekday: 'long',
@@ -163,6 +189,7 @@ function JournalEntry({ debate, onBack }: { debate: Debate; onBack: () => void }
     month: 'long',
     year: 'numeric',
   })
+  const related = relatedEntries(debate, allDebates)
 
   return (
     <div style={{ animation: 'unfurl 0.45s ease both', transformOrigin: 'top center' }}>
@@ -197,6 +224,31 @@ function JournalEntry({ debate, onBack }: { debate: Debate; onBack: () => void }
             <p className="mb-1 font-display text-[13px] italic text-forge-ember">You leaned on</p>
             <p className="text-sm leading-relaxed text-parchment-800">{debate.verdict.leanedFramework}</p>
           </Card>
+          {debate.userReflection && (
+            <Card className="p-4">
+              <p className="mb-1 font-display text-[13px] italic text-forge-ember">Your reflection</p>
+              <p className="text-sm leading-relaxed text-parchment-800">{debate.userReflection}</p>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {related.length > 0 && (
+        <div className="mt-7">
+          <p className="mb-2.5 font-display text-[13px] italic text-forge-ember">You may also want to revisit</p>
+          <div className="space-y-2">
+            {related.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => onJump(r.id)}
+                className="block w-full rounded-xl bg-parchment-50 px-3.5 py-2.5 text-left text-sm text-parchment-800"
+                style={{ boxShadow: 'var(--shadow-card)' }}
+              >
+                &ldquo;{r.claim}&rdquo;
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
