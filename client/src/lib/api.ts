@@ -57,6 +57,7 @@ export function attack(params: {
   premises: { id: string; text: string; status: string }[]
   philosopherId: string
   priorRounds: { round: number; userResponse: string | null }[]
+  sameRoundAttacks?: { philosopherId: string; text: string }[]
 }) {
   return postJSON<AttackResponse>('/claude/debate/attack', params)
 }

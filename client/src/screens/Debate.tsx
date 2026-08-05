@@ -51,6 +51,15 @@ function dailySuggestions(): typeof SUGGESTED_TOPICS {
   return Array.from({ length: 4 }, (_, i) => SUGGESTED_TOPICS[(offset + i) % SUGGESTED_TOPICS.length])
 }
 
+const THINKING_VERBS = ['is considering your position', 'is examining your premise', 'is preparing a challenge']
+
+function thinkingLabel(id: string | null): string {
+  if (!id) return 'Philosophers are forming their attacks…'
+  const p = philosopherById(id)
+  if (!p) return 'Forming a response…'
+  return `${p.name} ${THINKING_VERBS[id.length % THINKING_VERBS.length]}…`
+}
+
 export function Debate() {
   const [debate, setDebate] = useState<DebateState | null>(null)
 
@@ -203,6 +212,7 @@ function DebateView({
   onExit: () => void
 }) {
   const [response, setResponse] = useState('')
+  const [thinkingId, setThinkingId] = useState<string | null>(null)
   const navigate = useNavigate()
 
   function updateDebate(fn: (d: DebateState) => DebateState) {
@@ -236,17 +246,20 @@ function DebateView({
       }))
     } else if (debate.phase === 'attacking') {
       const priorRounds = debate.rounds.map((r) => ({ round: r.round, userResponse: r.userResponse }))
-      const attacks = []
+      const attacks: Round['attacks'] = []
       for (const philosopherId of debate.philosopherIds) {
+        setThinkingId(philosopherId)
         const result = await api.attack({
           claim: debate.claim,
           conclusion: debate.conclusion,
           premises: debate.premises,
           philosopherId,
           priorRounds,
+          sameRoundAttacks: attacks.map((a) => ({ philosopherId: a.philosopherId, text: a.text })),
         })
         attacks.push({ philosopherId, targetPremiseId: result.targetPremiseId, text: result.text })
       }
+      setThinkingId(null)
       const round: Round = { round: debate.currentRound, attacks, userResponse: null }
       updateDebate((d) => ({ ...d, rounds: [...d.rounds, round], phase: 'awaiting-response' }))
     } else if (debate.phase === 'evaluating') {
@@ -319,7 +332,7 @@ function DebateView({
   const busyLabels: Record<string, string> = {
     selecting: 'Choosing your opponents…',
     decomposing: 'Breaking your position into premises…',
-    attacking: 'Philosophers are forming their attacks…',
+    attacking: thinkingLabel(thinkingId),
     evaluating: 'Weighing your response…',
     'verdict-loading': 'Reaching a verdict…',
   }

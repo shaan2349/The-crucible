@@ -131,7 +131,7 @@ interface AttackResult {
 }
 
 debateRouter.post('/attack', async (req, res) => {
-  const { claim, conclusion, premises, philosopherId, priorRounds } = req.body ?? {}
+  const { claim, conclusion, premises, philosopherId, priorRounds, sameRoundAttacks } = req.body ?? {}
   if (typeof claim !== 'string' || !claim.trim()) return badRequest(res, 'claim is required')
   if (typeof conclusion !== 'string' || !conclusion.trim()) return badRequest(res, 'conclusion is required')
   if (!validPremises(premises)) return badRequest(res, 'premises is required')
@@ -144,6 +144,12 @@ debateRouter.post('/attack', async (req, res) => {
         .join('\n')
     : ''
 
+  const sameRoundText = Array.isArray(sameRoundAttacks)
+    ? sameRoundAttacks
+        .map((a: { philosopherId: string; text: string }) => `${philosopherById(a.philosopherId)?.name ?? a.philosopherId}: ${a.text}`)
+        .join('\n')
+    : ''
+
   try {
     const result = await structured<AttackResult>({
       system: `You are ${philosopher.name} (${philosopher.era}). Framework: ${philosopher.framework}. Your characteristic mode of attack: ${philosopher.attack}.
@@ -153,10 +159,13 @@ Rules for your response:
 - Name at least one specific concept, term, or text genuinely associated with you (e.g. Kant would say "categorical imperative", Rawls would say "veil of ignorance", Nietzsche would say "ressentiment"). A response with no specific terminology is a failure.
 - Do NOT write generic philosophical pushback that any philosopher could have said about any topic. Your objection must depend on the actual content of THIS premise.
 - Attack exactly one premise, and be precise about which exact word or claim in it is the problem.
-- Speak in first person, 2-4 sentences, in a register that fits your era and temperament (e.g. Nietzsche is provocative and cutting; Kant is precise and formal; Confucius is measured).`,
+- Speak in first person, 2-4 sentences, in a register that fits your era and temperament (e.g. Nietzsche is provocative and cutting; Kant is precise and formal; Confucius is measured).
+${sameRoundText ? '- Another thinker has already spoken this round (see below). Engage with what they actually said — agree with a caveat, sharpen their point, or directly contest it — rather than ignoring them and only addressing the user. This is a live discussion between you, not parallel monologues.' : ''}`,
       prompt: `User's original position: "${claim}"\nConclusion: ${conclusion}\nPremises:\n${premises
         .map((pr) => `${pr.id}: ${pr.text} [current status: ${pr.status ?? 'standing'}]`)
-        .join('\n')}\n\nPrior rounds:\n${priorText || '(this is round 1)'}`,
+        .join('\n')}\n\nPrior rounds:\n${priorText || '(this is round 1)'}${
+        sameRoundText ? `\n\nAlready said this round, before you:\n${sameRoundText}` : ''
+      }`,
       toolName: 'record_attack',
       toolDescription: 'Records which premise is attacked and the philosopher\'s in-character rebuttal.',
       schema: {
