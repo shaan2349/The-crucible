@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, BookOpen } from 'lucide-react'
 import { philosopherById } from '../data/philosophers'
 import { Card } from '../components/Card'
 import { EmptyState } from '../components/EmptyState'
-import { PersonalSky } from '../components/PersonalSky'
+import { PortraitFrame } from '../components/PortraitFrame'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { loadDebates } from '../lib/storage'
 import type { Debate } from '../types'
@@ -11,6 +12,7 @@ import type { Debate } from '../types'
 export function History() {
   const [debates, setDebates] = useState<Debate[]>([])
   const [openId, setOpenId] = useState<number | null>(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     setDebates(loadDebates())
@@ -26,9 +28,14 @@ export function History() {
       visited[id] = (visited[id] ?? 0) + 1
     })
   })
-  const top = Object.entries(tally)
+  const topFrameworks = Object.entries(tally)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
+    .slice(0, 3)
+    .map(([framework]) => framework)
+  const favourites = Object.entries(visited)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([id]) => id)
 
   const openEntry = openId != null ? debates.find((d) => d.id === openId) ?? null : null
 
@@ -50,7 +57,7 @@ export function History() {
                 The Journal
               </p>
               <h1 className="font-display text-2xl font-medium text-parchment-900">Your philosophical journal</h1>
-              <p className="mt-1 text-sm text-parchment-600">Which frameworks you tend to reach for, across debates.</p>
+              <p className="mt-1 text-sm text-parchment-600">The shape of how your thinking has moved, over time.</p>
             </header>
 
             {debates.length === 0 && (
@@ -61,39 +68,42 @@ export function History() {
               />
             )}
 
-            {debates.length > 0 && (
-              <Card className="overflow-hidden p-5">
-                <p className="mb-1 font-display text-[13px] italic text-forge-ember">Your Firmament</p>
-                <p className="mb-3 text-xs text-parchment-500">
-                  The same sky as the Library — but only the minds you've actually crossed paths with are lit.
-                </p>
-                <PersonalSky visited={visited} />
-              </Card>
-            )}
+            {(topFrameworks.length > 0 || favourites.length > 0) && (
+              <Card className="p-5">
+                {topFrameworks.length > 0 && (
+                  <p className="text-sm leading-relaxed text-parchment-800">
+                    You keep returning to{' '}
+                    <span className="font-display italic text-forge-ember">
+                      {topFrameworks.length === 1
+                        ? topFrameworks[0]
+                        : `${topFrameworks.slice(0, -1).join(', ')} and ${topFrameworks[topFrameworks.length - 1]}`}
+                    </span>
+                    .
+                  </p>
+                )}
 
-            {top.length > 0 && (
-              <Card className="mt-5 p-5">
-                <p className="mb-3 font-display text-[13px] italic text-forge-ember">Recurring threads</p>
-                {top.map(([framework, count], i) => (
-                  <div key={framework} className={i > 0 ? 'mt-3' : undefined}>
-                    <div className="mb-1 flex items-baseline justify-between gap-3">
-                      <span className="font-display text-sm italic text-parchment-800">{framework}</span>
-                      <span className="shrink-0 font-display text-xs text-parchment-500">{count}×</span>
-                    </div>
-                    <div
-                      className="h-2 overflow-hidden rounded-full bg-parchment-200"
-                      style={{ boxShadow: 'inset 0 1px 2px rgba(74,61,42,0.15)' }}
-                    >
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${(count / debates.length) * 100}%`,
-                          background: 'linear-gradient(90deg, #e8a33d, #c2531d)',
-                        }}
-                      />
+                {favourites.length > 0 && (
+                  <div className={topFrameworks.length > 0 ? 'mt-4' : undefined}>
+                    <p className="mb-2.5 font-display text-[13px] italic text-forge-ember">Familiar faces</p>
+                    <div className="flex gap-3">
+                      {favourites.map((id) => {
+                        const p = philosopherById(id)
+                        if (!p) return null
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => navigate('/app/archive')}
+                            className="w-14 shrink-0 text-center"
+                          >
+                            <PortraitFrame id={id} size={160} className="w-full" />
+                            <p className="mt-1 truncate text-[10px] text-parchment-600">{p.name}</p>
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
-                ))}
+                )}
               </Card>
             )}
 
