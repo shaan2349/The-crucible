@@ -5,6 +5,7 @@ const KEYS = {
   debates: 'crucible:debates',
   bios: 'crucible:bios',
   trainingStats: 'crucible:trainingStats',
+  reflectDraft: 'crucible:reflectDraft',
 } as const
 
 function load<T>(key: string, fallback: T): T {
@@ -43,4 +44,18 @@ export function loadTrainingStats(): TrainingStats {
 }
 export function saveTrainingStats(stats: TrainingStats): void {
   save(KEYS.trainingStats, stats)
+}
+
+export function loadReflectDraft(): string | null {
+  return load<string | null>(KEYS.reflectDraft, null)
+}
+export function saveReflectDraft(text: string): void {
+  save(KEYS.reflectDraft, text)
+}
+export function clearReflectDraft(): void {
+  try {
+    localStorage.removeItem(KEYS.reflectDraft)
+  } catch {
+    // ignore
+  }
 }

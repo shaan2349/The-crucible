@@ -1,6 +1,6 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shuffle, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { Loader } from '../components/Loader'
@@ -10,14 +10,46 @@ import { PortraitFrame } from '../components/PortraitFrame'
 import { Bust } from '../components/Bust'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { DebateBackdrop } from '../components/DebateBackdrop'
-import { PHILOSOPHERS, philosopherById, initials, SUGGESTED_TOPICS, SIDE_ACCENT } from '../data/philosophers'
+import { philosopherById, SUGGESTED_TOPICS, SIDE_ACCENT } from '../data/philosophers'
 import * as api from '../lib/api'
-import { loadDebates, saveDebates } from '../lib/storage'
-import type { Debate as DebateState, OpponentMode, Round } from '../types'
+import { loadDebates, saveDebates, loadReflectDraft, saveReflectDraft, clearReflectDraft } from '../lib/storage'
+import type { Debate as DebateState, Round } from '../types'
 
 const SIDE_DUOTONE = ['url(#duotone-gold)', 'url(#duotone-indigo)']
 
 const MAX_ROUNDS = 3
+
+const HERO_QUESTIONS = [
+  "What's occupying your mind today?",
+  "What question won't leave you alone?",
+  'What belief are you beginning to question?',
+  'What has been on your mind lately?',
+]
+
+function greeting(): string {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning.'
+  if (h < 18) return 'Good afternoon.'
+  return 'Good evening.'
+}
+
+function dayOfYear(d = new Date()): number {
+  const start = new Date(d.getFullYear(), 0, 1)
+  return Math.floor((d.getTime() - start.getTime()) / 86_400_000)
+}
+
+function weekOfYear(d = new Date()): number {
+  return Math.floor(dayOfYear(d) / 7)
+}
+
+function heroQuestion(): string {
+  return HERO_QUESTIONS[weekOfYear() % HERO_QUESTIONS.length]
+}
+
+function dailySuggestions(): typeof SUGGESTED_TOPICS {
+  const offset = dayOfYear() % SUGGESTED_TOPICS.length
+  return Array.from({ length: 4 }, (_, i) => SUGGESTED_TOPICS[(offset + i) % SUGGESTED_TOPICS.length])
+}
 
 export function Debate() {
   const [debate, setDebate] = useState<DebateState | null>(null)
@@ -42,198 +74,119 @@ export function Debate() {
 
 function Composer({ onStart }: { onStart: (d: DebateState) => void }) {
   const [claim, setClaim] = useState('')
-  const [mode, setMode] = useState<OpponentMode>('auto')
-  const [manualIds, setManualIds] = useState<string[]>([])
-  const [filter, setFilter] = useState('')
-  const [opponentsOpen, setOpponentsOpen] = useState(false)
-  const [lastPromptIdx, setLastPromptIdx] = useState(-1)
+  const [savedDraft, setSavedDraft] = useState<string | null>(null)
 
-  const filtered = PHILOSOPHERS.filter((p) => p.name.toLowerCase().includes(filter.toLowerCase()))
+  useEffect(() => {
+    setSavedDraft(loadReflectDraft())
+  }, [])
 
-  function toggleManual(id: string) {
-    setManualIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 2 ? [...prev, id] : prev,
-    )
-  }
-
-  function randomPrompt() {
-    let idx = Math.floor(Math.random() * SUGGESTED_TOPICS.length)
-    if (SUGGESTED_TOPICS.length > 1 && idx === lastPromptIdx) idx = (idx + 1) % SUGGESTED_TOPICS.length
-    setLastPromptIdx(idx)
-    setClaim(SUGGESTED_TOPICS[idx].label)
-  }
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (claim.trim()) saveReflectDraft(claim)
+      else clearReflectDraft()
+    }, 600)
+    return () => clearTimeout(t)
+  }, [claim])
 
   function enter() {
     const trimmed = claim.trim()
     if (!trimmed) return
-    if (mode === 'manual' && manualIds.length !== 2) return
+    clearReflectDraft()
     onStart({
       id: Date.now(),
       claim: trimmed,
-      philosopherIds: mode === 'manual' ? manualIds : [],
+      philosopherIds: [],
       conclusion: '',
       premises: [],
       rounds: [],
       currentRound: 1,
-      phase: mode === 'manual' ? 'decomposing' : 'selecting',
+      phase: 'selecting',
       verdict: null,
       error: null,
     })
   }
 
   const presence = Math.min(claim.trim().length / 80, 1)
+  const suggestions = dailySuggestions()
+
+  function resumeDraft() {
+    if (savedDraft) setClaim(savedDraft)
+    setSavedDraft(null)
+  }
 
   return (
     <div className="relative z-[1] px-6 pb-10 pt-8">
-      <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">
-        The Arena
+      <p className="mb-2 font-display text-sm text-parchment-500" style={{ animation: 'revealUp 0.4s ease both' }}>
+        {greeting()}
       </p>
-      <h1 className="mb-6 font-display text-2xl font-medium text-parchment-900">Debate</h1>
 
-      <div className="relative">
+      <div className="relative mb-6">
         <div
-          className="pointer-events-none absolute -inset-x-2 -top-6 flex justify-between transition-opacity duration-700"
-          style={{ opacity: 0.08 + presence * 0.22 }}
+          className="pointer-events-none absolute -inset-x-2 -top-4 flex justify-between transition-opacity duration-700"
+          style={{ opacity: 0.06 + presence * 0.18 }}
         >
-          <Bust laurel className="h-20 w-20 -translate-x-2 -rotate-6 text-side-gold" />
-          <Bust bearded className="h-20 w-20 translate-x-2 rotate-6 text-side-indigo" />
+          <Bust laurel className="h-16 w-16 -translate-x-2 -rotate-6 text-side-gold" />
+          <Bust bearded className="h-16 w-16 translate-x-2 rotate-6 text-side-indigo" />
         </div>
-
-        <p className="relative text-parchment-700">
-          State a position you actually hold. Not a hypothetical — something you'd defend at
-          dinner.
-        </p>
+        <h1
+          className="relative font-display text-[34px] font-medium leading-[1.15] tracking-[-0.02em] text-parchment-900"
+          style={{ animation: 'revealUp 0.5s ease 80ms both' }}
+        >
+          {heroQuestion()}
+        </h1>
       </div>
 
-      <textarea
-        value={claim}
-        onChange={(e) => setClaim(e.target.value)}
-        placeholder="e.g. Inheritance tax is fundamentally unjust…"
-        rows={4}
-        className="mt-4 w-full resize-none rounded-2xl border border-parchment-300 bg-parchment-50 p-4 text-base text-parchment-900 shadow-sm outline-none placeholder:text-parchment-400 focus:border-forge-ember"
-      />
-
-      <button
-        type="button"
-        onClick={randomPrompt}
-        className="mt-2 flex items-center gap-1.5 text-xs text-parchment-500 transition-colors hover:text-forge-ember"
-      >
-        <Shuffle className="h-3.5 w-3.5" /> Give me a random position
-      </button>
-
-      <div className="mt-6 border-t border-parchment-300 pt-4">
-        <button type="button" onClick={() => setOpponentsOpen((o) => !o)} className="flex w-full items-center justify-between">
-          <span className="text-sm text-parchment-700">
-            Opponents:{' '}
-            <span className="font-medium text-parchment-900">
-              {mode === 'auto'
-                ? 'Auto-picked'
-                : manualIds.length === 2
-                  ? manualIds.map((id) => philosopherById(id)?.name).join(' vs ')
-                  : 'Choose 2'}
-            </span>
-          </span>
-          {opponentsOpen ? (
-            <ChevronUp className="h-4 w-4 text-parchment-500" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-parchment-500" />
-          )}
+      <div className="relative" style={{ animation: 'revealUp 0.5s ease 160ms both' }}>
+        <textarea
+          value={claim}
+          onChange={(e) => setClaim(e.target.value)}
+          placeholder="Write freely…"
+          rows={4}
+          autoFocus
+          className="w-full resize-none rounded-[28px] bg-parchment-50 p-7 pr-20 text-base text-parchment-900 outline-none placeholder:text-parchment-400"
+          style={{ boxShadow: 'var(--shadow-card)' }}
+        />
+        <button
+          type="button"
+          onClick={enter}
+          disabled={!claim.trim()}
+          aria-label="Begin"
+          className="absolute bottom-4 right-4 flex h-14 w-14 items-center justify-center rounded-full text-parchment-50 transition-transform active:scale-[0.96] disabled:opacity-40"
+          style={{ background: 'linear-gradient(155deg, #e8a33d, #c2531d)', boxShadow: 'var(--shadow-embossed)' }}
+        >
+          <ArrowRight className="h-5 w-5" />
         </button>
-
-        {opponentsOpen && (
-          <div className="mt-3">
-            <div className="flex w-fit gap-1 rounded-lg border border-parchment-300 bg-parchment-200 p-1">
-              <button
-                type="button"
-                onClick={() => setMode('auto')}
-                className={`rounded-md px-3 py-1 text-xs ${mode === 'auto' ? 'bg-forge-ember font-semibold text-parchment-50' : 'text-parchment-700'}`}
-              >
-                Auto-pick
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('manual')}
-                className={`rounded-md px-3 py-1 text-xs ${mode === 'manual' ? 'bg-forge-ember font-semibold text-parchment-50' : 'text-parchment-700'}`}
-              >
-                Choose myself
-              </button>
-            </div>
-
-            {mode === 'auto' && (
-              <p className="mt-2 text-xs text-parchment-500">
-                I'll pick 2 of {PHILOSOPHERS.length} philosophers whose frameworks most directly conflict
-                with your position.
-              </p>
-            )}
-
-            {mode === 'manual' && (
-              <div className="mt-3">
-                {manualIds.length > 0 ? (
-                  <div className="mb-3 flex items-center justify-center gap-3">
-                    {[0, 1].map((slot) => {
-                      const id = manualIds[slot]
-                      return id ? (
-                        <div key={id} className="w-28 text-center" style={{ animation: 'castReveal 0.5s ease both' }}>
-                          <PortraitFrame id={id} size={300} duotone={SIDE_DUOTONE[slot]} className="w-full" />
-                          <p className="mt-1.5 font-display text-xs font-medium text-parchment-800">
-                            {philosopherById(id)?.name}
-                          </p>
-                        </div>
-                      ) : (
-                        <div
-                          key={slot}
-                          className="flex aspect-[3/4] w-28 items-center justify-center rounded-xl border border-dashed border-parchment-400 text-xs text-parchment-400"
-                        >
-                          ?
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <p className="mb-2 text-xs text-parchment-500">Pick 2 philosophers to see them here.</p>
-                )}
-                <input
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  placeholder={`Search ${PHILOSOPHERS.length} philosophers…`}
-                  className="w-full rounded-lg border border-parchment-300 bg-parchment-50 px-3 py-2 text-sm text-parchment-900 outline-none focus:border-forge-ember"
-                />
-                <div className="mt-2 grid max-h-40 grid-cols-2 gap-1.5 overflow-y-auto pr-1">
-                  {filtered.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => toggleManual(p.id)}
-                      className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-xs ${
-                        manualIds.includes(p.id)
-                          ? 'border-forge-ember bg-side-gold-soft text-parchment-900'
-                          : 'border-parchment-300 text-parchment-700 hover:border-parchment-400'
-                      }`}
-                    >
-                      <span
-                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
-                          manualIds.includes(p.id) ? 'bg-forge-ember text-parchment-50' : 'bg-parchment-200 text-parchment-600'
-                        }`}
-                      >
-                        {initials(p.name)}
-                      </span>
-                      <span className="truncate">{p.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      <Button
-        className="mt-6 w-full py-3.5 text-base"
-        disabled={!claim.trim() || (mode === 'manual' && manualIds.length !== 2)}
-        onClick={enter}
-      >
-        Enter the Crucible
-      </Button>
+      <div className="mt-5 flex flex-wrap gap-2" style={{ animation: 'revealUp 0.5s ease 240ms both' }}>
+        {suggestions.map((s) => (
+          <button
+            key={s.short}
+            type="button"
+            onClick={() => setClaim(s.label)}
+            className="rounded-full border border-parchment-300 bg-parchment-50 px-3.5 py-2 text-xs text-parchment-700 transition-colors hover:border-forge-ember hover:text-forge-ember"
+          >
+            {s.short}
+          </button>
+        ))}
+      </div>
+
+      {savedDraft && !claim.trim() && (
+        <button
+          type="button"
+          onClick={resumeDraft}
+          className="mt-5 flex w-full items-center justify-between gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left"
+          style={{ boxShadow: 'var(--shadow-card)', animation: 'revealUp 0.5s ease 320ms both' }}
+        >
+          <span className="min-w-0">
+            <span className="block text-[11px] font-medium uppercase tracking-wide text-parchment-500">
+              Continue where you left off
+            </span>
+            <span className="mt-0.5 block truncate text-sm text-parchment-800">{savedDraft}</span>
+          </span>
+          <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-forge-ember">Resume</span>
+        </button>
+      )}
     </div>
   )
 }

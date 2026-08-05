@@ -47,8 +47,6 @@ export interface Debate {
   error?: string | null
 }
 
-export type OpponentMode = 'auto' | 'manual'
-
 export interface Bio {
   life: string
   works: string
