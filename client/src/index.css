@@ -56,6 +56,24 @@
 
 :root {
   color-scheme: light;
+  --reading-width: 28rem;
+}
+
+.reading-container {
+  max-width: var(--reading-width);
+  margin-inline: auto;
+}
+
+/* Toggled on <html> by useApplyPreferences when the user enables Reduce
+   Motion in Settings — collapses every animation/transition to effectively
+   instant rather than trying to disable each one individually. */
+html.reduce-motion,
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
 }
 
 html,

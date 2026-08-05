@@ -3,22 +3,23 @@ import { clsx } from 'clsx'
 
 const TABS = [
   { to: '/app/reflect', label: 'Reflect' },
-  { to: '/app/archive', label: 'Archive' },
-  { to: '/app/train', label: 'Train' },
+  { to: '/app/council', label: 'Council' },
   { to: '/app/journal', label: 'Journal' },
+  { to: '/app/archive', label: 'Archive' },
+  { to: '/app/profile', label: 'Profile' },
 ] as const
 
 export function TabBar() {
   return (
     <nav className="sticky bottom-0 z-20 border-t border-parchment-300 bg-parchment-50/95 backdrop-blur">
-      <ul className="mx-auto flex max-w-md">
+      <ul className="reading-container flex">
         {TABS.map((tab) => (
-          <li key={tab.to} className="flex-1">
+          <li key={tab.to} className="min-w-0 flex-1">
             <NavLink
               to={tab.to}
               className={({ isActive }) =>
                 clsx(
-                  'flex flex-col items-center gap-1 py-3 font-display text-sm transition-colors',
+                  'flex flex-col items-center gap-1 py-3 font-display text-xs transition-colors',
                   isActive ? 'text-forge-ember' : 'text-parchment-500 hover:text-parchment-700',
                 )
               }

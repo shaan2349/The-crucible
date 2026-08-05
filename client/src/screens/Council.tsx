@@ -1,54 +1,22 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Plus, X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { Loader } from '../components/Loader'
 import { PremiseRow } from '../components/PremiseRow'
 import { PhilosopherAvatar } from '../components/PhilosopherAvatar'
 import { PortraitFrame } from '../components/PortraitFrame'
-import { Bust } from '../components/Bust'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { DebateBackdrop } from '../components/DebateBackdrop'
-import { PHILOSOPHERS, philosopherById, SUGGESTED_TOPICS, SIDE_ACCENT, SIDE_DUOTONE } from '../data/philosophers'
+import { PHILOSOPHERS, philosopherById, SIDE_ACCENT, SIDE_DUOTONE } from '../data/philosophers'
 import * as api from '../lib/api'
-import { loadDebates, saveDebates, loadReflectDraft, saveReflectDraft, clearReflectDraft } from '../lib/storage'
+import { loadDebates, saveDebates } from '../lib/storage'
+import { useDebateContext } from '../context/DebateContext'
 import type { Debate as DebateState, Round } from '../types'
 
 const MAX_ROUNDS = 3
 const MAX_COUNCIL = 5
-
-const HERO_QUESTIONS = [
-  "What's occupying your mind today?",
-  "What question won't leave you alone?",
-  'What belief are you beginning to question?',
-  'What has been on your mind lately?',
-]
-
-function greeting(): string {
-  const h = new Date().getHours()
-  if (h < 12) return 'Good morning.'
-  if (h < 18) return 'Good afternoon.'
-  return 'Good evening.'
-}
-
-function dayOfYear(d = new Date()): number {
-  const start = new Date(d.getFullYear(), 0, 1)
-  return Math.floor((d.getTime() - start.getTime()) / 86_400_000)
-}
-
-function weekOfYear(d = new Date()): number {
-  return Math.floor(dayOfYear(d) / 7)
-}
-
-function heroQuestion(): string {
-  return HERO_QUESTIONS[weekOfYear() % HERO_QUESTIONS.length]
-}
-
-function dailySuggestions(): typeof SUGGESTED_TOPICS {
-  const offset = dayOfYear() % SUGGESTED_TOPICS.length
-  return Array.from({ length: 4 }, (_, i) => SUGGESTED_TOPICS[(offset + i) % SUGGESTED_TOPICS.length])
-}
 
 const THINKING_VERBS = ['is considering your position', 'is examining your premise', 'is preparing a challenge']
 
@@ -85,149 +53,47 @@ function summarizeConversation(debate: DebateState): string {
     .join(' ')
 }
 
-export function Debate() {
-  const [debate, setDebate] = useState<DebateState | null>(null)
+export function Council() {
+  const { debate, setDebate } = useDebateContext()
+  const navigate = useNavigate()
+
+  if (!debate) {
+    return (
+      <>
+        <RotatingBackdrop />
+        <div className="relative z-[1] px-6 pb-10 pt-8">
+          <div
+            className="relative mt-2 flex flex-col items-center overflow-hidden rounded-2xl border border-parchment-300/70 bg-parchment-50 px-6 py-14 text-center"
+            style={{ boxShadow: 'var(--shadow-card)' }}
+          >
+            <p className="font-display text-lg text-parchment-700">No discussion in progress</p>
+            <p className="mt-1.5 max-w-[30ch] text-sm text-parchment-500">
+              Bring a question to Reflect and the Council gathers here.
+            </p>
+            <Button className="mt-5" onClick={() => navigate('/app/reflect')}>
+              Go to Reflect
+            </Button>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   return (
     <>
-      {debate && debate.philosopherIds.length === 2 ? (
+      {debate.philosopherIds.length === 2 ? (
         <DebateBackdrop philosopherIds={debate.philosopherIds} />
       ) : (
         <RotatingBackdrop />
       )}
-      {!debate ? (
-        <Composer onStart={setDebate} />
-      ) : (
-        <DebateView debate={debate} setDebate={setDebate} onExit={() => setDebate(null)} />
-      )}
+      <CouncilView debate={debate} setDebate={setDebate} onExit={() => setDebate(null)} />
     </>
   )
 }
 
-/* --------------------------------- Composer --------------------------------- */
+/* --------------------------------- CouncilView --------------------------------- */
 
-function Composer({ onStart }: { onStart: (d: DebateState) => void }) {
-  const [claim, setClaim] = useState('')
-  const [savedDraft, setSavedDraft] = useState<string | null>(null)
-
-  useEffect(() => {
-    setSavedDraft(loadReflectDraft())
-  }, [])
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (claim.trim()) saveReflectDraft(claim)
-      else clearReflectDraft()
-    }, 600)
-    return () => clearTimeout(t)
-  }, [claim])
-
-  function enter() {
-    const trimmed = claim.trim()
-    if (!trimmed) return
-    clearReflectDraft()
-    onStart({
-      id: Date.now(),
-      claim: trimmed,
-      philosopherIds: [],
-      conclusion: '',
-      premises: [],
-      rounds: [],
-      currentRound: 1,
-      phase: 'selecting',
-      verdict: null,
-      error: null,
-    })
-  }
-
-  const presence = Math.min(claim.trim().length / 80, 1)
-  const suggestions = dailySuggestions()
-
-  function resumeDraft() {
-    if (savedDraft) setClaim(savedDraft)
-    setSavedDraft(null)
-  }
-
-  return (
-    <div className="relative z-[1] px-6 pb-10 pt-8">
-      <p className="mb-2 font-display text-sm text-parchment-500" style={{ animation: 'revealUp 0.4s ease both' }}>
-        {greeting()}
-      </p>
-
-      <div className="relative mb-6">
-        <div
-          className="pointer-events-none absolute -inset-x-2 -top-4 flex justify-between transition-opacity duration-700"
-          style={{ opacity: 0.06 + presence * 0.18 }}
-        >
-          <Bust laurel className="h-16 w-16 -translate-x-2 -rotate-6 text-side-gold" />
-          <Bust bearded className="h-16 w-16 translate-x-2 rotate-6 text-side-indigo" />
-        </div>
-        <h1
-          className="relative font-display text-[34px] font-medium leading-[1.15] tracking-[-0.02em] text-parchment-900"
-          style={{ animation: 'revealUp 0.5s ease 80ms both' }}
-        >
-          {heroQuestion()}
-        </h1>
-      </div>
-
-      <div className="relative" style={{ animation: 'revealUp 0.5s ease 160ms both' }}>
-        <textarea
-          value={claim}
-          onChange={(e) => setClaim(e.target.value)}
-          placeholder="Write freely…"
-          rows={4}
-          autoFocus
-          className="w-full resize-none rounded-[28px] bg-parchment-50 p-7 pr-20 text-base text-parchment-900 outline-none placeholder:text-parchment-400"
-          style={{ boxShadow: 'var(--shadow-card)' }}
-        />
-        <button
-          type="button"
-          onClick={enter}
-          disabled={!claim.trim()}
-          aria-label="Begin"
-          className="absolute bottom-4 right-4 flex h-14 w-14 items-center justify-center rounded-full text-parchment-50 transition-transform active:scale-[0.96] disabled:opacity-40"
-          style={{ background: 'linear-gradient(155deg, #e8a33d, #c2531d)', boxShadow: 'var(--shadow-embossed)' }}
-        >
-          <ArrowRight className="h-5 w-5" />
-        </button>
-      </div>
-
-      <div className="mt-5 flex flex-wrap gap-2" style={{ animation: 'revealUp 0.5s ease 240ms both' }}>
-        {suggestions.map((s) => (
-          <button
-            key={s.short}
-            type="button"
-            onClick={() => setClaim(s.label)}
-            className="rounded-full border border-parchment-300 bg-parchment-50 px-3.5 py-2 text-xs text-parchment-700 transition-colors hover:border-forge-ember hover:text-forge-ember"
-          >
-            {s.short}
-          </button>
-        ))}
-      </div>
-
-      {savedDraft && !claim.trim() && (
-        <button
-          type="button"
-          onClick={resumeDraft}
-          className="mt-5 flex w-full items-center justify-between gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left"
-          style={{ boxShadow: 'var(--shadow-card)', animation: 'revealUp 0.5s ease 320ms both' }}
-        >
-          <span className="min-w-0">
-            <span className="block text-[11px] font-medium uppercase tracking-wide text-parchment-500">
-              Continue where you left off
-            </span>
-            <span className="mt-0.5 block truncate text-sm text-parchment-800">{savedDraft}</span>
-          </span>
-          <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-forge-ember">Resume</span>
-        </button>
-      )}
-    </div>
-  )
-}
-
-/* -------------------------------- DebateView -------------------------------- */
-
-function DebateView({
+function CouncilView({
   debate,
   setDebate,
   onExit,
@@ -358,6 +224,11 @@ function DebateView({
     navigate('/app/journal')
   }
 
+  function exitToReflect() {
+    onExit()
+    navigate('/app/reflect')
+  }
+
   function addThinker(id: string) {
     updateDebate((d) =>
       d.philosopherIds.includes(id) || d.philosopherIds.length >= MAX_COUNCIL
@@ -382,7 +253,7 @@ function DebateView({
 
   return (
     <div className="relative z-[1] px-6 pb-10 pt-8">
-      <button type="button" onClick={onExit} className="mb-4 text-xs text-parchment-500 hover:text-forge-ember">
+      <button type="button" onClick={exitToReflect} className="mb-4 text-xs text-parchment-500 hover:text-forge-ember">
         ← New position
       </button>
 

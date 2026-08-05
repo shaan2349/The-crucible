@@ -6,7 +6,21 @@ const KEYS = {
   bios: 'crucible:bios',
   trainingStats: 'crucible:trainingStats',
   reflectDraft: 'crucible:reflectDraft',
+  preferences: 'crucible:preferences',
+  onboarded: 'crucible:onboarded',
 } as const
+
+export interface Preferences {
+  fontSize: 'normal' | 'large'
+  readingWidth: 'comfortable' | 'wide'
+  reduceMotion: boolean
+}
+
+const DEFAULT_PREFERENCES: Preferences = {
+  fontSize: 'normal',
+  readingWidth: 'comfortable',
+  reduceMotion: false,
+}
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -57,5 +71,50 @@ export function clearReflectDraft(): void {
     localStorage.removeItem(KEYS.reflectDraft)
   } catch {
     // ignore
+  }
+}
+
+export function loadPreferences(): Preferences {
+  return { ...DEFAULT_PREFERENCES, ...load<Partial<Preferences>>(KEYS.preferences, {}) }
+}
+export function savePreferences(prefs: Preferences): void {
+  save(KEYS.preferences, prefs)
+}
+
+export function hasOnboarded(): boolean {
+  return load<boolean>(KEYS.onboarded, false)
+}
+export function markOnboarded(): void {
+  save(KEYS.onboarded, true)
+}
+
+/** Every key this app has ever written to localStorage — used by Settings'
+ * "delete all data" and "export data" so neither silently misses a key. */
+export function allDataKeys(): string[] {
+  return Object.values(KEYS)
+}
+
+export function exportAllData(): Record<string, unknown> {
+  const data: Record<string, unknown> = {}
+  for (const key of allDataKeys()) {
+    const raw = localStorage.getItem(key)
+    if (raw !== null) {
+      try {
+        data[key] = JSON.parse(raw)
+      } catch {
+        data[key] = raw
+      }
+    }
+  }
+  return data
+}
+
+export function deleteAllData(): void {
+  for (const key of allDataKeys()) {
+    try {
+      localStorage.removeItem(key)
+    } catch {
+      // ignore
+    }
   }
 }
