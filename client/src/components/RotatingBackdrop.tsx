@@ -36,7 +36,7 @@ export function RotatingBackdrop() {
         className="absolute inset-0"
         style={{
           background:
-            'radial-gradient(circle at 50% 45%, rgba(248,242,230,0.45) 0%, rgba(248,242,230,0.78) 60%, rgba(248,242,230,0.94) 100%)',
+            'radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--color-parchment-100) 72%, transparent) 0%, color-mix(in srgb, var(--color-parchment-100) 90%, transparent) 60%, color-mix(in srgb, var(--color-parchment-100) 97%, transparent) 100%)',
         }}
       />
     </div>

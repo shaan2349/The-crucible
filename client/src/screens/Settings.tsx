@@ -52,6 +52,24 @@ export function Settings() {
         </header>
 
         <Card className="p-4">
+          <p className="mb-3 font-display text-[13px] italic text-forge-ember">Appearance</p>
+          <div className="flex gap-1 rounded-lg border border-parchment-300/70 bg-parchment-200 p-1">
+            {(['light', 'dark', 'system'] as const).map((theme) => (
+              <button
+                key={theme}
+                type="button"
+                onClick={() => updatePreferences({ theme })}
+                className={`flex-1 rounded-md px-3 py-1.5 text-xs capitalize transition-colors ${
+                  preferences.theme === theme ? 'bg-forge-ember font-semibold text-parchment-50' : 'text-parchment-700'
+                }`}
+              >
+                {theme}
+              </button>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="mt-3 p-4">
           <p className="mb-3 font-display text-[13px] italic text-forge-ember">Reading</p>
 
           <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">Font size</p>

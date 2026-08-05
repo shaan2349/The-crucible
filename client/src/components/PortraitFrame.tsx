@@ -39,7 +39,7 @@ export function PortraitFrame({
         borderRadius: '0.75rem',
         border: `1px solid ${frameAccent}`,
         boxShadow: 'var(--shadow-card-lifted)',
-        background: 'linear-gradient(155deg, #f0e6d2, #e4d3b3)',
+        background: 'linear-gradient(155deg, var(--color-parchment-200), var(--color-parchment-300))',
         overflow: 'hidden',
         position: 'relative',
       }}

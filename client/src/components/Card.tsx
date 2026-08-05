@@ -22,7 +22,10 @@ export function Card({ variant = 'default', className, style, ...props }: CardPr
       className={clsx('rounded-2xl border', variant === 'default' ? 'border-parchment-300/70 bg-parchment-50' : 'border-forge-gold/40', className)}
       style={{
         boxShadow: variant === 'hero' ? 'var(--shadow-card-lifted)' : 'var(--shadow-card)',
-        background: variant === 'hero' ? 'linear-gradient(155deg, #f3ddb0 0%, #f8f2e6 60%)' : undefined,
+        background:
+          variant === 'hero'
+            ? 'linear-gradient(155deg, var(--color-side-gold-soft) 0%, var(--color-parchment-100) 60%)'
+            : undefined,
         ...style,
       }}
     />

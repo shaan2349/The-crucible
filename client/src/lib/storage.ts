@@ -12,12 +12,14 @@ const KEYS = {
 } as const
 
 export interface Preferences {
+  theme: 'light' | 'dark' | 'system'
   fontSize: 'normal' | 'large'
   readingWidth: 'comfortable' | 'wide'
   reduceMotion: boolean
 }
 
 const DEFAULT_PREFERENCES: Preferences = {
+  theme: 'system',
   fontSize: 'normal',
   readingWidth: 'comfortable',
   reduceMotion: false,

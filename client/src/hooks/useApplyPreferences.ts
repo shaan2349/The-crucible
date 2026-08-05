@@ -11,6 +11,7 @@ import type { Preferences } from '../lib/storage'
 export function useApplyPreferences(prefs: Preferences): void {
   useEffect(() => {
     const root = document.documentElement
+    root.setAttribute('data-theme', prefs.theme)
     root.style.fontSize = prefs.fontSize === 'large' ? '112.5%' : '100%'
     root.style.setProperty('--reading-width', prefs.readingWidth === 'wide' ? '36rem' : '28rem')
     root.classList.toggle('reduce-motion', prefs.reduceMotion)

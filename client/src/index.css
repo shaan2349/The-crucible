@@ -76,6 +76,74 @@ html.reduce-motion *::after {
   transition-duration: 0.001ms !important;
 }
 
+/*
+ * Dark theme — a genuine palette swap, not an inversion filter. "Not
+ * inverted, warm, readable, muted, comfortable for long reading, avoid
+ * neon accents, avoid bright whites" per spec. Every component already
+ * references these custom properties by role (parchment-50 = surface,
+ * parchment-900 = primary text, etc.) rather than literal light/dark
+ * values, so redefining them here is enough to re-theme the entire app
+ * with zero per-component changes — Tailwind's utilities resolve
+ * `--color-parchment-*` at paint time, not build time.
+ */
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --color-parchment-50: #17140f;
+  --color-parchment-100: #1e1a13;
+  --color-parchment-200: #2a2419;
+  --color-parchment-300: #3d3524;
+  --color-parchment-400: #5c4f34;
+  --color-parchment-500: #8f7c56;
+  --color-parchment-600: #b4a17c;
+  --color-parchment-700: #cbb994;
+  --color-parchment-800: #e2d3ae;
+  --color-parchment-900: #f2e6c9;
+
+  --color-forge-gold: #e8a33d;
+  --color-forge-ember: #d9723a;
+  --color-forge-char: #a8431e;
+
+  --color-side-gold: #d99a3a;
+  --color-side-gold-soft: #4a3a1e;
+  --color-side-indigo: #9089d6;
+  --color-side-indigo-soft: #2c2a4a;
+
+  --color-status-success: #6b9d7c;
+  --color-status-warning: #c99450;
+  --color-status-danger: #b0555f;
+}
+
+/* "System" theme choice — same palette, gated on the OS preference
+   rather than an explicit user choice. */
+html[data-theme='system'] {
+  @media (prefers-color-scheme: dark) {
+    color-scheme: dark;
+    --color-parchment-50: #17140f;
+    --color-parchment-100: #1e1a13;
+    --color-parchment-200: #2a2419;
+    --color-parchment-300: #3d3524;
+    --color-parchment-400: #5c4f34;
+    --color-parchment-500: #8f7c56;
+    --color-parchment-600: #b4a17c;
+    --color-parchment-700: #cbb994;
+    --color-parchment-800: #e2d3ae;
+    --color-parchment-900: #f2e6c9;
+
+    --color-forge-gold: #e8a33d;
+    --color-forge-ember: #d9723a;
+    --color-forge-char: #a8431e;
+
+    --color-side-gold: #d99a3a;
+    --color-side-gold-soft: #4a3a1e;
+    --color-side-indigo: #9089d6;
+    --color-side-indigo-soft: #2c2a4a;
+
+    --color-status-success: #6b9d7c;
+    --color-status-warning: #c99450;
+    --color-status-danger: #b0555f;
+  }
+}
+
 html,
 body,
 #root {

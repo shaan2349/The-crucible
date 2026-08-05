@@ -40,7 +40,7 @@ export function FirmamentPlate({ name, plateNumber, ids, onSelect, clusterNameOf
         className="relative overflow-hidden rounded-xl border border-parchment-300/60"
         style={{
           background:
-            'radial-gradient(ellipse at 50% 38%, rgba(44,35,24,0.06), transparent 65%), linear-gradient(160deg, #f8f2e6, #ecdfbf)',
+            'radial-gradient(ellipse at 50% 38%, rgba(44,35,24,0.06), transparent 65%), linear-gradient(160deg, var(--color-parchment-100), var(--color-parchment-300))',
           boxShadow: 'var(--shadow-card)',
         }}
       >
@@ -68,7 +68,14 @@ export function FirmamentPlate({ name, plateNumber, ids, onSelect, clusterNameOf
             return (
               <g key={n.id} onClick={() => onSelect(n.id)} style={{ cursor: 'pointer' }}>
                 <circle cx={n.x} cy={n.y} r={3.2} fill="#e8a33d2e" />
-                <circle cx={n.x} cy={n.y} r={1.15} fill="#c2531d" stroke="#fdfbf6" strokeWidth={0.3} />
+                <circle
+                  cx={n.x}
+                  cy={n.y}
+                  r={1.15}
+                  fill="#c2531d"
+                  style={{ stroke: 'var(--color-parchment-50)' }}
+                  strokeWidth={0.3}
+                />
                 <text
                   x={n.x}
                   y={n.y + 4.4}

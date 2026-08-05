@@ -72,7 +72,7 @@ export function Landing() {
           className="absolute inset-0"
           style={{
             background:
-              'radial-gradient(circle at 50% 40%, rgba(248,242,230,0.78) 0%, rgba(248,242,230,0.93) 55%, rgba(248,242,230,0.99) 100%)',
+              'radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--color-parchment-100) 78%, transparent) 0%, color-mix(in srgb, var(--color-parchment-100) 93%, transparent) 55%, color-mix(in srgb, var(--color-parchment-100) 99%, transparent) 100%)',
           }}
         />
       </div>
