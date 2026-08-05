@@ -6,7 +6,6 @@ import { Card } from '../components/Card'
 import { Loader } from '../components/Loader'
 import { Button } from '../components/Button'
 import { PortraitFrame } from '../components/PortraitFrame'
-import { FirmamentPlate } from '../components/FirmamentPlate'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { fetchBio, compareThinkers, searchThinkers, type BioResponse, type CompareResponse, type SearchResponse } from '../lib/api'
 import { loadBios, saveBios } from '../lib/storage'
@@ -110,8 +109,7 @@ export function Library() {
                 </p>
                 <h1 className="font-display text-2xl font-medium text-parchment-900">Library</h1>
                 <p className="mt-1 text-sm text-parchment-600">
-                  {PHILOSOPHERS.length} minds, charted by tradition — the lines between them are real history,
-                  not decoration.
+                  {PHILOSOPHERS.length} minds, organised by era. Open one to see who they argued with, and why.
                 </p>
               </div>
               <button
@@ -207,16 +205,36 @@ export function Library() {
                 </div>
               )}
               {!filtered && (
-                PHILOSOPHER_CATEGORIES.map((cat, i) => (
-                  <FirmamentPlate
-                    key={cat.name}
-                    name={cat.name}
-                    plateNumber={i + 1}
-                    ids={[...cat.ids]}
-                    onSelect={open}
-                    clusterNameOf={clusterNameOf}
-                  />
-                ))
+                <div className="space-y-8">
+                  {PHILOSOPHER_CATEGORIES.map((cat) => (
+                    <div key={cat.name}>
+                      <p className="mb-3 font-display text-xs font-semibold uppercase tracking-[0.15em] text-parchment-500">
+                        {cat.name}
+                      </p>
+                      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                        {cat.ids.map((id, i) => {
+                          const p = philosopherById(id)
+                          if (!p) return null
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => open(id)}
+                              className="text-center"
+                              style={{ animation: 'revealUp 0.35s ease both', animationDelay: `${Math.min(i, 8) * 40}ms` }}
+                            >
+                              <PortraitFrame id={id} size={260} className="w-full transition-transform active:scale-[0.97]" />
+                              <p className="mt-1.5 truncate font-display text-[13px] font-medium text-parchment-900">
+                                {p.name}
+                              </p>
+                              <p className="truncate text-[11px] text-parchment-500">{p.era}</p>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </>
