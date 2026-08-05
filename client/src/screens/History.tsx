@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, BookOpen } from 'lucide-react'
 import { philosopherById } from '../data/philosophers'
 import { Card } from '../components/Card'
+import { EmptyState } from '../components/EmptyState'
 import { PersonalSky } from '../components/PersonalSky'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { loadDebates } from '../lib/storage'
@@ -53,16 +54,11 @@ export function History() {
             </header>
 
             {debates.length === 0 && (
-              <div
-                className="relative mt-2 flex flex-col items-center overflow-hidden rounded-2xl border border-parchment-300/70 bg-parchment-50 px-6 py-14 text-center"
-                style={{ boxShadow: 'var(--shadow-card)' }}
-              >
-                <BookOpen className="h-9 w-9 text-parchment-400" />
-                <p className="mt-4 font-display text-lg text-parchment-700">A blank page</p>
-                <p className="mt-1.5 max-w-[30ch] text-sm text-parchment-500">
-                  Finish a debate in the Crucible and it'll be entered here.
-                </p>
-              </div>
+              <EmptyState
+                icon={<BookOpen className="h-9 w-9 text-parchment-400" />}
+                headline="A blank page"
+                body="Finish a debate in the Crucible and it'll be entered here."
+              />
             )}
 
             {debates.length > 0 && (

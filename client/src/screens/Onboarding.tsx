@@ -40,7 +40,7 @@ export function Onboarding() {
   const current = steps[step]
 
   return (
-    <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-8 py-16 text-center">
+    <div className="reading-container relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6 py-16 text-center">
       <RotatingBackdrop />
       <div
         className="relative z-[1] mb-8 flex h-16 w-16 items-center justify-center rounded-2xl shadow-embossed"
@@ -49,7 +49,7 @@ export function Onboarding() {
         <CrucibleMark size={36} className="text-parchment-50" />
       </div>
 
-      <div className="relative z-[1] w-full max-w-sm" style={{ animation: 'revealUp 0.4s ease both' }}>
+      <div className="relative z-[1] w-full" style={{ animation: 'revealUp 0.4s ease both' }}>
         {current ? (
           <>
             <h1 className="mb-4 font-display text-3xl font-medium leading-snug text-parchment-900">

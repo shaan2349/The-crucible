@@ -77,7 +77,7 @@ export function Landing() {
         />
       </div>
 
-      <div className="relative mx-auto flex min-h-svh max-w-md flex-col items-center justify-center px-8 py-16 text-center">
+      <div className="reading-container relative flex min-h-svh flex-col items-center justify-center px-6 py-16 text-center">
         <div
           className="mb-8 flex h-20 w-20 items-center justify-center rounded-2xl shadow-embossed"
           style={{ background: 'linear-gradient(155deg, #e8a33d 0%, #c2531d 55%, #8a2a12 100%)' }}
@@ -91,7 +91,7 @@ export function Landing() {
         <h1 className="mb-4 font-display text-5xl font-medium leading-[1.05] text-parchment-900">
           The Crucible
         </h1>
-        <p className="mb-12 max-w-sm text-lg leading-relaxed text-parchment-700">
+        <p className="mb-12 text-lg leading-relaxed text-parchment-700">
           State a real position. Two philosophers, in genuine opposition, will
           put it under heat. What survives is stronger for it.
         </p>

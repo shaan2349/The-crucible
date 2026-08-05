@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BookOpen, Settings as SettingsIcon } from 'lucide-react'
 import { Card } from '../components/Card'
+import { EmptyState } from '../components/EmptyState'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { PortraitFrame } from '../components/PortraitFrame'
 import { PHILOSOPHER_CATEGORIES, philosopherById } from '../data/philosophers'
@@ -56,15 +57,10 @@ export function Profile() {
         </header>
 
         {debates.length === 0 ? (
-          <div
-            className="relative mt-2 flex flex-col items-center overflow-hidden rounded-2xl border border-parchment-300/70 bg-parchment-50 px-6 py-14 text-center"
-            style={{ boxShadow: 'var(--shadow-card)' }}
-          >
-            <p className="font-display text-lg text-parchment-700">Nothing to show yet</p>
-            <p className="mt-1.5 max-w-[30ch] text-sm text-parchment-500">
-              Finish a reflection in the Crucible and your journey starts building here.
-            </p>
-          </div>
+          <EmptyState
+            headline="Nothing to show yet"
+            body="Finish a reflection in the Crucible and your journey starts building here."
+          />
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3">

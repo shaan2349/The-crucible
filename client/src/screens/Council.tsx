@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, X, Volume2, Square, Mic } from 'lucide-react'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
+import { EmptyState } from '../components/EmptyState'
 import { Loader } from '../components/Loader'
 import { PremiseRow } from '../components/PremiseRow'
 import { PhilosopherAvatar } from '../components/PhilosopherAvatar'
@@ -64,18 +65,11 @@ export function Council() {
       <>
         <RotatingBackdrop />
         <div className="relative z-[1] px-6 pb-10 pt-8">
-          <div
-            className="relative mt-2 flex flex-col items-center overflow-hidden rounded-2xl border border-parchment-300/70 bg-parchment-50 px-6 py-14 text-center"
-            style={{ boxShadow: 'var(--shadow-card)' }}
-          >
-            <p className="font-display text-lg text-parchment-700">No discussion in progress</p>
-            <p className="mt-1.5 max-w-[30ch] text-sm text-parchment-500">
-              Bring a question to Reflect and the Council gathers here.
-            </p>
-            <Button className="mt-5" onClick={() => navigate('/app/reflect')}>
-              Go to Reflect
-            </Button>
-          </div>
+          <EmptyState
+            headline="No discussion in progress"
+            body="Bring a question to Reflect and the Council gathers here."
+            action={{ label: 'Go to Reflect', onClick: () => navigate('/app/reflect') }}
+          />
         </div>
       </>
     )

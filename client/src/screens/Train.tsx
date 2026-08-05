@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Shuffle, RotateCcw, Feather, PenLine } from 'lucide-react'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
+import { EmptyState } from '../components/EmptyState'
 import { Loader } from '../components/Loader'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { generateChallenge, scoreChallenge, type TrainDirection, type TrainLevel, type TrainGenerateResponse, type TrainScoreResponse } from '../lib/api'
@@ -122,20 +123,24 @@ export function Train() {
         </div>
 
         {!challenge && !loading && !error && (
-          <div
-            className="relative mt-8 flex flex-col items-center overflow-hidden rounded-2xl border border-parchment-300/70 bg-parchment-50 px-6 py-14 text-center"
-            style={{ boxShadow: 'var(--shadow-card)' }}
-          >
-            <Feather className="pointer-events-none absolute -right-5 -top-5 h-32 w-32 rotate-[18deg] text-parchment-300/40" />
-            <Feather className="h-9 w-9 text-parchment-400" />
-            <p className="relative mt-4 font-display text-lg text-parchment-700">An unopened manuscript awaits</p>
-            <p className="relative mt-1.5 max-w-[28ch] text-sm text-parchment-500">
-              Extract the hidden premises from a real-style argument, or build one from scratch.
-            </p>
-            <Button className="relative mt-5" onClick={generate}>
-              <Shuffle className="-mt-0.5 mr-1.5 inline h-4 w-4" />
-              Begin a new manuscript
-            </Button>
+          <div className="mt-8">
+            <EmptyState
+              decoration={
+                <Feather className="pointer-events-none absolute -right-5 -top-5 h-32 w-32 rotate-[18deg] text-parchment-300/40" />
+              }
+              icon={<Feather className="h-9 w-9 text-parchment-400" />}
+              headline="An unopened manuscript awaits"
+              body="Extract the hidden premises from a real-style argument, or build one from scratch."
+              action={{
+                label: (
+                  <>
+                    <Shuffle className="-mt-0.5 mr-1.5 inline h-4 w-4" />
+                    Begin a new manuscript
+                  </>
+                ),
+                onClick: generate,
+              }}
+            />
           </div>
         )}
         {loading && <Loader label="Working…" />}
