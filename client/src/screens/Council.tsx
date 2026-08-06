@@ -307,9 +307,9 @@ function CouncilView({
         </div>
       )}
 
-      <div className="mt-6 space-y-6">
+      <div className="mt-6 space-y-8">
         {debate.rounds.map((r, ri) => (
-          <div key={ri} className="space-y-3">
+          <div key={ri} className="space-y-5">
             <div className="mb-1 flex items-center gap-2">
               <span className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, #c2531d40)' }} />
               <p className="font-display text-xs uppercase tracking-wide text-forge-ember">Round {r.round}</p>
@@ -324,24 +324,16 @@ function CouncilView({
               const speechId = `${ri}-${ai}`
               const isSpeaking = tts.speakingId === speechId
               return (
-                <Card
+                <div
                   key={ai}
-                  className="relative flex gap-3 overflow-hidden border-l-[3px] p-4"
+                  className="flex gap-3 border-l-2 py-0.5 pl-3.5"
                   style={{ borderLeftColor: accent, animation: 'revealUp 0.45s ease both', animationDelay: `${delay}ms` }}
                 >
-                  <div
-                    className="pointer-events-none absolute inset-0"
-                    style={{
-                      backgroundImage: `linear-gradient(100deg, transparent 40%, ${accent}33 50%, transparent 60%)`,
-                      backgroundSize: '300% 100%',
-                      animation: `spotlightSweep 1.1s ease ${delay + 150}ms both`,
-                    }}
-                  />
-                  <div className="relative shrink-0 overflow-hidden rounded-full" style={{ boxShadow: 'var(--shadow-embossed)' }}>
-                    <PhilosopherAvatar id={a.philosopherId} name={ph.name} size={40} />
+                  <div className="shrink-0 overflow-hidden rounded-full" style={{ boxShadow: 'var(--shadow-embossed)' }}>
+                    <PhilosopherAvatar id={a.philosopherId} name={ph.name} size={36} />
                   </div>
-                  <div className="relative min-w-0 flex-1">
-                    <div className="mb-1.5 flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex items-start justify-between gap-2">
                       <p className="font-display text-xs font-semibold uppercase tracking-wide" style={{ color: accent }}>
                         {ph.name}
                       </p>
@@ -358,12 +350,12 @@ function CouncilView({
                     </div>
                     <p className="text-[15px] leading-relaxed text-parchment-800">{a.text}</p>
                   </div>
-                </Card>
+                </div>
               )
             })}
             {r.userResponse && (
-              <Card
-                className="ml-5 flex gap-3 border-l-[3px] border-l-forge-gold bg-side-gold-soft/40 p-4"
+              <div
+                className="ml-5 flex gap-3 border-l-2 border-l-forge-gold py-0.5 pl-3.5"
                 style={{ animation: 'revealUp 0.45s ease both', animationDelay: `${r.attacks.length * 90}ms` }}
               >
                 <span
@@ -373,12 +365,12 @@ function CouncilView({
                   You
                 </span>
                 <div>
-                  <p className="mb-1.5 font-display text-xs font-semibold uppercase tracking-wide text-side-gold">
+                  <p className="mb-1 font-display text-xs font-semibold uppercase tracking-wide text-side-gold">
                     You
                   </p>
                   <p className="text-[15px] leading-relaxed text-parchment-800">{r.userResponse}</p>
                 </div>
-              </Card>
+              </div>
             )}
           </div>
         ))}
