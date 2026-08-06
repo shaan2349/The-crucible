@@ -80,18 +80,27 @@ export function Landing() {
       <div className="reading-container relative flex min-h-svh flex-col items-center justify-center px-6 py-16 text-center">
         <div
           className="mb-8 flex h-20 w-20 items-center justify-center rounded-2xl shadow-embossed"
-          style={{ background: 'linear-gradient(155deg, #e8a33d 0%, #c2531d 55%, #8a2a12 100%)' }}
+          style={{ background: 'linear-gradient(155deg, #e8a33d 0%, #c2531d 55%, #8a2a12 100%)', animation: 'revealUp 0.6s ease 650ms both' }}
         >
           <CrucibleMark size={44} className="text-parchment-50" />
         </div>
 
-        <p className="mb-2 font-display text-sm tracking-wide text-parchment-600">
+        <p
+          className="mb-2 font-display text-sm tracking-wide text-parchment-600"
+          style={{ animation: 'revealUp 0.6s ease 730ms both' }}
+        >
           A philosophy debate forge
         </p>
-        <h1 className="mb-4 font-display text-5xl font-medium leading-[1.05] text-parchment-900">
+        <h1
+          className="mb-4 font-display text-5xl font-medium leading-[1.05] text-parchment-900"
+          style={{ animation: 'revealUp 0.6s ease 810ms both' }}
+        >
           The Crucible
         </h1>
-        <p className="mb-12 text-lg leading-relaxed text-parchment-700">
+        <p
+          className="mb-12 text-lg leading-relaxed text-parchment-700"
+          style={{ animation: 'revealUp 0.6s ease 890ms both' }}
+        >
           State a real position. Two philosophers, in genuine opposition, will
           put it under heat. What survives is stronger for it.
         </p>
@@ -100,7 +109,10 @@ export function Landing() {
           type="button"
           onClick={() => navigate(hasOnboarded() ? '/app/reflect' : '/onboarding')}
           className="group relative overflow-hidden rounded-full px-9 py-4 font-display text-lg font-medium text-parchment-50 shadow-embossed transition-transform active:scale-[0.98]"
-          style={{ background: 'linear-gradient(120deg, #e8a33d 0%, #c2531d 55%, #8a2a12 100%)' }}
+          style={{
+            background: 'linear-gradient(120deg, #e8a33d 0%, #c2531d 55%, #8a2a12 100%)',
+            animation: 'revealUp 0.6s ease 970ms both',
+          }}
         >
           Enter the Crucible
         </button>
@@ -109,6 +121,7 @@ export function Landing() {
           type="button"
           onClick={() => navigate('/app/archive')}
           className="mt-6 font-body text-sm text-parchment-600 underline decoration-parchment-400 underline-offset-4 hover:text-parchment-800"
+          style={{ animation: 'revealUp 0.6s ease 1050ms both' }}
         >
           Or browse the philosophers first
         </button>
