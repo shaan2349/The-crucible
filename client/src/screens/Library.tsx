@@ -3,6 +3,7 @@ import { ArrowLeft, Search, Scale } from 'lucide-react'
 import { PHILOSOPHER_CATEGORIES, PHILOSOPHERS, PHILOSOPHER_TAGS, philosopherById, philosopherVoice, SIDE_ACCENT } from '../data/philosophers'
 import { relationshipsFor } from '../data/relationships'
 import { Card } from '../components/Card'
+import { EmptyState } from '../components/EmptyState'
 import { Loader } from '../components/Loader'
 import { Button } from '../components/Button'
 import { PortraitFrame } from '../components/PortraitFrame'
@@ -135,7 +136,7 @@ export function Library() {
             </div>
 
             <div className="mt-8">
-              {filtered ? (
+              {filtered && filtered.length > 0 && (
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
                   {filtered.map((p, i) => (
                     <button
@@ -152,13 +153,15 @@ export function Library() {
                       <p className="truncate text-[11px] text-parchment-500">{p.era}</p>
                     </button>
                   ))}
-                  {filtered.length === 0 && (
-                    <p className="col-span-full py-8 text-center text-sm text-parchment-500">
-                      No one in the collection matches that.
-                    </p>
-                  )}
                 </div>
-              ) : null}
+              )}
+              {filtered && filtered.length === 0 && (
+                <EmptyState
+                  icon={<Search className="h-9 w-9 text-parchment-400" />}
+                  headline="No one matches that"
+                  body="Try a different name, era, or school of thought — or ask the Archive below."
+                />
+              )}
               {filtered && filtered.length < 3 && (
                 <div className="mt-4">
                   {aiQueryFor !== query && !aiLoading && (
@@ -175,9 +178,11 @@ export function Library() {
                   )}
                   {aiResults && aiQueryFor === query && (
                     aiResults.length === 0 ? (
-                      <p className="mt-3 text-center text-sm text-parchment-500">
-                        Nothing in the collection genuinely fits that.
-                      </p>
+                      <EmptyState
+                        icon={<Search className="h-9 w-9 text-parchment-400" />}
+                        headline="Nothing genuinely fits"
+                        body="The Archive would rather come up empty than force a weak match."
+                      />
                     ) : (
                       <div className="mt-3 space-y-2">
                         {aiResults.map((m) => {
