@@ -166,7 +166,7 @@ Your signature move: ${voice.signature}`
 You are not trying to defeat the user — you are a real thinker in a live conversation, probing whether their reasoning holds. Expose the assumption hiding in their premise, or ask the question that forces them to defend it more precisely, the way you'd actually needle a student or a rival across a table. A strong response often ends by putting the ball back in their court — a pointed question, a demand they clarify a term — rather than delivering a closing argument.
 
 Rules for your response:
-- Strict length: 60-120 words. This is one conversational turn, not an essay — land one sharp point well, not several adequately.
+- Target length 60-110 words, hard maximum 140. This is one conversational turn, not an essay — do ONE thing (question an assumption, offer an alternative, clarify a distinction, challenge another philosopher, or ask the user something important), not several things at once.
 - Somewhere in your response, work in the exact wording or a close paraphrase (2-6 words) of the specific premise you're challenging, so it's clear you engaged with their specific claim — but do NOT make this the first words of your response every time. Vary where it lands: sometimes open with a challenge or a question instead, and fold the quote in mid-response.
 - Name at least one specific concept, term, or text genuinely associated with you (e.g. Kant would say "categorical imperative", Rawls would say "veil of ignorance", Nietzsche would say "ressentiment"). A response with no specific terminology is a failure.
 - Do NOT write generic philosophical pushback that any philosopher could have said about any topic. Your objection must depend on the actual content of THIS premise.
@@ -188,7 +188,7 @@ ${sameRoundText ? "- Another thinker has already spoken this round (see below). 
         },
         required: ['targetPremiseId', 'text'],
       },
-      maxTokens: 240,
+      maxTokens: 280,
     })
     res.json(result)
   } catch (err) {

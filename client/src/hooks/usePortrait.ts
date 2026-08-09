@@ -10,6 +10,54 @@ import { PHILOSOPHER_PHOTOS, wikimediaFilePath } from '../data/philosophers'
 const cache = new Map<string, { url: string | null; failed: boolean }>()
 
 /**
+ * Warms the shared portrait cache for a philosopher ahead of time — used
+ * during the Reflect → Council transition so the cast-reveal portraits
+ * are already resolved (or already known to have failed) by the time
+ * they're actually rendered, instead of popping in individually. Shares
+ * the exact same cache/key scheme as usePortrait, so a later
+ * `usePortrait(id, width)` call with the same width is a cache hit.
+ * Resolves once settled either way — callers don't need to know whether
+ * it succeeded, only that it's no longer in flight.
+ */
+export function preloadPortrait(philosopherId: string, width = 1200): Promise<void> {
+  const cacheKey = `${philosopherId}:${width}`
+  if (cache.has(cacheKey)) return Promise.resolve()
+
+  const filename = PHILOSOPHER_PHOTOS[philosopherId]
+  if (!filename) {
+    cache.set(cacheKey, { url: null, failed: true })
+    return Promise.resolve()
+  }
+
+  return new Promise((resolve) => {
+    const target = wikimediaFilePath(filename, width)
+    const img = new Image()
+    let settled = false
+    const timeout = window.setTimeout(() => {
+      if (settled) return
+      settled = true
+      cache.set(cacheKey, { url: null, failed: true })
+      resolve()
+    }, 7000)
+    img.onload = () => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timeout)
+      cache.set(cacheKey, { url: target, failed: false })
+      resolve()
+    }
+    img.onerror = () => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timeout)
+      cache.set(cacheKey, { url: null, failed: true })
+      resolve()
+    }
+    img.src = target
+  })
+}
+
+/**
  * Resolves a single philosopher's portrait, preloaded before use. Returns
  * failed=true both when the id has no mapped photo and when the mapped
  * file doesn't load — callers should treat both the same way (fall back

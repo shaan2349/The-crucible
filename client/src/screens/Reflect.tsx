@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { ArrowRight, Mic } from 'lucide-react'
 import { Bust } from '../components/Bust'
+import { Button } from '../components/Button'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { CouncilBackdrop, CouncilView } from './Council'
-import { SUGGESTED_TOPICS } from '../data/philosophers'
+import { SUGGESTED_TOPICS, philosopherById } from '../data/philosophers'
 import { loadReflectDraft, saveReflectDraft, clearReflectDraft, loadInterests } from '../lib/storage'
 import { useDebateContext } from '../context/DebateContext'
 import { useSpeechToText } from '../hooks/useSpeechToText'
+import { preloadPortrait } from '../hooks/usePortrait'
+import * as api from '../lib/api'
 import type { Debate as DebateState } from '../types'
 
 const HERO_QUESTIONS = [
@@ -42,12 +45,20 @@ function dailySuggestions(): typeof SUGGESTED_TOPICS {
   return ranked.slice(0, 4)
 }
 
+// Portraits are preloaded at the size Council's cast reveal actually uses
+// (see CouncilView), so the preload during the transition is a genuine
+// cache warm, not a different-sized, wasted fetch.
+const CAST_PORTRAIT_SIZE = 400
+
 export function Reflect() {
   const { debate, setDebate } = useDebateContext()
 
   const [claim, setClaim] = useState('')
   const [savedDraft, setSavedDraft] = useState<string | null>(null)
   const [entering, setEntering] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [assembled, setAssembled] = useState<string[] | null>(null)
+  const [enterError, setEnterError] = useState<string | null>(null)
   const stt = useSpeechToText()
 
   function toggleMic() {
@@ -70,37 +81,60 @@ export function Reflect() {
     return () => clearTimeout(t)
   }, [claim])
 
-  // A brief in-place transition rather than a route change — Council isn't
-  // a separate destination, it's what this same screen becomes once a
-  // question is submitted. Setting debate here is the whole handoff: once
-  // it's non-null, this component renders CouncilView directly below,
-  // still on /app/reflect. Council's own entrance (the cast reveal once
-  // opponents are chosen) picks up right where this leaves off.
-  function enter() {
-    if (entering) return
+  // The signature Reflect -> Council moment: a brief in-place transition,
+  // not a route change — Council isn't a separate destination, it's what
+  // this same screen becomes. Opponent selection and portrait preloading
+  // both happen DURING the transition overlay, so by the time CouncilView
+  // actually mounts, the cast is already known and their portraits are
+  // already warm — it starts on the decomposing phase, skipping the
+  // "Choosing your opponents…" loader entirely.
+  async function enter() {
+    if (submitting) return
     const trimmed = claim.trim()
     if (!trimmed) return
+    setSubmitting(true)
     setEntering(true)
+    setEnterError(null)
+    setAssembled(null)
     clearReflectDraft()
-    window.setTimeout(() => {
+    try {
+      const minWait = new Promise<void>((resolve) => setTimeout(resolve, 650))
+      const [{ ids }] = await Promise.all([api.selectOpponents(trimmed), minWait])
+      await Promise.all(ids.map((id) => preloadPortrait(id, CAST_PORTRAIT_SIZE)))
+      setAssembled(ids)
+      await new Promise<void>((resolve) => setTimeout(resolve, 450))
       const next: DebateState = {
         id: Date.now(),
         claim: trimmed,
-        philosopherIds: [],
+        philosopherIds: ids,
         conclusion: '',
         premises: [],
         rounds: [],
         currentRound: 1,
-        phase: 'selecting',
+        phase: 'decomposing',
         verdict: null,
         error: null,
       }
       setDebate(next)
-    }, 550)
+    } catch (e) {
+      // entering stays true — the overlay remains visible, now showing the
+      // error and a Retry button, rather than silently snapping back to
+      // the composer as if nothing happened.
+      setSubmitting(false)
+      setAssembled(null)
+      setEnterError((e as Error)?.message || 'Something went wrong assembling the Council.')
+    }
   }
 
-  const presence = Math.min(claim.trim().length / 80, 1)
+  const trimmedLength = claim.trim().length
+  const presence = Math.min(trimmedLength / 80, 1)
   const suggestions = dailySuggestions()
+  // Example prompts fade as the user writes their own thought, and
+  // disappear entirely once they've written something substantial — they
+  // shouldn't keep competing for attention once the user's own idea is
+  // clearly taking shape.
+  const promptsHidden = trimmedLength > 60
+  const promptsOpacity = trimmedLength === 0 ? 1 : Math.max(0.4, 1 - presence * 0.62)
 
   function resumeDraft() {
     if (savedDraft) setClaim(savedDraft)
@@ -123,7 +157,11 @@ export function Reflect() {
   return (
     <>
       <RotatingBackdrop />
-      <div className="relative z-[1] px-6 pb-10 pt-8">
+      <div
+        className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-700"
+        style={{ background: '#14100a', opacity: entering ? 0.3 : 0 }}
+      />
+      <div className="relative z-[1] px-6 pb-12 pt-10">
         <p
           className="mb-2 font-display text-xs uppercase tracking-[0.15em] text-parchment-500"
           style={{ animation: 'revealUp 0.4s ease both' }}
@@ -131,7 +169,7 @@ export function Reflect() {
           The Council awaits.
         </p>
 
-        <div className="relative mb-6">
+        <div className="relative mb-8">
           <div
             className="pointer-events-none absolute -inset-x-2 -top-4 flex justify-between transition-opacity duration-700"
             style={{ opacity: 0.06 + presence * 0.18 }}
@@ -184,33 +222,39 @@ export function Reflect() {
               <button
                 type="button"
                 onClick={enter}
-                disabled={!claim.trim()}
-                aria-label="Begin"
-                className="absolute bottom-4 right-4 flex h-14 w-14 items-center justify-center rounded-full text-parchment-50 transition-transform active:scale-[0.96] disabled:opacity-40"
+                disabled={!claim.trim() || submitting}
+                aria-label="Assemble the Council"
+                className="absolute bottom-4 right-4 flex h-14 w-14 items-center justify-center gap-2 rounded-full text-parchment-50 transition-transform active:scale-[0.96] disabled:opacity-40 sm:w-auto sm:px-6"
                 style={{ background: 'linear-gradient(155deg, #e8a33d, #c2531d)', boxShadow: 'var(--shadow-embossed)' }}
               >
+                <span className="hidden font-display text-sm font-medium sm:inline">Assemble the Council</span>
                 <ArrowRight className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-2" style={{ animation: 'revealUp 0.5s ease 240ms both' }}>
-              {suggestions.map((s) => (
-                <button
-                  key={s.short}
-                  type="button"
-                  onClick={() => setClaim(s.label)}
-                  className="rounded-full border border-parchment-300 bg-parchment-50 px-3.5 py-2 text-xs text-parchment-700 transition-colors hover:border-forge-ember hover:text-forge-ember"
-                >
-                  {s.short}
-                </button>
-              ))}
-            </div>
+            {!promptsHidden && (
+              <div
+                className="mt-6 flex flex-wrap gap-2 transition-opacity duration-500"
+                style={{ animation: 'revealUp 0.5s ease 240ms both', opacity: promptsOpacity }}
+              >
+                {suggestions.map((s) => (
+                  <button
+                    key={s.short}
+                    type="button"
+                    onClick={() => setClaim(s.label)}
+                    className="rounded-full border border-parchment-300 bg-parchment-50 px-3.5 py-2 text-xs text-parchment-700 transition-colors hover:border-forge-ember hover:text-forge-ember"
+                  >
+                    {s.short}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {savedDraft && !claim.trim() && (
               <button
                 type="button"
                 onClick={resumeDraft}
-                className="mt-5 flex w-full items-center justify-between gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left"
+                className="mt-6 flex w-full items-center justify-between gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left"
                 style={{ boxShadow: 'var(--shadow-card)', animation: 'revealUp 0.5s ease 320ms both' }}
               >
                 <span className="min-w-0">
@@ -226,20 +270,45 @@ export function Reflect() {
 
           {entering && (
             <div
-              className="absolute inset-0 flex flex-col items-center justify-center gap-3"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center"
               style={{ animation: 'revealUp 0.35s ease 150ms both' }}
             >
-              <span className="relative flex h-5 w-5 items-center justify-center">
-                <span
-                  className="absolute h-5 w-5 animate-[emberRing_1.3s_ease-out_infinite] rounded-full"
-                  style={{ background: '#e8a33d' }}
-                />
-                <span
-                  className="absolute h-2 w-2 rounded-full"
-                  style={{ background: '#c2531d', boxShadow: '0 0 8px 3px rgba(194,83,29,0.6)' }}
-                />
-              </span>
-              <p className="font-display text-base italic text-parchment-600">The Council gathers to meet it.</p>
+              {enterError ? (
+                <>
+                  <p className="font-display text-base text-parchment-700">Couldn't reach the Council.</p>
+                  <p className="text-xs text-parchment-500">{enterError}</p>
+                  <div className="mt-2 flex gap-2">
+                    <Button onClick={enter}>Retry</Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setEntering(false)
+                        setEnterError(null)
+                      }}
+                    >
+                      Edit question
+                    </Button>
+                  </div>
+                </>
+              ) : assembled ? (
+                <p className="font-display text-base italic text-parchment-600" style={{ animation: 'revealUp 0.35s ease both' }}>
+                  {assembled.map((id) => philosopherById(id)?.name).filter(Boolean).join(' and ')} will examine this.
+                </p>
+              ) : (
+                <>
+                  <span className="relative flex h-5 w-5 items-center justify-center">
+                    <span
+                      className="absolute h-5 w-5 animate-[emberRing_1.3s_ease-out_infinite] rounded-full"
+                      style={{ background: '#e8a33d' }}
+                    />
+                    <span
+                      className="absolute h-2 w-2 rounded-full"
+                      style={{ background: '#c2531d', boxShadow: '0 0 8px 3px rgba(194,83,29,0.6)' }}
+                    />
+                  </span>
+                  <p className="font-display text-base italic text-parchment-600">Assembling perspectives…</p>
+                </>
+              )}
             </div>
           )}
         </div>

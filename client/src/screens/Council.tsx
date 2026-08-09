@@ -280,14 +280,16 @@ export function CouncilView({
       )}
 
       {debate.conclusion && (
-        <div className="mt-5">
-          <Card variant="hero" className="px-5 py-4" style={{ animation: 'revealUp 0.5s ease both' }}>
-            <p className="mb-1.5 font-display text-[13px] italic text-forge-ember">Your conclusion</p>
-            <p className="font-display text-lg leading-snug text-parchment-900">{debate.conclusion}</p>
-          </Card>
+        <div className="mt-6" style={{ animation: 'revealUp 0.5s ease both' }}>
+          <p className="mb-1.5 font-display text-xs font-semibold uppercase tracking-[0.15em] text-forge-ember">
+            Your position
+          </p>
+          <p className="font-display text-lg leading-snug text-parchment-900">{debate.conclusion}</p>
 
-          <div className="relative mt-5 pl-6">
-            <div className="absolute bottom-1 left-[7px] top-1 w-px bg-parchment-300" />
+          <p className="mb-1 mt-5 font-display text-xs font-semibold uppercase tracking-[0.15em] text-parchment-500">
+            Assumptions underneath it
+          </p>
+          <div>
             {debate.premises.map((p, i) => (
               <PremiseRow key={p.id} premise={p} index={i} />
             ))}
