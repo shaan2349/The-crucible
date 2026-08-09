@@ -1,4 +1,4 @@
-import { useRotatingBackground, useRotatingBustVariant } from '../hooks/useRotatingBackground'
+import { useRotatingBackground } from '../hooks/useRotatingBackground'
 import { PortraitFallback } from './PortraitFallback'
 
 /**
@@ -8,16 +8,15 @@ import { PortraitFallback } from './PortraitFallback'
  * gold/indigo duotones used during a debate, rather than a raw filter
  * chain whose look shifted with each source photo's original grading.
  * PortraitFallback is always mounted underneath and never removed — a
- * slow or failed Wikimedia fetch just leaves the marble/bust motif
- * showing instead of a blank gap.
+ * slow or failed Wikimedia fetch just leaves the marble/brand-mark motif
+ * showing instead of a blank gap or a swapped-in different philosopher.
  */
 export function RotatingBackdrop() {
   const { bgUrl, bgPosition } = useRotatingBackground(30000)
-  const variant = useRotatingBustVariant(30000)
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden bg-parchment-100">
-      <PortraitFallback variant={variant} bustOpacity={0.14} />
+      <PortraitFallback markOpacity={0.14} />
       {bgUrl && (
         <div
           key={bgUrl}

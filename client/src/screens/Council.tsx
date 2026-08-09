@@ -1,9 +1,8 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { Plus, X, Volume2, Square, Mic } from 'lucide-react'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
-import { EmptyState } from '../components/EmptyState'
 import { Loader } from '../components/Loader'
 import { PremiseRow } from '../components/PremiseRow'
 import { PhilosopherAvatar } from '../components/PhilosopherAvatar'
@@ -13,7 +12,6 @@ import { DebateBackdrop } from '../components/DebateBackdrop'
 import { PHILOSOPHERS, philosopherById, SIDE_ACCENT, SIDE_DUOTONE } from '../data/philosophers'
 import * as api from '../lib/api'
 import { loadDebates, saveDebates } from '../lib/storage'
-import { useDebateContext } from '../context/DebateContext'
 import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import type { Debate as DebateState, Round } from '../types'
@@ -56,40 +54,30 @@ function summarizeConversation(debate: DebateState): string {
     .join(' ')
 }
 
+// Council was previously a standalone tab, including an empty "No
+// discussion in progress" state when nothing was active — confusing,
+// since Council isn't really a destination, it's what Reflect becomes
+// once a question is submitted. The route stays (for old links/direct
+// navigation) but only ever redirects: Reflect itself now renders the
+// live conversation in place whenever one exists.
 export function Council() {
-  const { debate, setDebate } = useDebateContext()
-  const navigate = useNavigate()
+  return <Navigate to="/app/reflect" replace />
+}
 
-  if (!debate) {
-    return (
-      <>
-        <RotatingBackdrop />
-        <div className="relative z-[1] px-6 pb-10 pt-8">
-          <EmptyState
-            headline="No discussion in progress"
-            body="Bring a question to Reflect and the Council gathers here."
-            action={{ label: 'Go to Reflect', onClick: () => navigate('/app/reflect') }}
-          />
-        </div>
-      </>
-    )
-  }
-
-  return (
-    <>
-      {debate.philosopherIds.length === 2 ? (
-        <DebateBackdrop philosopherIds={debate.philosopherIds} />
-      ) : (
-        <RotatingBackdrop />
-      )}
-      <CouncilView debate={debate} setDebate={setDebate} onExit={() => setDebate(null)} />
-    </>
+/** Picks the right ambient backdrop for wherever a live discussion is
+ * being shown — a two-philosopher debate gets the dedicated split
+ * portrait treatment, anything else falls back to the ambient rotation. */
+export function CouncilBackdrop({ philosopherIds }: { philosopherIds: string[] }) {
+  return philosopherIds.length === 2 ? (
+    <DebateBackdrop philosopherIds={philosopherIds} />
+  ) : (
+    <RotatingBackdrop />
   )
 }
 
 /* --------------------------------- CouncilView --------------------------------- */
 
-function CouncilView({
+export function CouncilView({
   debate,
   setDebate,
   onExit,

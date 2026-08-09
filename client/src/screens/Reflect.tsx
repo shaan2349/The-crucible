@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Mic } from 'lucide-react'
 import { Bust } from '../components/Bust'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
+import { CouncilBackdrop, CouncilView } from './Council'
 import { SUGGESTED_TOPICS } from '../data/philosophers'
 import { loadReflectDraft, saveReflectDraft, clearReflectDraft, loadInterests } from '../lib/storage'
 import { useDebateContext } from '../context/DebateContext'
@@ -44,13 +44,6 @@ function dailySuggestions(): typeof SUGGESTED_TOPICS {
 
 export function Reflect() {
   const { debate, setDebate } = useDebateContext()
-  const navigate = useNavigate()
-
-  // An active debate already exists (started here, or resumed) — Reflect is
-  // only ever the entry point, so hand off to Council immediately.
-  useEffect(() => {
-    if (debate) navigate('/app/council')
-  }, [debate, navigate])
 
   const [claim, setClaim] = useState('')
   const [savedDraft, setSavedDraft] = useState<string | null>(null)
@@ -77,11 +70,12 @@ export function Reflect() {
     return () => clearTimeout(t)
   }, [claim])
 
-  // A brief in-place transition rather than an instant route change — typing
-  // a belief should feel like it flows into the discussion, not like
-  // switching to a different part of the app. Council's own entrance
-  // (the cast reveal once opponents are chosen) picks up right where this
-  // leaves off.
+  // A brief in-place transition rather than a route change — Council isn't
+  // a separate destination, it's what this same screen becomes once a
+  // question is submitted. Setting debate here is the whole handoff: once
+  // it's non-null, this component renders CouncilView directly below,
+  // still on /app/reflect. Council's own entrance (the cast reveal once
+  // opponents are chosen) picks up right where this leaves off.
   function enter() {
     if (entering) return
     const trimmed = claim.trim()
@@ -102,7 +96,6 @@ export function Reflect() {
         error: null,
       }
       setDebate(next)
-      navigate('/app/council')
     }, 550)
   }
 
@@ -114,7 +107,18 @@ export function Reflect() {
     setSavedDraft(null)
   }
 
-  if (debate) return null
+  // Council is not a separate page — it's this same screen showing a
+  // different phase of the same journey. Whether the user just submitted
+  // a question here, or navigated back to Reflect mid-conversation from
+  // Journal or Library, a live debate always renders in place, right here.
+  if (debate) {
+    return (
+      <>
+        <CouncilBackdrop philosopherIds={debate.philosopherIds} />
+        <CouncilView debate={debate} setDebate={setDebate} onExit={() => setDebate(null)} />
+      </>
+    )
+  }
 
   return (
     <>

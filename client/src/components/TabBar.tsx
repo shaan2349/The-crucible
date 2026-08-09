@@ -3,9 +3,8 @@ import { clsx } from 'clsx'
 
 const TABS = [
   { to: '/app/reflect', label: 'Reflect' },
-  { to: '/app/council', label: 'Council' },
   { to: '/app/journal', label: 'Journal' },
-  { to: '/app/archive', label: 'Archive' },
+  { to: '/app/archive', label: 'Library' },
   { to: '/app/profile', label: 'Profile' },
 ] as const
 

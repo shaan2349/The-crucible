@@ -44,7 +44,7 @@ export function PortraitFrame({
         position: 'relative',
       }}
     >
-      {busted && <PortraitFallback bustOpacity={failed ? 0.3 : 0.16} />}
+      {busted && <PortraitFallback markOpacity={failed ? 0.3 : 0.16} />}
       {url && (
         <img
           key={url}

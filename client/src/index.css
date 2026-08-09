@@ -57,10 +57,29 @@
 :root {
   color-scheme: light;
   --reading-width: 28rem;
+  /* Desktop layout primitives (spec: app shell ~1200px, reading column
+     680-760px, wide editorial content 960-1100px). Independent of
+     --reading-width above, which is the user's body-text measure
+     preference from Settings and stays mobile-first/JS-driven — these
+     are pure CSS breakpoint constants for screens that need a genuine
+     desktop composition (see the Phase 4 philosopher profile redesign). */
+  --app-shell-width: 75rem;
+  --editorial-width: 68rem;
+  --desktop-reading-width: 46rem;
 }
 
 .reading-container {
   max-width: var(--reading-width);
+  margin-inline: auto;
+}
+
+.app-shell-container {
+  max-width: var(--app-shell-width);
+  margin-inline: auto;
+}
+
+.editorial-container {
+  max-width: var(--editorial-width);
   margin-inline: auto;
 }
 

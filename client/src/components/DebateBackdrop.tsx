@@ -69,7 +69,7 @@ function Side({
 }) {
   return (
     <div className="relative h-1/2 w-full overflow-hidden sm:h-full sm:w-1/2">
-      <PortraitFallback bustOpacity={0.18} />
+      <PortraitFallback markOpacity={0.18} />
       <div className="absolute inset-0" style={{ background: `${accent}12` }} />
       {url && (
         <div

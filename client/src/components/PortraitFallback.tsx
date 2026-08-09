@@ -1,21 +1,22 @@
-import { Bust } from './Bust'
+import { CrucibleMark } from './CrucibleMark'
 
 interface PortraitFallbackProps {
   className?: string
-  bustOpacity?: number
-  variant?: { laurel?: boolean; bearded?: boolean; plinth?: boolean }
+  markOpacity?: number
 }
 
 /**
  * The permanent backdrop behind every portrait, real or not — rendered
  * first and always, with the actual photo (if one loads) fading in on
- * top of it. So a slow/failed network fetch never produces a blank or
- * flat-colored gap: it just quietly stays on this marble-and-bust motif,
- * which reads as a deliberate design choice rather than a broken image.
- * Pure CSS + SVG, no network dependency, themes automatically via the
- * shared parchment custom properties (light and dark alike).
+ * top of it. So a slow or failed network fetch never produces a blank
+ * gap or a generic person-shaped silhouette: it quietly stays on this
+ * marble-and-brand-mark motif, which reads as a deliberate design
+ * choice rather than a broken image. Deliberately has no face or
+ * figure of any kind — just texture and the Crucible mark, small and
+ * faint. Pure CSS + SVG, no network dependency, themes automatically
+ * via the shared parchment custom properties (light and dark alike).
  */
-export function PortraitFallback({ className, bustOpacity = 0.22, variant }: PortraitFallbackProps) {
+export function PortraitFallback({ className, markOpacity = 0.16 }: PortraitFallbackProps) {
   return (
     <div className={className} style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
       <div
@@ -44,8 +45,10 @@ export function PortraitFallback({ className, bustOpacity = 0.22, variant }: Por
             'radial-gradient(circle at 50% 38%, transparent 0%, color-mix(in srgb, var(--color-parchment-200) 55%, transparent) 100%)',
         }}
       />
-      <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: bustOpacity }}>
-        <Bust {...variant} className="h-1/2 w-1/2" tone="var(--color-parchment-600)" />
+      <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: markOpacity }}>
+        <div className="h-[28%] w-[28%]">
+          <CrucibleMark className="h-full w-full" />
+        </div>
       </div>
     </div>
   )
