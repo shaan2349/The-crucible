@@ -9,9 +9,70 @@ import { PHILOSOPHER_CATEGORIES, philosopherById } from '../data/philosophers'
 import { loadDebates } from '../lib/storage'
 import type { Debate } from '../types'
 
+interface ProfileInsight {
+  label: string
+  value: string
+}
+
 function categoryNameOf(id: string): string | null {
   const cat = PHILOSOPHER_CATEGORIES.find((c) => (c.ids as readonly string[]).includes(id))
   return cat?.name ?? null
+}
+
+function tallyFrameworks(debates: Debate[]): [string, number][] {
+  const counts: Record<string, number> = {}
+  debates.forEach((d) => {
+    if (d.verdict?.leanedFramework) counts[d.verdict.leanedFramework] = (counts[d.verdict.leanedFramework] ?? 0) + 1
+  })
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])
+}
+
+/** Every line here is computed directly from stored debates — nothing
+ * is invented. Each insight is independently gated on having a real
+ * pattern behind it (not just one data point), so a thin history
+ * produces fewer lines rather than weak or misleading ones. */
+function thinkingProfile(debates: Debate[]): ProfileInsight[] {
+  if (debates.length < 3) return []
+  const insights: ProfileInsight[] = []
+  const sorted = [...debates].sort((a, b) => a.id - b.id)
+
+  const recentFrameworks = tallyFrameworks(sorted.slice(-5))
+  const currentStyle = recentFrameworks.length > 0 && recentFrameworks[0][1] >= 2 ? recentFrameworks[0][0] : null
+  if (currentStyle) {
+    insights.push({ label: 'Current intellectual style', value: currentStyle })
+  }
+
+  const allFrameworks = tallyFrameworks(debates)
+  if (allFrameworks.length > 0 && allFrameworks[0][1] >= 2 && allFrameworks[0][0] !== currentStyle) {
+    insights.push({ label: 'Most explored framework', value: allFrameworks[0][0] })
+  }
+
+  const philosopherCounts: Record<string, number> = {}
+  debates.forEach((d) => d.philosopherIds.forEach((id) => (philosopherCounts[id] = (philosopherCounts[id] ?? 0) + 1)))
+  const philosopherEntries = Object.entries(philosopherCounts).sort((a, b) => b[1] - a[1])
+  if (philosopherEntries.length > 0) {
+    const [topId, topCount] = philosopherEntries[0]
+    const runnerUp = philosopherEntries[1]?.[1] ?? 0
+    if (topCount >= 3 && topCount > runnerUp) {
+      const name = philosopherById(topId)?.name
+      if (name) insights.push({ label: 'Thinker you return to', value: name })
+    }
+  }
+
+  if (allFrameworks.length >= 2 && allFrameworks[0][1] >= 2 && allFrameworks[1][1] >= 2) {
+    insights.push({ label: 'Recurring tension', value: `${allFrameworks[0][0]} vs ${allFrameworks[1][0]}` })
+  }
+
+  if (sorted.length >= 4) {
+    const mid = Math.floor(sorted.length / 2)
+    const earlyTop = tallyFrameworks(sorted.slice(0, mid))[0]
+    const lateTop = tallyFrameworks(sorted.slice(mid))[0]
+    if (earlyTop && lateTop && earlyTop[0] !== lateTop[0]) {
+      insights.push({ label: 'Recent shift', value: `From ${earlyTop[0]} toward ${lateTop[0]}` })
+    }
+  }
+
+  return insights
 }
 
 export function Profile() {
@@ -46,14 +107,17 @@ export function Profile() {
     }
   }, [debates])
 
+  const insights = useMemo(() => thinkingProfile(debates), [debates])
+
   return (
     <>
       <RotatingBackdrop />
       <div className="relative z-[1] px-6 pb-10 pt-8">
         <header className="mb-6">
-          <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">Profile</p>
-          <h1 className="font-display text-2xl font-medium text-parchment-900">Your thinking journey</h1>
-          <p className="mt-1 text-sm text-parchment-600">Not how much you've done. How you've changed.</p>
+          <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">
+            Your thinking profile
+          </p>
+          <h1 className="font-display text-2xl font-medium text-parchment-900">Who you're becoming, philosophically</h1>
         </header>
 
         {debates.length === 0 ? (
@@ -63,7 +127,24 @@ export function Profile() {
           />
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3">
+            {insights.length > 0 ? (
+              <div className="space-y-4">
+                {insights.map((insight) => (
+                  <div key={insight.label}>
+                    <p className="text-xs font-medium uppercase tracking-wide text-parchment-500">
+                      {insight.label}
+                    </p>
+                    <p className="mt-0.5 font-display text-xl leading-snug text-parchment-900">{insight.value}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="font-display text-lg leading-snug text-parchment-700">
+                Your thinking profile develops as you question, debate, and reflect.
+              </p>
+            )}
+
+            <div className="mt-8 grid grid-cols-2 gap-3">
               <Card className="p-4">
                 <p className="font-display text-2xl font-medium text-parchment-900">{stats.questionsExplored}</p>
                 <p className="mt-0.5 text-xs text-parchment-500">Questions explored</p>
