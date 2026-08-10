@@ -245,18 +245,18 @@ export function Library() {
  * without truncating into "Marcus Aure…". */
 function ThinkerGrid({ philosophers, onSelect }: { philosophers: typeof PHILOSOPHERS; onSelect: (id: string) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-x-5 gap-y-7 sm:grid-cols-3 lg:grid-cols-4">
       {philosophers.map((p, i) => (
         <button
           key={p.id}
           type="button"
           onClick={() => onSelect(p.id)}
-          className="text-left"
+          className="group rounded-xl text-left transition-transform duration-200 hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
           style={{ animation: 'revealUp 0.35s ease both', animationDelay: `${Math.min(i, 8) * 40}ms` }}
         >
-          <PortraitFrame id={p.id} size={320} className="w-full transition-transform active:scale-[0.97]" />
-          <p className="mt-2 font-display text-sm font-medium leading-snug text-parchment-900">{p.name}</p>
-          <p className="text-xs text-parchment-500">{shortEra(p.era)}</p>
+          <PortraitFrame id={p.id} size={360} className="w-full" />
+          <p className="mt-2.5 font-display text-[15px] font-medium leading-snug text-parchment-900">{p.name}</p>
+          <p className="mt-0.5 text-sm text-parchment-500">{shortEra(p.era)}</p>
           {PHILOSOPHER_TAGS[p.id] && (
             <p className="mt-0.5 text-xs italic text-parchment-600">{PHILOSOPHER_TAGS[p.id]}</p>
           )}
@@ -527,29 +527,58 @@ function PhilosopherDetail({
   )
 }
 
+/** Two named slots + a picker for whichever is still empty, rather than
+ * one long filterable list of all 47 names sitting on screen at once —
+ * setup should feel like choosing two people, not filling out a form.
+ * The picker for a slot closes the moment it's filled and the topic step
+ * only appears once both are chosen, so attention goes to one decision
+ * at a time. */
 function CompareView({ onBack }: { onBack: () => void }) {
-  const [ids, setIds] = useState<string[]>([])
+  const [ids, setIds] = useState<(string | null)[]>([null, null])
+  const [editingSlot, setEditingSlot] = useState<number | null>(0)
   const [filter, setFilter] = useState('')
   const [topic, setTopic] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<CompareResponse | null>(null)
 
+  const [idA, idB] = ids
+  const both = idA && idB
+
   const available = PHILOSOPHERS.filter(
     (p) => !ids.includes(p.id) && p.name.toLowerCase().includes(filter.toLowerCase()),
   )
 
-  function toggle(id: string) {
-    setIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 2 ? [...prev, id] : prev))
+  function choose(id: string) {
+    if (editingSlot === null) return
+    setIds((prev) => {
+      const next = [...prev]
+      next[editingSlot] = id
+      return next
+    })
+    setFilter('')
     setResult(null)
+    const otherSlot = editingSlot === 0 ? 1 : 0
+    setEditingSlot(ids[otherSlot] ? null : otherSlot)
+  }
+
+  function changeSlot(slot: number) {
+    setIds((prev) => {
+      const next = [...prev]
+      next[slot] = null
+      return next
+    })
+    setFilter('')
+    setResult(null)
+    setEditingSlot(slot)
   }
 
   async function submit() {
-    if (ids.length !== 2 || !topic.trim()) return
+    if (!idA || !idB || !topic.trim()) return
     setLoading(true)
     setError(null)
     try {
-      const res = await compareThinkers(ids[0], ids[1], topic.trim())
+      const res = await compareThinkers(idA, idB, topic.trim())
       setResult(res)
     } catch (e) {
       setError((e as Error)?.message || 'Something went wrong.')
@@ -557,7 +586,8 @@ function CompareView({ onBack }: { onBack: () => void }) {
     setLoading(false)
   }
 
-  const [a, b] = ids.map((id) => philosopherById(id))
+  const a = idA ? philosopherById(idA) : null
+  const b = idB ? philosopherById(idB) : null
 
   return (
     <div style={{ animation: 'revealUp 0.3s ease both' }}>
@@ -569,76 +599,79 @@ function CompareView({ onBack }: { onBack: () => void }) {
         <ArrowLeft className="h-3.5 w-3.5" /> Back to the Library
       </button>
 
-      <header className="mb-6">
+      <header className="mb-7">
         <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">Compare</p>
         <h1 className="font-display text-2xl font-medium text-parchment-900">Two minds, one question</h1>
       </header>
 
-      <div className="mb-4 flex items-center justify-center gap-4">
-        {[0, 1].map((slot) => {
-          const id = ids[slot]
-          return id ? (
-            <div key={id} className="w-24 text-center">
-              <PortraitFrame id={id} size={300} className="w-full" />
-              <p className="mt-1.5 truncate font-display text-xs font-medium text-parchment-800">
-                {philosopherById(id)?.name}
-              </p>
-            </div>
-          ) : (
-            <div
-              key={slot}
-              className="flex aspect-[3/4] w-24 items-center justify-center rounded-xl border border-dashed border-parchment-400 text-xs text-parchment-400"
-            >
-              ?
-            </div>
-          )
-        })}
+      <div className="flex items-center justify-center gap-4 sm:gap-6">
+        <CompareSlot label="Thinker A" id={idA} active={editingSlot === 0} onClick={() => changeSlot(0)} />
+        <p className="font-display text-sm italic text-parchment-400">vs</p>
+        <CompareSlot label="Thinker B" id={idB} active={editingSlot === 1} onClick={() => changeSlot(1)} />
       </div>
 
-      <input
-        value={filter}
-        onChange={(e) => setFilter(e.target.value)}
-        placeholder={`Search ${PHILOSOPHERS.length} philosophers…`}
-        className="w-full rounded-lg border border-parchment-300 bg-parchment-50 px-3 py-2 text-sm text-parchment-900 outline-none focus:border-forge-ember"
-      />
-      <div className="mt-2 grid max-h-40 grid-cols-2 gap-1.5 overflow-y-auto pr-1">
-        {available.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => toggle(p.id)}
-            className="truncate rounded-lg border border-parchment-300 px-2 py-1.5 text-left text-xs text-parchment-700 hover:border-forge-ember"
-          >
-            {p.name}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-5">
-        <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">Topic</p>
-        <input
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          placeholder="e.g. Justice, or your own question…"
-          className="w-full rounded-lg border border-parchment-300 bg-parchment-50 px-3 py-2 text-sm text-parchment-900 outline-none focus:border-forge-ember"
-        />
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {COMPARE_TOPICS.map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTopic(t)}
-              className="rounded-full border border-parchment-300 px-3 py-1 text-xs text-parchment-700 hover:border-forge-ember"
-            >
-              {t}
-            </button>
-          ))}
+      {editingSlot !== null && (
+        <div className="mt-6" style={{ animation: 'revealUp 0.3s ease both' }}>
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-parchment-500">
+            Choose {editingSlot === 0 ? 'Thinker A' : 'Thinker B'}
+          </p>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-parchment-400" />
+            <input
+              autoFocus
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder={`Search ${PHILOSOPHERS.length} philosophers…`}
+              className="w-full rounded-xl border border-parchment-300/70 bg-parchment-50 py-2.5 pl-10 pr-3 text-sm text-parchment-900 outline-none focus:border-forge-ember"
+              style={{ boxShadow: 'var(--shadow-card)' }}
+            />
+          </div>
+          <div className="mt-3 flex max-h-72 flex-wrap gap-x-3 gap-y-4 overflow-y-auto pb-1 pr-1">
+            {available.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => choose(p.id)}
+                className="w-20 shrink-0 rounded-full text-center transition-transform duration-150 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
+              >
+                <PortraitFrame id={p.id} size={160} className="w-full rounded-full" />
+                <p className="mt-1.5 text-[11px] font-medium leading-tight text-parchment-700">{p.name}</p>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <Button className="mt-5 w-full" disabled={ids.length !== 2 || !topic.trim() || loading} onClick={submit}>
-        Compare
-      </Button>
+      {both && editingSlot === null && (
+        <div className="mt-8" style={{ animation: 'revealUp 0.35s ease both' }}>
+          <p className="mb-1.5 font-display text-lg font-medium text-parchment-900">
+            What should they disagree about?
+          </p>
+          <input
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="e.g. Justice, or your own question…"
+            className="mt-3 w-full rounded-xl border border-parchment-300/70 bg-parchment-50 px-4 py-3 text-sm text-parchment-900 outline-none focus:border-forge-ember"
+            style={{ boxShadow: 'var(--shadow-card)' }}
+          />
+          <div className="mt-3 flex flex-wrap gap-2">
+            {COMPARE_TOPICS.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTopic(t)}
+                className="rounded-full border border-parchment-300 px-3.5 py-1.5 text-xs text-parchment-700 transition-colors hover:border-forge-ember hover:text-forge-ember"
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <Button className="mt-6 w-full" disabled={!topic.trim() || loading} onClick={submit}>
+            Compare their views
+          </Button>
+        </div>
+      )}
 
       {loading && <Loader label={`${a?.name ?? ''} and ${b?.name ?? ''} are considering "${topic}"…`} />}
       {error && (
@@ -649,25 +682,71 @@ function CompareView({ onBack }: { onBack: () => void }) {
       )}
 
       {result && a && b && (
-        <div className="mt-6 space-y-3" style={{ animation: 'revealUp 0.4s ease both' }}>
-          <Card className="p-4" style={{ borderLeftWidth: 3, borderLeftColor: SIDE_ACCENT[0] }}>
-            <p className="mb-1 font-display text-[13px] italic" style={{ color: SIDE_ACCENT[0] }}>{a.name}</p>
+        <div className="mt-8 space-y-4" style={{ animation: 'revealUp 0.4s ease both' }}>
+          <Card className="p-5" style={{ borderLeftWidth: 3, borderLeftColor: SIDE_ACCENT[0] }}>
+            <p className="mb-1.5 font-display text-sm italic" style={{ color: SIDE_ACCENT[0] }}>{a.name}</p>
             <p className="text-sm leading-relaxed text-parchment-800">{result.positionA}</p>
           </Card>
-          <Card className="p-4" style={{ borderLeftWidth: 3, borderLeftColor: SIDE_ACCENT[1] }}>
-            <p className="mb-1 font-display text-[13px] italic" style={{ color: SIDE_ACCENT[1] }}>{b.name}</p>
+          <Card className="p-5" style={{ borderLeftWidth: 3, borderLeftColor: SIDE_ACCENT[1] }}>
+            <p className="mb-1.5 font-display text-sm italic" style={{ color: SIDE_ACCENT[1] }}>{b.name}</p>
             <p className="text-sm leading-relaxed text-parchment-800">{result.positionB}</p>
           </Card>
-          <Card variant="hero" className="p-4">
-            <p className="mb-1 font-display text-sm font-medium uppercase tracking-wide text-forge-ember">Key disagreement</p>
+          <Card variant="hero" className="p-5">
+            <p className="mb-1.5 font-display text-sm font-medium uppercase tracking-wide text-forge-ember">Key disagreement</p>
             <p className="text-sm leading-relaxed text-parchment-900">{result.keyDisagreement}</p>
           </Card>
-          <Card className="p-4">
-            <p className="mb-1 font-display text-[13px] italic text-forge-ember">Shared ground</p>
+          <Card className="p-5">
+            <p className="mb-1.5 font-display text-sm italic text-forge-ember">Shared ground</p>
             <p className="text-sm leading-relaxed text-parchment-800">{result.sharedGround}</p>
           </Card>
         </div>
       )}
     </div>
+  )
+}
+
+function CompareSlot({
+  label,
+  id,
+  active,
+  onClick,
+}: {
+  label: string
+  id: string | null
+  active: boolean
+  onClick: () => void
+}) {
+  const p = id ? philosopherById(id) : null
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-28 rounded-xl text-center transition-transform duration-150 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember sm:w-32"
+    >
+      {p ? (
+        <PortraitFrame
+          id={p.id}
+          size={360}
+          aspect="3/4"
+          className="w-full"
+          frameAccent={active ? 'var(--color-forge-ember)' : undefined}
+        />
+      ) : (
+        <div
+          className="flex aspect-[3/4] w-full items-center justify-center rounded-xl border-2 border-dashed text-2xl transition-colors"
+          style={{
+            borderColor: active ? 'var(--color-forge-ember)' : 'var(--color-parchment-400)',
+            color: 'var(--color-parchment-400)',
+            background: active ? 'var(--color-side-gold-soft)' : undefined,
+          }}
+        >
+          +
+        </div>
+      )}
+      <p className="mt-2 font-display text-sm font-medium leading-snug text-parchment-900">
+        {p ? p.name : label}
+      </p>
+      {!p && <p className="text-[11px] uppercase tracking-wide text-parchment-500">{label}</p>}
+    </button>
   )
 }
