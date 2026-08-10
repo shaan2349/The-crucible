@@ -91,11 +91,14 @@ export function fetchVerdict(params: {
 }
 
 export interface BioResponse {
-  life: string
+  positioning: string
+  overview: string
+  lifeAndContext: string
   works: string
   legacy: string
   coreIdeas: string[]
   modernTakes: { topic: string; take: string }[]
+  conversationStarters: string[]
 }
 export function fetchBio(philosopherId: string) {
   return postJSON<BioResponse>('/claude/library/bio', { philosopherId })

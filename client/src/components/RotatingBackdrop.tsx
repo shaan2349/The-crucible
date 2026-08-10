@@ -10,9 +10,15 @@ import { PortraitFallback } from './PortraitFallback'
  * PortraitFallback is always mounted underneath and never removed — a
  * slow or failed Wikimedia fetch just leaves the marble/brand-mark motif
  * showing instead of a blank gap or a swapped-in different philosopher.
+ *
+ * `dimmed` pulls the scrim further toward opaque — for screens like the
+ * Library where content (portrait cards, or a page that already has its
+ * own dominant hero portrait) needs to stay unambiguously in front,
+ * rather than competing with a second large ambient face.
  */
-export function RotatingBackdrop() {
+export function RotatingBackdrop({ dimmed = false }: { dimmed?: boolean } = {}) {
   const { bgUrl, bgPosition } = useRotatingBackground(30000)
+  const stops = dimmed ? [85, 95, 99] : [72, 90, 97]
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden bg-parchment-100">
@@ -27,8 +33,7 @@ export function RotatingBackdrop() {
       <div
         className="absolute inset-0"
         style={{
-          background:
-            'radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--color-parchment-100) 72%, transparent) 0%, color-mix(in srgb, var(--color-parchment-100) 90%, transparent) 60%, color-mix(in srgb, var(--color-parchment-100) 97%, transparent) 100%)',
+          background: `radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--color-parchment-100) ${stops[0]}%, transparent) 0%, color-mix(in srgb, var(--color-parchment-100) ${stops[1]}%, transparent) 60%, color-mix(in srgb, var(--color-parchment-100) ${stops[2]}%, transparent) 100%)`,
         }}
       />
     </div>

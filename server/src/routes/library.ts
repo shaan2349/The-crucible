@@ -5,11 +5,14 @@ import { PHILOSOPHERS, philosopherById } from '../data/philosophers.js'
 export const libraryRouter = Router()
 
 interface BioResult {
-  life: string
+  positioning: string
+  overview: string
+  lifeAndContext: string
   works: string
   legacy: string
   coreIdeas: string[]
   modernTakes: { topic: string; take: string }[]
+  conversationStarters: string[]
 }
 
 libraryRouter.post('/bio', async (req, res) => {
@@ -22,17 +25,35 @@ libraryRouter.post('/bio', async (req, res) => {
 
   try {
     const result = await structured<BioResult>({
-      system: 'You write short, engaging, accurate accounts of philosophers for a curious student.',
-      prompt: `Philosopher: ${philosopher.name} (${philosopher.era})`,
+      system:
+        'You write engaging, accurate, editorial-quality profiles of philosophers for a curious student — ' +
+        'the register of a well-written magazine profile, not a dry encyclopedia entry or a stitched-together ' +
+        'list of facts.',
+      prompt: `Philosopher: ${philosopher.name} (${philosopher.era}). Framework: ${philosopher.framework}.`,
       toolName: 'record_bio',
-      toolDescription: "Records the philosopher's biography.",
+      toolDescription: "Records the philosopher's editorial profile.",
       schema: {
         type: 'object',
         properties: {
-          life: {
+          positioning: {
             type: 'string',
             description:
-              '2-3 sentences on who they were, their historical context, and their central ideas, written engagingly not like a dry encyclopedia.',
+              'One punchy sentence capturing their essence, in the style of a magazine subheading — e.g. ' +
+              '"The philosopher who turned questioning into a method." Not a summary of their whole career, ' +
+              'just the single sharpest thing to say about them.',
+          },
+          overview: {
+            type: 'string',
+            description:
+              'Two short paragraphs (separate paragraphs joined by a blank line) framing who they were and ' +
+              'why their thinking still matters, written to be read as prose, not a list of facts.',
+          },
+          lifeAndContext: {
+            type: 'string',
+            description:
+              'One to two short paragraphs (joined by a blank line if two) of biographical narrative — their ' +
+              'actual life, historical circumstances, and the world that shaped their thinking. Distinct from ' +
+              'the overview: this is about their life, not their ideas.',
           },
           works: {
             type: 'string',
@@ -70,10 +91,30 @@ libraryRouter.post('/bio', async (req, res) => {
             },
             description: 'How this philosopher would approach 2-3 genuinely modern topics, reasoned from their real framework.',
           },
+          conversationStarters: {
+            type: 'array',
+            minItems: 2,
+            maxItems: 3,
+            items: { type: 'string' },
+            description:
+              'Real, specific positions or questions a curious student could bring to a debate with this ' +
+              'thinker — phrased as a stance to defend (e.g. "Lying is sometimes justified to protect someone ' +
+              'you love"), not a vague topic. Each should genuinely provoke pushback from THIS philosopher\'s ' +
+              'actual framework.',
+          },
         },
-        required: ['life', 'works', 'legacy', 'coreIdeas', 'modernTakes'],
+        required: [
+          'positioning',
+          'overview',
+          'lifeAndContext',
+          'works',
+          'legacy',
+          'coreIdeas',
+          'modernTakes',
+          'conversationStarters',
+        ],
       },
-      maxTokens: 700,
+      maxTokens: 900,
     })
     res.json(result)
   } catch (err) {

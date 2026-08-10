@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { ArrowRight, Mic } from 'lucide-react'
 import { Bust } from '../components/Bust'
 import { Button } from '../components/Button'
@@ -52,6 +53,7 @@ const CAST_PORTRAIT_SIZE = 400
 
 export function Reflect() {
   const { debate, setDebate } = useDebateContext()
+  const location = useLocation()
 
   const [claim, setClaim] = useState('')
   const [savedDraft, setSavedDraft] = useState<string | null>(null)
@@ -72,6 +74,14 @@ export function Reflect() {
   useEffect(() => {
     setSavedDraft(loadReflectDraft())
   }, [])
+
+  // A philosopher's "Try a conversation" question arrives via router state
+  // (e.g. from the Library) rather than a query param, so it's gone once
+  // consumed instead of lingering in the URL on refresh/back.
+  useEffect(() => {
+    const prefill = (location.state as { prefill?: string } | null)?.prefill
+    if (prefill) setClaim(prefill)
+  }, [location.state])
 
   useEffect(() => {
     const t = setTimeout(() => {

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Search, Scale } from 'lucide-react'
 import { PHILOSOPHER_CATEGORIES, PHILOSOPHERS, PHILOSOPHER_TAGS, philosopherById, philosopherVoice, SIDE_ACCENT } from '../data/philosophers'
 import { relationshipsFor } from '../data/relationships'
@@ -12,11 +13,19 @@ import { fetchBio, compareThinkers, searchThinkers, type BioResponse, type Compa
 import { loadBios, saveBios } from '../lib/storage'
 
 type BioState = BioResponse | { error: string } | undefined
+type BrowseMode = 'thinkers' | 'schools'
 
 const COMPARE_TOPICS = ['Justice', 'Freedom', 'Virtue', 'Knowledge', 'Death', 'Meaning']
 
+/** Cards show just the region/period, not the full birth-death string —
+ * that detail lives on the profile page, where it has room. */
+function shortEra(era: string): string {
+  return era.split(',')[0].trim()
+}
+
 export function Library() {
   const [search, setSearch] = useState('')
+  const [mode, setMode] = useState<BrowseMode>('thinkers')
   const [openId, setOpenId] = useState<string | null>(null)
   const [bios, setBios] = useState<Record<string, BioState>>({})
   const [compareOpen, setCompareOpen] = useState(false)
@@ -34,6 +43,8 @@ export function Library() {
     PHILOSOPHER_CATEGORIES.forEach((cat) => cat.ids.forEach((id) => (map[id] = cat.name)))
     return (id: string) => map[id] ?? ''
   }, [])
+
+  const thinkersAZ = useMemo(() => [...PHILOSOPHERS].sort((a, b) => a.name.localeCompare(b.name)), [])
 
   async function loadBio(id: string) {
     setBios((b) => ({ ...b, [id]: undefined }))
@@ -71,7 +82,7 @@ export function Library() {
     setAiError(null)
   }, [query])
 
-  async function askArchive() {
+  async function askLibrary() {
     const q = search.trim()
     if (!q) return
     setAiLoading(true)
@@ -88,7 +99,7 @@ export function Library() {
 
   return (
     <>
-      <RotatingBackdrop />
+      <RotatingBackdrop dimmed />
       <div className="relative z-[1] px-6 pb-10 pt-8">
         {openId ? (
           <PhilosopherDetail
@@ -106,12 +117,11 @@ export function Library() {
             <header className="mb-6 flex items-start justify-between gap-3">
               <div>
                 <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">
-                  The Firmament
+                  The Library
                 </p>
-                <h1 className="font-display text-2xl font-medium text-parchment-900">Library</h1>
-                <p className="mt-1 text-sm text-parchment-600">
-                  {PHILOSOPHERS.length} minds, organised by era. Open one to see who they argued with, and why.
-                </p>
+                <h1 className="font-display text-2xl font-medium text-parchment-900">
+                  {PHILOSOPHERS.length} thinkers, centuries of arguments
+                </h1>
               </div>
               <button
                 type="button"
@@ -135,45 +145,45 @@ export function Library() {
               />
             </div>
 
-            <div className="mt-8">
-              {filtered && filtered.length > 0 && (
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-                  {filtered.map((p, i) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => open(p.id)}
-                      className="text-center"
-                      style={{ animation: 'revealUp 0.35s ease both', animationDelay: `${Math.min(i, 8) * 40}ms` }}
-                    >
-                      <PortraitFrame id={p.id} size={260} className="w-full transition-transform active:scale-[0.97]" />
-                      <p className="mt-1.5 truncate font-display text-[13px] font-medium text-parchment-900">
-                        {p.name}
-                      </p>
-                      <p className="truncate text-[11px] text-parchment-500">{p.era}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
+            {!query && (
+              <div
+                className="mt-4 flex gap-1 rounded-lg border border-parchment-300/70 bg-parchment-200 p-1"
+                style={{ boxShadow: 'var(--shadow-embossed)', width: 'fit-content' }}
+              >
+                {(['thinkers', 'schools'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMode(m)}
+                    className={`rounded-md px-3.5 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors ${mode === m ? 'bg-forge-ember text-parchment-50' : 'text-parchment-700'}`}
+                  >
+                    {m === 'thinkers' ? 'Thinkers' : 'Schools'}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-6">
+              {filtered && filtered.length > 0 && <ThinkerGrid philosophers={filtered} onSelect={open} />}
               {filtered && filtered.length === 0 && (
                 <EmptyState
                   icon={<Search className="h-9 w-9 text-parchment-400" />}
                   headline="No one matches that"
-                  body="Try a different name, era, or school of thought — or ask the Archive below."
+                  body="Try a different name, era, or school of thought — or ask the Library below."
                 />
               )}
               {filtered && filtered.length < 3 && (
                 <div className="mt-4">
                   {aiQueryFor !== query && !aiLoading && (
-                    <Button className="w-full" onClick={askArchive}>
-                      Ask the Archive about "{search.trim()}"
+                    <Button className="w-full" onClick={askLibrary}>
+                      Ask the Library about "{search.trim()}"
                     </Button>
                   )}
-                  {aiLoading && <Loader label="Searching the archive…" />}
+                  {aiLoading && <Loader label="Searching the library…" />}
                   {aiError && (
                     <Card className="mt-3 border-rose-300 bg-rose-50 p-4">
                       <p className="mb-2 text-xs text-rose-700">{aiError}</p>
-                      <Button onClick={askArchive}>Retry</Button>
+                      <Button onClick={askLibrary}>Retry</Button>
                     </Card>
                   )}
                   {aiResults && aiQueryFor === query && (
@@ -181,7 +191,7 @@ export function Library() {
                       <EmptyState
                         icon={<Search className="h-9 w-9 text-parchment-400" />}
                         headline="Nothing genuinely fits"
-                        body="The Archive would rather come up empty than force a weak match."
+                        body="The Library would rather come up empty than force a weak match."
                       />
                     ) : (
                       <div className="mt-3 space-y-2">
@@ -209,34 +219,15 @@ export function Library() {
                   )}
                 </div>
               )}
-              {!filtered && (
+              {!filtered && mode === 'thinkers' && <ThinkerGrid philosophers={thinkersAZ} onSelect={open} />}
+              {!filtered && mode === 'schools' && (
                 <div className="space-y-8">
                   {PHILOSOPHER_CATEGORIES.map((cat) => (
                     <div key={cat.name}>
                       <p className="mb-3 font-display text-xs font-semibold uppercase tracking-[0.15em] text-parchment-500">
                         {cat.name}
                       </p>
-                      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-                        {cat.ids.map((id, i) => {
-                          const p = philosopherById(id)
-                          if (!p) return null
-                          return (
-                            <button
-                              key={id}
-                              type="button"
-                              onClick={() => open(id)}
-                              className="text-center"
-                              style={{ animation: 'revealUp 0.35s ease both', animationDelay: `${Math.min(i, 8) * 40}ms` }}
-                            >
-                              <PortraitFrame id={id} size={260} className="w-full transition-transform active:scale-[0.97]" />
-                              <p className="mt-1.5 truncate font-display text-[13px] font-medium text-parchment-900">
-                                {p.name}
-                              </p>
-                              <p className="truncate text-[11px] text-parchment-500">{p.era}</p>
-                            </button>
-                          )
-                        })}
-                      </div>
+                      <ThinkerGrid philosophers={cat.ids.map((id) => philosopherById(id)).filter(Boolean) as typeof PHILOSOPHERS} onSelect={open} />
                     </div>
                   ))}
                 </div>
@@ -246,6 +237,32 @@ export function Library() {
         )}
       </div>
     </>
+  )
+}
+
+/** The one card layout used everywhere thinkers are browsed — larger
+ * than the old 3/4-column grid so a full name and a real descriptor fit
+ * without truncating into "Marcus Aure…". */
+function ThinkerGrid({ philosophers, onSelect }: { philosophers: typeof PHILOSOPHERS; onSelect: (id: string) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      {philosophers.map((p, i) => (
+        <button
+          key={p.id}
+          type="button"
+          onClick={() => onSelect(p.id)}
+          className="text-left"
+          style={{ animation: 'revealUp 0.35s ease both', animationDelay: `${Math.min(i, 8) * 40}ms` }}
+        >
+          <PortraitFrame id={p.id} size={320} className="w-full transition-transform active:scale-[0.97]" />
+          <p className="mt-2 font-display text-sm font-medium leading-snug text-parchment-900">{p.name}</p>
+          <p className="text-xs text-parchment-500">{shortEra(p.era)}</p>
+          {PHILOSOPHER_TAGS[p.id] && (
+            <p className="mt-0.5 text-xs italic text-parchment-600">{PHILOSOPHER_TAGS[p.id]}</p>
+          )}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -265,136 +282,247 @@ function PhilosopherDetail({
   clusterNameOf: (id: string) => string
 }) {
   const p = philosopherById(id)
+  const navigate = useNavigate()
+  const connectionsRef = useRef<HTMLDivElement>(null)
   if (!p) return null
   const isError = bio && 'error' in bio
   const connections = relationshipsFor(id)
   const voice = philosopherVoice(id)
+
+  function startConversation(question?: string) {
+    const prefill = question ?? (bio && !isError ? bio.conversationStarters?.[0] : undefined)
+    navigate('/app/reflect', prefill ? { state: { prefill } } : undefined)
+  }
+
+  function exploreRelated() {
+    if (connections.length > 0 && connectionsRef.current) {
+      connectionsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else {
+      onBack()
+    }
+  }
 
   return (
     <div style={{ animation: 'revealUp 0.3s ease both' }}>
       <button
         type="button"
         onClick={onBack}
-        className="mb-5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500 hover:text-forge-ember"
+        className="mb-6 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500 hover:text-forge-ember"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Back to the Firmament
+        Back to the Library
       </button>
 
-      <div
-        className="mx-auto mb-5 w-40 sm:w-48"
-        style={{ animation: 'castReveal 0.55s ease both' }}
-      >
-        <PortraitFrame id={id} size={700} aspect="4/5" duotone="url(#duotone-neutral)" className="w-full" />
+      {/* Hero */}
+      <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-start sm:text-left">
+        <div className="w-40 shrink-0 sm:w-48" style={{ animation: 'castReveal 0.55s ease both' }}>
+          <PortraitFrame id={id} size={700} aspect="4/5" duotone="url(#duotone-neutral)" className="w-full" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="font-display text-3xl font-medium text-parchment-900">{p.name}</h1>
+          <p className="mt-1 text-sm text-parchment-500">{p.era}</p>
+          {PHILOSOPHER_TAGS[id] && (
+            <span className="mt-2 inline-block rounded-full bg-parchment-200 px-2.5 py-1 text-[11px] font-medium text-parchment-700">
+              {PHILOSOPHER_TAGS[id]}
+            </span>
+          )}
+          {bio && !isError && bio.positioning && (
+            <p className="mt-4 font-display text-lg italic leading-snug text-parchment-800">
+              &ldquo;{bio.positioning}&rdquo;
+            </p>
+          )}
+          <div className="mt-5 flex flex-wrap justify-center gap-2 sm:justify-start">
+            <Button onClick={() => startConversation()}>Start a conversation</Button>
+            {connections.length > 0 && (
+              <Button variant="ghost" onClick={exploreRelated}>
+                Explore related thinkers
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="mb-6 text-center">
-        <h1 className="font-display text-2xl font-medium text-parchment-900">{p.name}</h1>
-        <p className="mt-1 text-sm text-parchment-500">{p.era}</p>
-        {PHILOSOPHER_TAGS[id] && (
-          <span className="mt-2 inline-block rounded-full bg-parchment-200 px-2.5 py-1 text-[11px] font-medium text-parchment-700">
-            {PHILOSOPHER_TAGS[id]}
-          </span>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        <Card className="p-4">
-          <p className="mb-1 font-display text-[13px] italic text-forge-ember">Framework</p>
-          <p className="leading-relaxed text-parchment-800">{p.framework}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="mb-1 font-display text-[13px] italic text-forge-ember">Characteristic move</p>
-          <p className="leading-relaxed text-parchment-800">{p.attack}</p>
-        </Card>
-        {voice && (
-          <Card className="p-4">
-            <p className="mb-1 font-display text-[13px] italic text-forge-ember">Voice</p>
-            <p className="leading-relaxed text-parchment-800">{voice.style}</p>
-          </Card>
-        )}
-
-        {!bio && <Loader label="Reading their history…" />}
-        {isError && (
-          <Card className="border-rose-300 bg-rose-50 p-4">
-            <p className="mb-2 text-xs text-rose-700">Couldn't load: {bio.error}</p>
-            <Button onClick={onRetry}>Retry</Button>
-          </Card>
-        )}
-        {bio && !isError && (
-          <>
-            <Card className="p-4">
-              <p className="mb-1 font-display text-[13px] italic text-forge-ember">Life & ideas</p>
-              <p className="leading-relaxed text-parchment-800">{bio.life}</p>
-            </Card>
-            {bio.coreIdeas?.length > 0 && (
-              <Card className="p-4">
-                <p className="mb-2 font-display text-[13px] italic text-forge-ember">Core ideas</p>
-                <ul className="space-y-1.5">
-                  {bio.coreIdeas.map((idea, i) => (
-                    <li key={i} className="flex gap-2 text-sm leading-relaxed text-parchment-800">
-                      <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-forge-ember" />
-                      {idea}
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            )}
-            <Card className="p-4">
-              <p className="mb-1 font-display text-[13px] italic text-forge-ember">Key works</p>
-              <p className="leading-relaxed text-parchment-800">{bio.works}</p>
-            </Card>
-            <Card className="p-4">
-              <p className="mb-1 font-display text-[13px] italic text-forge-ember">Why they still matter</p>
-              <p className="leading-relaxed text-parchment-800">{bio.legacy}</p>
-            </Card>
-            {bio.modernTakes?.length > 0 && (
-              <Card className="p-4">
-                <p className="mb-2.5 font-display text-[13px] italic text-forge-ember">Modern relevance</p>
-                <div className="space-y-3">
-                  {bio.modernTakes.map((t, i) => (
-                    <div key={i}>
-                      <p className="mb-0.5 text-xs font-semibold uppercase tracking-wide text-parchment-500">{t.topic}</p>
-                      <p className="text-sm leading-relaxed text-parchment-800">{t.take}</p>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
-          </>
-        )}
-
-        {connections.length > 0 && (
-          <Card className="p-4">
-            <p className="mb-2.5 font-display text-[13px] italic text-forge-ember">Their constellation</p>
-            <div className="space-y-2.5">
-              {connections.map((c) => {
-                const other = philosopherById(c.otherId)
-                if (!other) return null
-                return (
-                  <button
-                    key={c.otherId}
-                    type="button"
-                    onClick={() => onJump(c.otherId)}
-                    className="flex w-full items-start gap-2.5 text-left"
-                  >
-                    <span
-                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
-                      style={{ background: c.kind === 'rivalry' ? '#8a2a12' : '#c17f1f' }}
-                    />
-                    <span className="text-sm text-parchment-800">
-                      <span className="font-medium text-parchment-900">{other.name}</span>
-                      <span className="text-parchment-500"> · {clusterNameOf(c.otherId)}</span>
-                      <br />
-                      <span className="text-xs italic text-parchment-600">{c.note}</span>
-                    </span>
-                  </button>
-                )
-              })}
+      {/* Framework/challenge/voice are static data — shown immediately,
+          not gated behind the AI bio fetch below. */}
+      <section className="mt-10">
+        <p className="mb-3 font-display text-xs font-semibold uppercase tracking-[0.15em] text-forge-ember">
+          How they think
+        </p>
+        <div className="space-y-4">
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-parchment-500">Framework</p>
+            <p className="text-[15px] leading-relaxed text-parchment-800">{p.framework}</p>
+          </div>
+          {voice?.signature && (
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-parchment-500">
+                Characteristic move
+              </p>
+              <p className="text-[15px] leading-relaxed text-parchment-800">{voice.signature}</p>
             </div>
-          </Card>
-        )}
-      </div>
+          )}
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-parchment-500">
+              What they challenge
+            </p>
+            <p className="text-[15px] leading-relaxed text-parchment-800">{p.attack}</p>
+          </div>
+          {voice?.style && (
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-parchment-500">Voice</p>
+              <p className="text-[15px] leading-relaxed text-parchment-800">{voice.style}</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {!bio && (
+        <div className="mt-8">
+          <Loader label="Reading their history…" />
+        </div>
+      )}
+      {isError && (
+        <Card className="mt-8 border-rose-300 bg-rose-50 p-4">
+          <p className="mb-2 text-xs text-rose-700">Couldn't load: {bio.error}</p>
+          <Button onClick={onRetry}>Retry</Button>
+        </Card>
+      )}
+
+      {bio && !isError && (
+        <div className="mt-10 space-y-9">
+          {bio.overview && (
+            <section>
+              <p className="mb-2 font-display text-xs font-semibold uppercase tracking-[0.15em] text-forge-ember">
+                Overview
+              </p>
+              <div className="space-y-3 text-[15px] leading-[1.7] text-parchment-800">
+                {bio.overview.split('\n\n').map((para, i) => (
+                  <p key={i}>{para}</p>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {bio.coreIdeas?.length > 0 && (
+            <section>
+              <p className="mb-3 font-display text-xs font-semibold uppercase tracking-[0.15em] text-forge-ember">
+                Core ideas
+              </p>
+              <div className="space-y-3">
+                {bio.coreIdeas.map((idea, i) => (
+                  <div key={i} className="flex gap-3">
+                    <span className="mt-0.5 shrink-0 font-display text-xs italic text-parchment-400">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <p className="text-[15px] leading-relaxed text-parchment-800">{idea}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {bio.lifeAndContext && (
+            <section>
+              <p className="mb-2 font-display text-xs font-semibold uppercase tracking-[0.15em] text-forge-ember">
+                Life &amp; context
+              </p>
+              <div className="space-y-3 text-[15px] leading-[1.7] text-parchment-800">
+                {bio.lifeAndContext.split('\n\n').map((para, i) => (
+                  <p key={i}>{para}</p>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {bio.works && (
+            <section>
+              <p className="mb-2 font-display text-xs font-semibold uppercase tracking-[0.15em] text-forge-ember">
+                Key works &amp; sources
+              </p>
+              <p className="text-[15px] leading-relaxed text-parchment-800">{bio.works}</p>
+            </section>
+          )}
+
+          {bio.legacy && (
+            <section>
+              <p className="mb-2 font-display text-xs font-semibold uppercase tracking-[0.15em] text-forge-ember">
+                Why they still matter
+              </p>
+              <p className="text-[15px] leading-relaxed text-parchment-800">{bio.legacy}</p>
+            </section>
+          )}
+
+          {bio.modernTakes?.length > 0 && (
+            <section>
+              <p className="mb-3 font-display text-xs font-semibold uppercase tracking-[0.15em] text-forge-ember">
+                Modern relevance
+              </p>
+              <div className="space-y-4">
+                {bio.modernTakes.map((t, i) => (
+                  <div key={i}>
+                    <p className="mb-1 font-display text-sm italic text-parchment-700">{t.topic}</p>
+                    <p className="text-[15px] leading-relaxed text-parchment-800">{t.take}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+
+      {connections.length > 0 && (
+        <section ref={connectionsRef} className="mt-10 border-t border-parchment-300/70 pt-8">
+          <p className="mb-3 font-display text-xs font-semibold uppercase tracking-[0.15em] text-forge-ember">
+            Connections
+          </p>
+          <div className="space-y-2.5">
+            {connections.map((c) => {
+              const other = philosopherById(c.otherId)
+              if (!other) return null
+              return (
+                <button
+                  key={c.otherId}
+                  type="button"
+                  onClick={() => onJump(c.otherId)}
+                  className="flex w-full items-start gap-2.5 text-left"
+                >
+                  <span
+                    className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+                    style={{ background: c.kind === 'rivalry' ? '#8a2a12' : '#c17f1f' }}
+                  />
+                  <span className="text-sm text-parchment-800">
+                    <span className="font-medium text-parchment-900">{other.name}</span>
+                    <span className="text-parchment-500"> · {clusterNameOf(c.otherId)}</span>
+                    <br />
+                    <span className="text-xs italic text-parchment-600">{c.note}</span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {bio && !isError && bio.conversationStarters?.length > 0 && (
+        <section className="mt-10 border-t border-parchment-300/70 pt-8">
+          <p className="mb-3 font-display text-xs font-semibold uppercase tracking-[0.15em] text-forge-ember">
+            Try a conversation
+          </p>
+          <div className="space-y-2">
+            {bio.conversationStarters.map((q, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => startConversation(q)}
+                className="block w-full rounded-xl bg-parchment-50 px-4 py-3 text-left text-sm text-parchment-800"
+                style={{ boxShadow: 'var(--shadow-card)' }}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }
@@ -438,7 +566,7 @@ function CompareView({ onBack }: { onBack: () => void }) {
         onClick={onBack}
         className="mb-5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500 hover:text-forge-ember"
       >
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to the Firmament
+        <ArrowLeft className="h-3.5 w-3.5" /> Back to the Library
       </button>
 
       <header className="mb-6">
