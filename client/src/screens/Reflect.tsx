@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ArrowRight, Mic } from 'lucide-react'
-import { Bust } from '../components/Bust'
 import { Button } from '../components/Button'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { CouncilBackdrop, CouncilView } from './Council'
@@ -179,24 +178,17 @@ export function Reflect() {
         className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-700"
         style={{ background: '#14100a', opacity: entering ? 0.3 : 0 }}
       />
-      <div className="relative z-[1] px-6 pb-12 pt-10">
+      <div className="relative z-[1] px-6 pb-16 pt-14 sm:pt-20">
         <p
-          className="mb-2 font-display text-xs uppercase tracking-[0.15em] text-parchment-500"
+          className="mb-3 font-display text-xs uppercase tracking-[0.15em] text-parchment-500"
           style={{ animation: 'revealUp 0.4s ease both' }}
         >
           The Council awaits.
         </p>
 
-        <div className="relative mb-8">
-          <div
-            className="pointer-events-none absolute -inset-x-2 -top-4 flex justify-between transition-opacity duration-700"
-            style={{ opacity: 0.06 + presence * 0.18 }}
-          >
-            <Bust laurel className="h-16 w-16 -translate-x-2 -rotate-6 text-side-gold" />
-            <Bust bearded className="h-16 w-16 translate-x-2 rotate-6 text-side-indigo" />
-          </div>
+        <div className="relative mb-10">
           <h1
-            className="relative font-display text-[34px] font-medium leading-[1.15] tracking-[-0.02em] text-parchment-900"
+            className="relative font-display text-[34px] font-medium leading-[1.15] tracking-[-0.02em] text-parchment-900 sm:text-[40px]"
             style={{ animation: 'revealUp 0.5s ease 80ms both' }}
           >
             {heroQuestion()}
@@ -219,7 +211,8 @@ export function Reflect() {
                 placeholder="Write freely…"
                 rows={4}
                 autoFocus
-                className="w-full resize-none rounded-[28px] bg-parchment-50 p-7 pr-32 text-base text-parchment-900 outline-none placeholder:text-parchment-400"
+                aria-label="Your question or position"
+                className="w-full resize-none rounded-[28px] bg-parchment-50 p-7 pr-32 text-base text-parchment-900 outline-none ring-1 ring-transparent transition-shadow duration-200 placeholder:text-parchment-400 focus:ring-forge-ember/40"
                 style={{ boxShadow: 'var(--shadow-card)' }}
               />
               {stt.supported && (
@@ -242,17 +235,20 @@ export function Reflect() {
                 onClick={enter}
                 disabled={!claim.trim() || submitting}
                 aria-label="Assemble the Council"
-                className="absolute bottom-4 right-4 flex h-14 w-14 items-center justify-center gap-2 rounded-full text-parchment-50 transition-transform active:scale-[0.96] disabled:opacity-40 sm:w-auto sm:px-6"
-                style={{ background: 'linear-gradient(155deg, #e8a33d, #c2531d)', boxShadow: 'var(--shadow-embossed)' }}
+                className="group absolute bottom-4 right-4 flex h-14 w-14 items-center justify-center gap-2 rounded-full text-parchment-50 transition-all duration-200 hover:brightness-110 hover:shadow-lg active:scale-[0.96] disabled:pointer-events-none disabled:opacity-40 sm:w-auto sm:px-6"
+                style={{
+                  background: 'linear-gradient(155deg, #e8a33d, #c2531d)',
+                  boxShadow: 'var(--shadow-embossed), inset 0 1px 0 rgba(255,255,255,0.25)',
+                }}
               >
                 <span className="hidden font-display text-sm font-medium sm:inline">Assemble the Council</span>
-                <ArrowRight className="h-5 w-5" />
+                <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-0.5" />
               </button>
             </div>
 
             {!promptsHidden && (
               <div
-                className="mt-6 flex flex-wrap gap-2 transition-opacity duration-500"
+                className="mt-9 flex flex-wrap gap-2.5 transition-opacity duration-500"
                 style={{ animation: 'revealUp 0.5s ease 240ms both', opacity: promptsOpacity }}
               >
                 {suggestions.map((s) => (
@@ -260,7 +256,7 @@ export function Reflect() {
                     key={s.short}
                     type="button"
                     onClick={() => setClaim(s.label)}
-                    className="rounded-full border border-parchment-300 bg-parchment-50 px-3.5 py-2 text-xs text-parchment-700 transition-colors hover:border-forge-ember hover:text-forge-ember"
+                    className="rounded-full border border-parchment-300 bg-parchment-50 px-4 py-2.5 text-sm text-parchment-700 transition-colors hover:border-forge-ember hover:text-forge-ember focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forge-ember/50"
                   >
                     {s.short}
                   </button>
