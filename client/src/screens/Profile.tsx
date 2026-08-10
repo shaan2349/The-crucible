@@ -134,7 +134,7 @@ export function Profile() {
                     <p className="text-xs font-medium uppercase tracking-wide text-parchment-500">
                       {insight.label}
                     </p>
-                    <p className="mt-0.5 font-display text-xl leading-snug text-parchment-900">{insight.value}</p>
+                    <p className="mt-0.5 font-display text-2xl leading-snug text-parchment-900">{insight.value}</p>
                   </div>
                 ))}
               </div>
@@ -144,21 +144,24 @@ export function Profile() {
               </p>
             )}
 
-            <div className="mt-8 grid grid-cols-2 gap-3">
+            {/* Stats stay visually secondary to the insights above: smaller
+                numbers, four-across on desktop rather than a prominent 2x2
+                block, plain metadata-weight captions. */}
+            <div className="mt-9 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Card className="p-4">
-                <p className="font-display text-2xl font-medium text-parchment-900">{stats.questionsExplored}</p>
+                <p className="font-display text-xl font-medium text-parchment-800">{stats.questionsExplored}</p>
                 <p className="mt-0.5 text-xs text-parchment-500">Questions explored</p>
               </Card>
               <Card className="p-4">
-                <p className="font-display text-2xl font-medium text-parchment-900">{stats.reflectionsWritten}</p>
+                <p className="font-display text-xl font-medium text-parchment-800">{stats.reflectionsWritten}</p>
                 <p className="mt-0.5 text-xs text-parchment-500">Reflections written</p>
               </Card>
               <Card className="p-4">
-                <p className="font-display text-2xl font-medium text-parchment-900">{stats.thinkersEncountered}</p>
+                <p className="font-display text-xl font-medium text-parchment-800">{stats.thinkersEncountered}</p>
                 <p className="mt-0.5 text-xs text-parchment-500">Thinkers encountered</p>
               </Card>
               <Card className="p-4">
-                <p className="font-display text-2xl font-medium text-parchment-900">{stats.schoolsExplored}</p>
+                <p className="font-display text-xl font-medium text-parchment-800">{stats.schoolsExplored}</p>
                 <p className="mt-0.5 text-xs text-parchment-500">Schools explored</p>
               </Card>
             </div>
@@ -171,11 +174,16 @@ export function Profile() {
                     const p = philosopherById(id)
                     if (!p) return null
                     return (
-                      <div key={id} className="w-16 text-center">
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => navigate('/app/archive')}
+                        className="w-16 rounded-lg text-center transition-transform duration-150 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
+                      >
                         <PortraitFrame id={id} size={200} className="w-full" />
                         <p className="mt-1 truncate text-xs font-medium text-parchment-800">{p.name}</p>
                         <p className="text-[11px] text-parchment-500">{count}×</p>
-                      </div>
+                      </button>
                     )
                   })}
                 </div>
@@ -187,7 +195,7 @@ export function Profile() {
         <button
           type="button"
           onClick={() => navigate('/app/train')}
-          className="mt-5 flex w-full items-center gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left"
+          className="mt-5 flex w-full items-center gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left transition-transform duration-150 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
           style={{ boxShadow: 'var(--shadow-card)' }}
         >
           <BookOpen className="h-5 w-5 shrink-0 text-forge-ember" />
@@ -200,7 +208,7 @@ export function Profile() {
         <button
           type="button"
           onClick={() => navigate('/app/settings')}
-          className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left"
+          className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left transition-transform duration-150 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
           style={{ boxShadow: 'var(--shadow-card)' }}
         >
           <SettingsIcon className="h-5 w-5 shrink-0 text-parchment-600" />
