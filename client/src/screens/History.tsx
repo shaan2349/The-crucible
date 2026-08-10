@@ -10,16 +10,16 @@ import { loadDebates } from '../lib/storage'
 import type { Debate } from '../types'
 
 type DateFilter = 'all' | 'week' | 'month'
-type EntryStatus = 'changed' | 'unchanged' | 'unresolved'
+type EntryStatus = 'changed' | 'reinforced' | 'unresolved'
 
 const STATUS_LABEL: Record<EntryStatus, string> = {
   changed: 'Changed',
-  unchanged: 'Unchanged',
+  reinforced: 'Reinforced',
   unresolved: 'Unresolved',
 }
 const STATUS_COLOR: Record<EntryStatus, string> = {
   changed: 'var(--color-status-success)',
-  unchanged: 'var(--color-parchment-500)',
+  reinforced: 'var(--color-side-indigo)',
   unresolved: 'var(--color-status-warning)',
 }
 
@@ -38,12 +38,17 @@ function timeAgo(days: number): string {
   return years <= 1 ? 'a year ago' : `${years} years ago`
 }
 
+/** 'unresolved' — no reflection written yet, nothing to judge. 'changed'
+ * — reflecting on it actually moved the sharpened claim from the
+ * original one. 'reinforced' — reflected and the position held: not a
+ * null result, a real outcome (the position was tested and survived),
+ * so it gets its own label rather than reading as "nothing happened." */
 function entryStatus(d: Debate): EntryStatus {
   if (!d.userReflection?.trim()) return 'unresolved'
   if (d.verdict?.sharpenedClaim && d.verdict.sharpenedClaim.trim().toLowerCase() !== d.claim.trim().toLowerCase()) {
     return 'changed'
   }
-  return 'unchanged'
+  return 'reinforced'
 }
 
 /** A single headline insight drawn from real entries, prioritized by how
@@ -175,13 +180,18 @@ export function History() {
             )}
 
             {debates.length > 0 && (
-              <p className="font-display text-lg leading-snug text-parchment-900">
-                {insight ?? 'Your patterns will emerge as you reflect.'}
-              </p>
+              <div className="mb-7">
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">
+                  A pattern in your thinking
+                </p>
+                <p className="font-display text-xl leading-snug text-parchment-900">
+                  {insight ?? 'Your patterns will emerge as you reflect.'}
+                </p>
+              </div>
             )}
 
             {favourites.length > 0 && (
-              <div className="mt-5">
+              <div className="mb-7">
                 <p className="mb-2.5 font-display text-[13px] italic text-forge-ember">Familiar faces</p>
                 <div className="flex gap-3">
                   {favourites.map((id) => {
@@ -256,13 +266,13 @@ export function History() {
                   </div>
                 )}
 
-                <p className="mb-3 mt-8 font-display text-xl font-medium text-parchment-900">Entries</p>
+                <p className="mb-4 mt-10 font-display text-2xl font-medium text-parchment-900">Entries</p>
                 {filteredDebates.length === 0 ? (
                   <p className="py-6 text-center text-sm text-parchment-500">
                     No entries match {filtersActive ? 'that search or filter' : 'yet'}.
                   </p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {filteredDebates
                       .slice()
                       .reverse()
@@ -276,10 +286,10 @@ export function History() {
                             key={d.id}
                             type="button"
                             onClick={() => setOpenId(d.id)}
-                            className="block w-full text-left"
+                            className="block w-full rounded-2xl text-left transition-transform duration-200 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forge-ember/50"
                             style={{ animation: 'revealUp 0.35s ease both', animationDelay: `${Math.min(i, 6) * 50}ms` }}
                           >
-                            <Card className="relative overflow-hidden p-4">
+                            <Card className="relative overflow-hidden p-5">
                               <div
                                 className="absolute right-0 top-0 h-5 w-5"
                                 style={{
@@ -287,7 +297,7 @@ export function History() {
                                     'linear-gradient(135deg, transparent 50%, var(--color-parchment-300) 50%)',
                                 }}
                               />
-                              <div className="flex items-start gap-3.5">
+                              <div className="flex items-start gap-4">
                                 <div className="flex w-11 shrink-0 flex-col items-center rounded-lg bg-parchment-200 py-1.5">
                                   <span className="font-display text-lg font-semibold leading-none text-parchment-900">
                                     {day}
@@ -297,19 +307,19 @@ export function History() {
                                   </span>
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <p className="font-display text-[15px] italic leading-snug text-parchment-900">
+                                  <p className="font-display text-base italic leading-snug text-parchment-900">
                                     &ldquo;{d.claim}&rdquo;
                                   </p>
-                                  <p className="mt-1.5 text-xs text-parchment-500">
+                                  <p className="mt-2 text-sm text-parchment-500">
                                     with {d.philosopherIds.map((id) => philosopherById(id)?.name).join(' and ')}
                                   </p>
                                   {d.userReflection && (
-                                    <p className="mt-1.5 line-clamp-2 text-xs text-parchment-600">
+                                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-parchment-600">
                                       {d.userReflection}
                                     </p>
                                   )}
                                   <p
-                                    className="mt-1.5 text-[11px] font-semibold uppercase tracking-wide"
+                                    className="mt-2.5 text-[11px] font-semibold uppercase tracking-wide"
                                     style={{ color: STATUS_COLOR[status] }}
                                   >
                                     {STATUS_LABEL[status]}
