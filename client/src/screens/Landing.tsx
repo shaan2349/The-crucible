@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CrucibleMark } from '../components/CrucibleMark'
-import { useRotatingBackground } from '../hooks/useRotatingBackground'
+import { useScreenBackground } from '../hooks/useScreenBackground'
 import { hasOnboarded } from '../lib/storage'
 
 type BootPhase = 'flare' | 'fadeout' | null
@@ -9,7 +9,7 @@ type BootPhase = 'flare' | 'fadeout' | null
 export function Landing() {
   const navigate = useNavigate()
   const [bootPhase, setBootPhase] = useState<BootPhase>('flare')
-  const { bgUrl, bgPosition } = useRotatingBackground(30000)
+  const { bgUrl, bgPosition } = useScreenBackground('landing')
 
   useEffect(() => {
     const t1 = setTimeout(() => setBootPhase('fadeout'), 750)

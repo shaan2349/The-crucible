@@ -4,6 +4,13 @@ import { SIDE_ACCENT, photoPosition } from '../data/philosophers'
 
 const DUOTONE_FILTER = ['url(#duotone-gold)', 'url(#duotone-indigo)']
 
+// Shared with Reflect's pre-transition preload (see preloadPortrait calls
+// in Reflect.tsx) — using the exact same width there and here means the
+// preload actually warms the cache key this component reads, instead of
+// silently preloading a differently-sized, differently-keyed image while
+// this one still has to fetch from scratch.
+export const DEBATE_BACKDROP_PORTRAIT_SIZE = 1200
+
 /**
  * Backdrop for an active debate: the two actual combatants' portraits,
  * each in a true duotone matching their gold/indigo accent (see
@@ -22,20 +29,27 @@ const DUOTONE_FILTER = ['url(#duotone-gold)', 'url(#duotone-indigo)']
  */
 export function DebateBackdrop({ philosopherIds }: { philosopherIds: string[] }) {
   const [id1, id2] = philosopherIds
-  const portrait1 = usePortrait(id1)
-  const portrait2 = usePortrait(id2)
+  const portrait1 = usePortrait(id1, DEBATE_BACKDROP_PORTRAIT_SIZE)
+  const portrait2 = usePortrait(id2, DEBATE_BACKDROP_PORTRAIT_SIZE)
+  // Both sides must settle — loaded OR definitively failed — before either
+  // photo appears. Without this gate, whichever side's fetch happens to
+  // resolve first pops in alone while the other side still shows plain
+  // fallback for however long it takes to catch up, which reads as a
+  // half-broken composition rather than one deliberate reveal.
+  const bothSettled =
+    (portrait1.url !== null || portrait1.failed) && (portrait2.url !== null || portrait2.failed)
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden bg-parchment-100">
       <div className="absolute inset-0 flex flex-col sm:flex-row">
         <Side
-          url={portrait1.url}
+          url={bothSettled ? portrait1.url : null}
           accent={SIDE_ACCENT[0]}
           duotone={DUOTONE_FILTER[0]}
           position={id1 ? photoPosition(id1) : undefined}
         />
         <Side
-          url={portrait2.url}
+          url={bothSettled ? portrait2.url : null}
           accent={SIDE_ACCENT[1]}
           duotone={DUOTONE_FILTER[1]}
           position={id2 ? photoPosition(id2) : undefined}

@@ -1,24 +1,23 @@
-import { useRotatingBackground } from '../hooks/useRotatingBackground'
+import type { BackgroundScreenId } from '../data/backgrounds'
+import { useScreenBackground } from '../hooks/useScreenBackground'
 import { PortraitFallback } from './PortraitFallback'
 
 /**
- * Fixed full-bleed backdrop behind the whole app. A real portrait rotates
- * in every 30s where one loads, rendered in the shared neutral duotone
- * (see DuotoneDefs) so it reads as one deliberate system alongside the
- * gold/indigo duotones used during a debate, rather than a raw filter
- * chain whose look shifted with each source photo's original grading.
- * PortraitFallback is always mounted underneath and never removed — a
- * slow or failed Wikimedia fetch just leaves the marble/brand-mark motif
- * showing instead of a blank gap or a swapped-in different philosopher.
- *
- * `dimmed` pulls the scrim further toward opaque — for screens like the
- * Library where content (portrait cards, or a page that already has its
- * own dominant hero portrait) needs to stay unambiguously in front,
- * rather than competing with a second large ambient face.
+ * Fixed full-bleed ambient backdrop behind a screen. Every screen passes
+ * its own registry key (see backgrounds.ts) so each gets a deterministic,
+ * curated background distinct from every other screen's — not one shared
+ * rotation that made every screen look interchangeable. Rendered in the
+ * shared neutral duotone (see DuotoneDefs) so it reads as one deliberate
+ * system alongside the gold/indigo duotones used during a debate, rather
+ * than a raw filter chain whose look shifted with each source photo's
+ * original grading. PortraitFallback is always mounted underneath and
+ * never removed — a slow or failed fetch just leaves the marble/
+ * colonnade/brand-mark motif showing instead of a blank gap or a
+ * swapped-in different philosopher.
  */
-export function RotatingBackdrop({ dimmed = false }: { dimmed?: boolean } = {}) {
-  const { bgUrl, bgPosition } = useRotatingBackground(30000)
-  const stops = dimmed ? [85, 95, 99] : [72, 90, 97]
+export function RotatingBackdrop({ screen }: { screen: BackgroundScreenId }) {
+  const { bgUrl, bgPosition, dimmed } = useScreenBackground(screen)
+  const stops = dimmed ? [80, 92, 98] : [60, 84, 95]
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden bg-parchment-100">

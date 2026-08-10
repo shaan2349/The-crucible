@@ -414,16 +414,12 @@ export function initials(name: string): string {
 /**
  * Portraits, keyed by philosopher id rather than a flat list, so a
  * specific debate can show its two actual combatants instead of a random
- * pair. Filenames are real Wikimedia Commons files (verified during
- * prototyping via search — not verifiable from this dev environment,
- * whose network policy blocks Wikipedia entirely). Resolved through
+ * pair. Filenames are real Wikimedia Commons files, resolved through
  * Wikipedia's Special:FilePath redirect, which finds the file regardless
  * of which Commons subdirectory it lives in. Each is preloaded before use
- * and falls back to a Bust illustration on failure (see
- * useRotatingBackground / usePortrait), so a renamed/deleted file, or a
- * philosopher not yet in this map, degrades gracefully instead of
- * breaking the layout. Only 10 of 47 are covered so far — extend as more
- * filenames are verified.
+ * and falls back to PortraitFallback on failure (see useScreenBackground
+ * / usePortrait), so a renamed/deleted file, or a philosopher not yet in
+ * this map, degrades gracefully instead of breaking the layout.
  */
 export const PHILOSOPHER_PHOTOS: Record<string, string> = {
   socrates: 'Socrates Louvre.jpg',

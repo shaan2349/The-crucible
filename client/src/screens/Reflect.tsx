@@ -5,6 +5,7 @@ import { Bust } from '../components/Bust'
 import { Button } from '../components/Button'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { CouncilBackdrop, CouncilView } from './Council'
+import { DEBATE_BACKDROP_PORTRAIT_SIZE } from '../components/DebateBackdrop'
 import { SUGGESTED_TOPICS, philosopherById } from '../data/philosophers'
 import { loadReflectDraft, saveReflectDraft, clearReflectDraft, loadInterests } from '../lib/storage'
 import { useDebateContext } from '../context/DebateContext'
@@ -110,7 +111,14 @@ export function Reflect() {
     try {
       const minWait = new Promise<void>((resolve) => setTimeout(resolve, 650))
       const [{ ids }] = await Promise.all([api.selectOpponents(trimmed), minWait])
-      await Promise.all(ids.map((id) => preloadPortrait(id, CAST_PORTRAIT_SIZE)))
+      // Both the cast-reveal thumbnails AND the Council backdrop's full
+      // split-screen portraits need to be warm before anything shows — two
+      // different sizes, two different cache entries, both preloaded here
+      // so neither pops in late once CouncilView actually mounts.
+      await Promise.all([
+        ...ids.map((id) => preloadPortrait(id, CAST_PORTRAIT_SIZE)),
+        ...ids.map((id) => preloadPortrait(id, DEBATE_BACKDROP_PORTRAIT_SIZE)),
+      ])
       setAssembled(ids)
       await new Promise<void>((resolve) => setTimeout(resolve, 450))
       const next: DebateState = {
@@ -166,7 +174,7 @@ export function Reflect() {
 
   return (
     <>
-      <RotatingBackdrop />
+      <RotatingBackdrop screen="reflect" />
       <div
         className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-700"
         style={{ background: '#14100a', opacity: entering ? 0.3 : 0 }}

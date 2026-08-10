@@ -66,12 +66,14 @@ export function Council() {
 
 /** Picks the right ambient backdrop for wherever a live discussion is
  * being shown — a two-philosopher debate gets the dedicated split
- * portrait treatment, anything else falls back to the ambient rotation. */
+ * portrait treatment, derived from those exact philosophers. Anything
+ * else (no selection yet) gets the plain neutral Council background —
+ * never a generic rotating photo borrowed from another screen's pool. */
 export function CouncilBackdrop({ philosopherIds }: { philosopherIds: string[] }) {
   return philosopherIds.length === 2 ? (
     <DebateBackdrop philosopherIds={philosopherIds} />
   ) : (
-    <RotatingBackdrop />
+    <RotatingBackdrop screen="council" />
   )
 }
 

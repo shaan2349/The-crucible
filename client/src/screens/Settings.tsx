@@ -36,7 +36,7 @@ export function Settings() {
 
   return (
     <>
-      <RotatingBackdrop />
+      <RotatingBackdrop screen="settings" />
       <div className="relative z-[1] px-6 pb-10 pt-8">
         <button
           type="button"

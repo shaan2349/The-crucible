@@ -10,11 +10,13 @@ interface PortraitFallbackProps {
  * first and always, with the actual photo (if one loads) fading in on
  * top of it. So a slow or failed network fetch never produces a blank
  * gap or a generic person-shaped silhouette: it quietly stays on this
- * marble-and-brand-mark motif, which reads as a deliberate design
- * choice rather than a broken image. Deliberately has no face or
- * figure of any kind — just texture and the Crucible mark, small and
- * faint. Pure CSS + SVG, no network dependency, themes automatically
- * via the shared parchment custom properties (light and dark alike).
+ * marble/colonnade/brand-mark motif, which reads as a deliberate design
+ * choice rather than a broken image. Deliberately has no face or figure
+ * of any kind — just texture, a faint suggestion of architecture, and
+ * the Crucible mark, small and restrained. Pure CSS + SVG, no network
+ * dependency, themes automatically via the shared parchment custom
+ * properties (light and dark alike), so it never clashes with whichever
+ * app theme is active the way a hardcoded color would.
  */
 export function PortraitFallback({ className, markOpacity = 0.16 }: PortraitFallbackProps) {
   return (
@@ -25,6 +27,28 @@ export function PortraitFallback({ className, markOpacity = 0.16 }: PortraitFall
           inset: 0,
           background:
             'linear-gradient(155deg, var(--color-parchment-200) 0%, var(--color-parchment-300) 55%, var(--color-parchment-200) 100%)',
+        }}
+      />
+      {/* Faint colonnade — a row of soft vertical columns, just enough to
+          read as "a hall" rather than an empty flat panel. */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          opacity: 0.4,
+          backgroundImage:
+            'repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-parchment-500) 20%, transparent) 0px, color-mix(in srgb, var(--color-parchment-500) 20%, transparent) 3px, transparent 3px, transparent 68px)',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          opacity: 0.3,
+          background:
+            'linear-gradient(180deg, color-mix(in srgb, var(--color-parchment-500) 24%, transparent) 0%, transparent 16%, transparent 84%, color-mix(in srgb, var(--color-parchment-500) 24%, transparent) 100%)',
         }}
       />
       <div

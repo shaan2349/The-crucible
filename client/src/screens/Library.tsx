@@ -99,7 +99,7 @@ export function Library() {
 
   return (
     <>
-      <RotatingBackdrop dimmed />
+      <RotatingBackdrop screen="library" />
       <div className="relative z-[1] px-6 pb-10 pt-8">
         {openId ? (
           <PhilosopherDetail

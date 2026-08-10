@@ -111,7 +111,7 @@ export function Profile() {
 
   return (
     <>
-      <RotatingBackdrop />
+      <RotatingBackdrop screen="profile" />
       <div className="relative z-[1] px-6 pb-10 pt-8">
         <header className="mb-6">
           <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">

@@ -41,7 +41,7 @@ export function Onboarding() {
 
   return (
     <div className="reading-container relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6 py-16 text-center">
-      <RotatingBackdrop />
+      <RotatingBackdrop screen="onboarding" />
       <div
         className="relative z-[1] mb-8 flex h-16 w-16 items-center justify-center rounded-2xl shadow-embossed"
         style={{ background: 'linear-gradient(155deg, #e8a33d 0%, #c2531d 55%, #8a2a12 100%)' }}
