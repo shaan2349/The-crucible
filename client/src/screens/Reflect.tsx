@@ -220,7 +220,7 @@ export function Reflect() {
                   type="button"
                   onClick={toggleMic}
                   aria-label={stt.listening ? 'Stop dictating' : 'Dictate your position'}
-                  className="absolute bottom-6 right-[4.75rem] flex h-10 w-10 items-center justify-center rounded-full transition-colors"
+                  className="absolute bottom-4 right-[4.5rem] flex h-11 w-11 items-center justify-center rounded-full transition-colors"
                   style={
                     stt.listening
                       ? { background: 'var(--color-forge-ember)', color: 'var(--color-parchment-50)' }

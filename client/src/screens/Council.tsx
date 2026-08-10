@@ -398,7 +398,7 @@ export function CouncilView({
                 type="button"
                 onClick={() => toggleMic('response', (text) => setResponse((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text)))}
                 aria-label={micField === 'response' && stt.listening ? 'Stop dictating' : 'Dictate your response'}
-                className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                className="absolute bottom-2 right-2 flex h-11 w-11 items-center justify-center rounded-full transition-colors"
                 style={
                   micField === 'response' && stt.listening
                     ? { background: 'var(--color-forge-ember)', color: 'var(--color-parchment-50)' }
@@ -515,7 +515,7 @@ export function CouncilView({
                     )
                   }
                   aria-label={micField === 'reflection' && stt.listening ? 'Stop dictating' : 'Dictate your reflection'}
-                  className="absolute bottom-4 right-4 flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                  className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full transition-colors"
                   style={
                     micField === 'reflection' && stt.listening
                       ? { background: 'var(--color-forge-ember)', color: 'var(--color-parchment-50)' }

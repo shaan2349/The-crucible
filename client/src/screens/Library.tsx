@@ -127,7 +127,7 @@ export function Library() {
                 type="button"
                 onClick={() => setCompareOpen(true)}
                 aria-label="Compare two thinkers"
-                className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-parchment-600 transition-colors hover:text-forge-ember"
+                className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-parchment-600 transition-colors hover:text-forge-ember"
                 style={{ boxShadow: 'var(--shadow-card)', background: 'var(--color-parchment-50)' }}
               >
                 <Scale className="h-4 w-4" />
