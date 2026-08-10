@@ -49,7 +49,7 @@ export function PremiseRow({ premise, index = 0 }: { premise: Premise; index?: n
         {premise.text}
       </span>
       {STATUS_LABEL[premise.status] && (
-        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-parchment-400">
+        <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-parchment-400">
           {STATUS_LABEL[premise.status]}
         </span>
       )}

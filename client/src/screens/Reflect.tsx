@@ -178,7 +178,7 @@ export function Reflect() {
         className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-700"
         style={{ background: '#14100a', opacity: entering ? 0.3 : 0 }}
       />
-      <div className="relative z-[1] px-6 pb-16 pt-14 sm:pt-20">
+      <div className="reading-container relative z-[1] px-6 pb-16 pt-14 sm:pt-20">
         <p
           className="mb-3 font-display text-xs uppercase tracking-[0.15em] text-parchment-500"
           style={{ animation: 'revealUp 0.4s ease both' }}

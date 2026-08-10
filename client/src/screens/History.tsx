@@ -149,7 +149,7 @@ export function History() {
   return (
     <>
       <RotatingBackdrop screen="journal" />
-      <div className="relative z-[1] px-6 pb-10 pt-8">
+      <div className="standard-container relative z-[1] px-6 pb-10 pt-8">
         {openEntry ? (
           <JournalEntry
             debate={openEntry}
@@ -195,7 +195,7 @@ export function History() {
                         className="w-14 shrink-0 text-center"
                       >
                         <PortraitFrame id={id} size={160} className="w-full" />
-                        <p className="mt-1 truncate text-[10px] text-parchment-600">{p.name}</p>
+                        <p className="mt-1 truncate text-xs font-medium text-parchment-700">{p.name}</p>
                       </button>
                     )
                   })}
@@ -292,7 +292,7 @@ export function History() {
                                   <span className="font-display text-lg font-semibold leading-none text-parchment-900">
                                     {day}
                                   </span>
-                                  <span className="mt-0.5 text-[10px] uppercase tracking-wide text-parchment-500">
+                                  <span className="mt-0.5 text-[11px] uppercase tracking-wide text-parchment-500">
                                     {month}
                                   </span>
                                 </div>
@@ -309,7 +309,7 @@ export function History() {
                                     </p>
                                   )}
                                   <p
-                                    className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide"
+                                    className="mt-1.5 text-[11px] font-semibold uppercase tracking-wide"
                                     style={{ color: STATUS_COLOR[status] }}
                                   >
                                     {STATUS_LABEL[status]}

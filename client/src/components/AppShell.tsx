@@ -20,10 +20,12 @@ export function AppShell() {
           <span className="font-display text-base font-semibold text-parchment-900">The Crucible</span>
         </div>
       </header>
+      {/* No shared width constraint here — each screen picks its own
+          container tier (reading/standard/wide, see index.css) since
+          Reflect's conversation, Journal/Profile's pages, and Library's
+          grid all want different desktop measures. */}
       <div className="relative z-[1] flex-1 overflow-y-auto">
-        <div className="reading-container">
-          <Outlet />
-        </div>
+        <Outlet />
       </div>
       <TabBar />
     </div>

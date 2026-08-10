@@ -112,7 +112,7 @@ export function Profile() {
   return (
     <>
       <RotatingBackdrop screen="profile" />
-      <div className="relative z-[1] px-6 pb-10 pt-8">
+      <div className="standard-container relative z-[1] px-6 pb-10 pt-8">
         <header className="mb-6">
           <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">
             Your thinking profile
@@ -173,8 +173,8 @@ export function Profile() {
                     return (
                       <div key={id} className="w-16 text-center">
                         <PortraitFrame id={id} size={200} className="w-full" />
-                        <p className="mt-1 truncate text-[11px] font-medium text-parchment-800">{p.name}</p>
-                        <p className="text-[10px] text-parchment-500">{count}×</p>
+                        <p className="mt-1 truncate text-xs font-medium text-parchment-800">{p.name}</p>
+                        <p className="text-[11px] text-parchment-500">{count}×</p>
                       </div>
                     )
                   })}

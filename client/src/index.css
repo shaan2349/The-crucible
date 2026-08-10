@@ -16,7 +16,13 @@
   --color-parchment-200: #f0e6d2;
   --color-parchment-300: #e4d3b3;
   --color-parchment-400: #d1b98c;
-  --color-parchment-500: #b99b68;
+  /* Darkened from the original #b99b68 — that shade only hit ~2.5:1
+     against the parchment-50/100 surfaces it's most often used on for
+     eyebrow labels, timestamps, and metadata, well under WCAG AA's
+     4.5:1 for normal text. This value clears 4.5:1 against parchment-50
+     and stays close on parchment-100/200 without going as dark as
+     parchment-600, preserving it as a genuinely secondary tone. */
+  --color-parchment-500: #856e49;
   --color-parchment-600: #957a4f;
   --color-parchment-700: #6f5b3c;
   --color-parchment-800: #4a3d2a;
@@ -58,17 +64,26 @@
   color-scheme: light;
   --reading-width: 28rem;
   /* Desktop layout primitives (spec: app shell ~1200px, reading column
-     680-760px, wide editorial content 960-1100px). Independent of
-     --reading-width above, which is the user's body-text measure
-     preference from Settings and stays mobile-first/JS-driven — these
-     are pure CSS breakpoint constants for screens that need a genuine
-     desktop composition (see the Phase 4 philosopher profile redesign). */
+     680-760px, standard page content 900-1050px, wide Library
+     1050-1200px). Independent of --reading-width above, which is the
+     user's body-text measure preference from Settings and stays
+     mobile-first/JS-driven — these are pure CSS breakpoint constants for
+     screens that need a genuine desktop composition. */
   --app-shell-width: 75rem;
   --editorial-width: 68rem;
+  --standard-width: 61rem;
   --desktop-reading-width: 46rem;
 }
 
-.reading-container {
+/* Reflect/Council: prose-and-conversation width. Journal/Profile/Train/
+   Settings (.standard-container) and Library (.wide-container) share the
+   exact same mobile measure — the user's font-size/reading-width
+   preference from Settings — and only diverge from it above the desktop
+   breakpoint, where each gets its own wider ceiling instead of every
+   screen being stuck at the same narrow column. */
+.reading-container,
+.standard-container,
+.wide-container {
   max-width: var(--reading-width);
   margin-inline: auto;
 }
@@ -81,6 +96,15 @@
 .editorial-container {
   max-width: var(--editorial-width);
   margin-inline: auto;
+}
+
+@media (min-width: 860px) {
+  .standard-container {
+    max-width: var(--standard-width);
+  }
+  .wide-container {
+    max-width: var(--editorial-width);
+  }
 }
 
 /* Toggled on <html> by useApplyPreferences when the user enables Reduce

@@ -255,7 +255,7 @@ export function CouncilView({
   }
 
   return (
-    <div className="relative z-[1] px-6 pb-10 pt-8">
+    <div className="reading-container relative z-[1] px-6 pb-10 pt-8">
       <button type="button" onClick={exitToReflect} className="mb-4 text-xs text-parchment-500 hover:text-forge-ember">
         ← New position
       </button>
@@ -357,7 +357,10 @@ export function CouncilView({
                   You
                 </span>
                 <div>
-                  <p className="mb-1 font-display text-xs font-semibold uppercase tracking-wide text-side-gold">
+                  <p
+                    className="mb-1 font-display text-xs font-semibold uppercase tracking-wide"
+                    style={{ color: SIDE_ACCENT[0] }}
+                  >
                     You
                   </p>
                   <p className="text-[15px] leading-relaxed text-parchment-800">{r.userResponse}</p>
