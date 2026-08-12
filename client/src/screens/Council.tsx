@@ -19,7 +19,9 @@ import type { Debate as DebateState, Round } from '../types'
 const MAX_ROUNDS = 3
 const MAX_COUNCIL = 5
 
-const THINKING_VERBS = ['is considering your position', 'is examining your premise', 'is preparing a challenge']
+// Collaborative inquiry, not intellectual combat — "is preparing a
+// challenge" used to be in this list and read as adversarial/prosecutorial.
+const THINKING_VERBS = ['is considering your position', 'is examining your premise', 'is exploring a different angle']
 
 function thinkingLabel(id: string | null): string {
   if (!id) return 'Philosophers are forming their attacks…'

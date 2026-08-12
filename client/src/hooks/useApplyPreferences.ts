@@ -11,7 +11,9 @@ const DESKTOP_BREAKPOINT = 860
 function readingWidthFor(prefs: Preferences): string {
   const isDesktop = window.innerWidth >= DESKTOP_BREAKPOINT
   if (prefs.readingWidth === 'wide') return isDesktop ? '48rem' : '36rem'
-  return isDesktop ? '42rem' : '28rem'
+  // 45rem (720px) is the floor of Reflect's composer spec (720-800px) —
+  // 42rem (672px) sat just under it.
+  return isDesktop ? '45rem' : '28rem'
 }
 
 /**

@@ -6,7 +6,7 @@ interface SpeechRecognitionLike {
   lang: string
   onresult: ((event: any) => void) | null
   onend: (() => void) | null
-  onerror: (() => void) | null
+  onerror: ((event: any) => void) | null
   start: () => void
   stop: () => void
 }
@@ -23,6 +23,7 @@ function getCtor(): SpeechRecognitionCtor | undefined {
  * construction) so one instance can serve whichever field last requested it. */
 export function useSpeechToText() {
   const [listening, setListening] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const supported = !!getCtor()
 
@@ -33,6 +34,7 @@ export function useSpeechToText() {
   function start(onResult: (text: string) => void) {
     const Ctor = getCtor()
     if (!Ctor || listening) return
+    setError(null)
     const recognition = new Ctor()
     recognition.continuous = false
     recognition.interimResults = false
@@ -44,7 +46,17 @@ export function useSpeechToText() {
       onResult(transcript)
     }
     recognition.onend = () => setListening(false)
-    recognition.onerror = () => setListening(false)
+    recognition.onerror = (event: any) => {
+      setListening(false)
+      const code = event?.error
+      if (code === 'not-allowed' || code === 'service-not-allowed') {
+        setError('Microphone access was blocked — check your browser permissions.')
+      } else if (code === 'no-speech') {
+        setError(null)
+      } else {
+        setError("Couldn't hear you — try again.")
+      }
+    }
     recognitionRef.current = recognition
     recognition.start()
     setListening(true)
@@ -55,5 +67,5 @@ export function useSpeechToText() {
     setListening(false)
   }
 
-  return { supported, listening, start, stop }
+  return { supported, listening, error, start, stop }
 }

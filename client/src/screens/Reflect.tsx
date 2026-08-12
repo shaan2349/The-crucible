@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ArrowRight, Mic } from 'lucide-react'
 import { Button } from '../components/Button'
+import { PortraitFrame } from '../components/PortraitFrame'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { CouncilBackdrop, CouncilView } from './Council'
 import { DEBATE_BACKDROP_PORTRAIT_SIZE } from '../components/DebateBackdrop'
-import { SUGGESTED_TOPICS, philosopherById } from '../data/philosophers'
+import { PHILOSOPHER_TAGS, SUGGESTED_TOPICS, philosopherById } from '../data/philosophers'
 import { loadReflectDraft, saveReflectDraft, clearReflectDraft, loadInterests } from '../lib/storage'
 import { useDebateContext } from '../context/DebateContext'
 import { useSpeechToText } from '../hooks/useSpeechToText'
@@ -61,7 +62,22 @@ export function Reflect() {
   const [submitting, setSubmitting] = useState(false)
   const [assembled, setAssembled] = useState<string[] | null>(null)
   const [enterError, setEnterError] = useState<string | null>(null)
+  // Captured the moment the user submits, separate from `claim` — the
+  // composer itself fades out during the transition, but the question
+  // that was actually asked stays visible in the overlay throughout, so
+  // it never looks like it vanished.
+  const [submittedClaim, setSubmittedClaim] = useState('')
   const stt = useSpeechToText()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-grow with the content instead of scrolling internally — reset to
+  // measure the natural content height, then clamp to the 180px floor.
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.max(el.scrollHeight, 180)}px`
+  }, [claim])
 
   function toggleMic() {
     if (stt.listening) {
@@ -69,6 +85,16 @@ export function Reflect() {
       return
     }
     stt.start((text) => setClaim((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text)))
+  }
+
+  // Enter alone stays a plain newline (this is a multi-line composer, not a
+  // single-line input) — only Cmd/Ctrl+Enter submits, so nobody sends a
+  // half-finished thought by hitting Enter out of habit.
+  function handleComposerKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault()
+      enter()
+    }
   }
 
   useEffect(() => {
@@ -106,6 +132,7 @@ export function Reflect() {
     setEntering(true)
     setEnterError(null)
     setAssembled(null)
+    setSubmittedClaim(trimmed)
     clearReflectDraft()
     try {
       const minWait = new Promise<void>((resolve) => setTimeout(resolve, 650))
@@ -180,13 +207,13 @@ export function Reflect() {
       />
       <div className="reading-container relative z-[1] px-6 pb-16 pt-14 sm:pt-20">
         <p
-          className="mb-3 font-display text-xs uppercase tracking-[0.15em] text-parchment-500"
+          className="mb-4 font-display text-xs uppercase tracking-[0.15em] text-parchment-500"
           style={{ animation: 'revealUp 0.4s ease both' }}
         >
           The Council awaits.
         </p>
 
-        <div className="relative mb-10">
+        <div className="relative mb-12">
           <h1
             className="relative font-display text-[34px] font-medium leading-[1.15] tracking-[-0.02em] text-parchment-900 sm:text-[40px]"
             style={{ animation: 'revealUp 0.5s ease 80ms both' }}
@@ -204,63 +231,90 @@ export function Reflect() {
               pointerEvents: entering ? 'none' : 'auto',
             }}
           >
-            <div className="relative" style={{ animation: 'revealUp 0.5s ease 160ms both' }}>
+            {/* The composer is one deliberate object: writing surface on
+                top, a real action row below it (not floating controls),
+                so the microphone can never end up underneath the CTA no
+                matter how wide that button's label makes it. */}
+            <div
+              className="overflow-hidden rounded-3xl border border-parchment-300/60 bg-parchment-50 transition-shadow duration-200 focus-within:border-forge-ember/50"
+              style={{ animation: 'revealUp 0.5s ease 160ms both', boxShadow: 'var(--shadow-card)' }}
+            >
               <textarea
+                ref={textareaRef}
                 value={claim}
                 onChange={(e) => setClaim(e.target.value)}
+                onKeyDown={handleComposerKeyDown}
                 placeholder="Write freely…"
-                rows={4}
                 autoFocus
                 aria-label="Your question or position"
-                className="w-full resize-none rounded-[28px] bg-parchment-50 p-7 pr-32 text-base text-parchment-900 outline-none ring-1 ring-transparent transition-shadow duration-200 placeholder:text-parchment-400 focus:ring-forge-ember/40"
-                style={{ boxShadow: 'var(--shadow-card)' }}
+                className="block w-full resize-none overflow-hidden bg-transparent px-6 pb-3 pt-6 text-base text-parchment-900 outline-none placeholder:text-parchment-400 sm:px-7 sm:pt-7 sm:text-lg"
+                style={{ minHeight: '180px' }}
               />
-              {stt.supported && (
+
+              <div className="flex items-center justify-between gap-3 border-t border-parchment-200/70 px-4 py-3 sm:px-5">
+                <div className="flex min-h-11 items-center gap-2.5">
+                  {stt.supported && (
+                    <button
+                      type="button"
+                      onClick={toggleMic}
+                      aria-label={stt.listening ? 'Stop dictating' : 'Dictate your position'}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
+                      style={
+                        stt.listening
+                          ? { background: 'var(--color-forge-ember)', color: 'var(--color-parchment-50)' }
+                          : { color: 'var(--color-parchment-500)' }
+                      }
+                    >
+                      <Mic className="h-4 w-4" />
+                    </button>
+                  )}
+                  {stt.listening ? (
+                    <span className="flex items-center gap-1.5 text-xs italic text-parchment-500">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: 'var(--color-forge-ember)' }} />
+                      Listening…
+                    </span>
+                  ) : (
+                    stt.error && <span className="text-xs text-status-warning">{stt.error}</span>
+                  )}
+                </div>
+
                 <button
                   type="button"
-                  onClick={toggleMic}
-                  aria-label={stt.listening ? 'Stop dictating' : 'Dictate your position'}
-                  className="absolute bottom-4 right-[4.5rem] flex h-11 w-11 items-center justify-center rounded-full transition-colors"
-                  style={
-                    stt.listening
-                      ? { background: 'var(--color-forge-ember)', color: 'var(--color-parchment-50)' }
-                      : { color: 'var(--color-parchment-400)' }
-                  }
+                  onClick={enter}
+                  disabled={!claim.trim() || submitting}
+                  aria-label="Assemble the Council"
+                  className="group flex h-11 shrink-0 items-center justify-center gap-2 rounded-full px-5 text-parchment-50 transition-all duration-200 hover:brightness-110 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40"
+                  style={{
+                    background: 'linear-gradient(155deg, #e8a33d, #c2531d)',
+                    boxShadow: 'var(--shadow-embossed), inset 0 1px 0 rgba(255,255,255,0.25)',
+                  }}
                 >
-                  <Mic className="h-4 w-4" />
+                  <span className="hidden font-display text-sm font-medium sm:inline">Assemble the Council</span>
+                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={enter}
-                disabled={!claim.trim() || submitting}
-                aria-label="Assemble the Council"
-                className="group absolute bottom-4 right-4 flex h-14 w-14 items-center justify-center gap-2 rounded-full text-parchment-50 transition-all duration-200 hover:brightness-110 hover:shadow-lg active:scale-[0.96] disabled:pointer-events-none disabled:opacity-40 sm:w-auto sm:px-6"
-                style={{
-                  background: 'linear-gradient(155deg, #e8a33d, #c2531d)',
-                  boxShadow: 'var(--shadow-embossed), inset 0 1px 0 rgba(255,255,255,0.25)',
-                }}
-              >
-                <span className="hidden font-display text-sm font-medium sm:inline">Assemble the Council</span>
-                <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-0.5" />
-              </button>
+              </div>
             </div>
 
             {!promptsHidden && (
               <div
-                className="mt-9 flex flex-wrap gap-2.5 transition-opacity duration-500"
+                className="mt-10 transition-opacity duration-500"
                 style={{ animation: 'revealUp 0.5s ease 240ms both', opacity: promptsOpacity }}
               >
-                {suggestions.map((s) => (
-                  <button
-                    key={s.short}
-                    type="button"
-                    onClick={() => setClaim(s.label)}
-                    className="rounded-full border border-parchment-300 bg-parchment-50 px-4 py-2.5 text-sm text-parchment-700 transition-colors hover:border-forge-ember hover:text-forge-ember focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forge-ember/50"
-                  >
-                    {s.short}
-                  </button>
-                ))}
+                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-parchment-500">
+                  Need a place to begin?
+                </p>
+                <div className="flex flex-wrap gap-2.5">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s.short}
+                      type="button"
+                      onClick={() => setClaim(s.label)}
+                      className="rounded-full border border-parchment-300/70 px-4 py-2.5 text-sm text-parchment-600 transition-colors hover:border-forge-ember hover:text-forge-ember focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forge-ember/50"
+                    >
+                      {s.short}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -284,14 +338,22 @@ export function Reflect() {
 
           {entering && (
             <div
-              className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center"
+              className="absolute inset-0 flex flex-col items-center gap-6 px-6 pt-2 text-center"
               style={{ animation: 'revealUp 0.35s ease 150ms both' }}
             >
+              {/* The question stays visible through the whole transition —
+                  the composer behind this overlay fades out, but what was
+                  actually asked never disappears from view. */}
+              <div>
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">Your question</p>
+                <p className="font-display text-lg italic leading-snug text-parchment-900">&ldquo;{submittedClaim}&rdquo;</p>
+              </div>
+
               {enterError ? (
-                <>
+                <div className="flex flex-col items-center gap-3">
                   <p className="font-display text-base text-parchment-700">Couldn't reach the Council.</p>
                   <p className="text-xs text-parchment-500">{enterError}</p>
-                  <div className="mt-2 flex gap-2">
+                  <div className="mt-1 flex gap-2">
                     <Button onClick={enter}>Retry</Button>
                     <Button
                       variant="ghost"
@@ -303,13 +365,30 @@ export function Reflect() {
                       Edit question
                     </Button>
                   </div>
-                </>
+                </div>
               ) : assembled ? (
-                <p className="font-display text-base italic text-parchment-600" style={{ animation: 'revealUp 0.35s ease both' }}>
-                  {assembled.map((id) => philosopherById(id)?.name).filter(Boolean).join(' and ')} will examine this.
-                </p>
+                <div className="flex flex-col items-center gap-4" style={{ animation: 'revealUp 0.4s ease both' }}>
+                  <div className="flex gap-6 sm:gap-8">
+                    {assembled.map((id) => {
+                      const p = philosopherById(id)
+                      if (!p) return null
+                      return (
+                        <div key={id} className="w-20 text-center sm:w-24">
+                          <PortraitFrame id={id} size={CAST_PORTRAIT_SIZE} className="w-full" />
+                          <p className="mt-2 font-display text-sm font-medium text-parchment-900">{p.name}</p>
+                          {PHILOSOPHER_TAGS[id] && (
+                            <p className="mt-0.5 text-[11px] leading-tight text-parchment-500">{PHILOSOPHER_TAGS[id]}</p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <p className="font-display text-sm italic text-parchment-600">
+                    Two different ways of seeing the same problem.
+                  </p>
+                </div>
               ) : (
-                <>
+                <div className="flex flex-col items-center gap-3">
                   <span className="relative flex h-5 w-5 items-center justify-center">
                     <span
                       className="absolute h-5 w-5 animate-[emberRing_1.3s_ease-out_infinite] rounded-full"
@@ -321,7 +400,7 @@ export function Reflect() {
                     />
                   </span>
                   <p className="font-display text-base italic text-parchment-600">Assembling perspectives…</p>
-                </>
+                </div>
               )}
             </div>
           )}
