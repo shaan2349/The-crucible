@@ -19,9 +19,16 @@ function categoryNameOf(id: string): string | null {
   return cat?.name ?? null
 }
 
+/** Only counts sessions with real participation — a session ended
+ * without ever responding has a `leanedFramework` describing the
+ * starting claim alone, not anything the user actually engaged with, so
+ * it shouldn't count toward a profile of "who you're becoming". Debates
+ * saved before participation tracking existed (no field either way)
+ * still count, rather than silently losing older history. */
 function tallyFrameworks(debates: Debate[]): [string, number][] {
   const counts: Record<string, number> = {}
   debates.forEach((d) => {
+    if (d.participationLevel === 'none') return
     if (d.verdict?.leanedFramework) counts[d.verdict.leanedFramework] = (counts[d.verdict.leanedFramework] ?? 0) + 1
   })
   return Object.entries(counts).sort((a, b) => b[1] - a[1])

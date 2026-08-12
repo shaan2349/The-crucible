@@ -43,7 +43,19 @@ function timeAgo(days: number): string {
  * original one. 'reinforced' — reflected and the position held: not a
  * null result, a real outcome (the position was tested and survived),
  * so it gets its own label rather than reading as "nothing happened." */
+/** Prefers the Council's own outcome classification (grounded in actual
+ * participation during the session — see Verdict.outcome) over the older
+ * reflection-based heuristic, which only looked at whether a Journal
+ * reflection was written and said nothing about whether the user ever
+ * responded during the Council itself. Falls back to the heuristic only
+ * for debates saved before outcome tracking existed. */
 function entryStatus(d: Debate): EntryStatus {
+  const outcome = d.verdict?.outcome
+  if (outcome) {
+    if (outcome === 'REINFORCED') return 'reinforced'
+    if (outcome === 'REVISED' || outcome === 'SHIFTED' || outcome === 'SYNTHESISED') return 'changed'
+    return 'unresolved' // UNTESTED or UNRESOLVED
+  }
   if (!d.userReflection?.trim()) return 'unresolved'
   if (d.verdict?.sharpenedClaim && d.verdict.sharpenedClaim.trim().toLowerCase() !== d.claim.trim().toLowerCase()) {
     return 'changed'
