@@ -265,47 +265,84 @@ interface VerdictResult {
   weakestReason: string
   leanedFramework: string
   sharpenedClaim: string
+  outcome: string
+}
+
+const PARTICIPATION_LEVELS = ['none', 'low', 'full'] as const
+type ParticipationLevel = (typeof PARTICIPATION_LEVELS)[number]
+
+const OUTCOME_CATEGORIES = ['REINFORCED', 'REVISED', 'SHIFTED', 'SYNTHESISED', 'UNRESOLVED'] as const
+
+// Honesty is the point of this whole endpoint — the model must never
+// describe the user as having leaned on, defended, or been persuaded by
+// something they never actually said. What it CAN always speak to is the
+// starting claim itself, since that's real regardless of what happened
+// (or didn't) afterward.
+const PARTICIPATION_INSTRUCTIONS: Record<ParticipationLevel, string> = {
+  none: `The user submitted their claim and ended the session WITHOUT responding to a single round — there is no participation to describe. Analyze the STARTING CLAIM AND PREMISES ONLY. Never say the user "leaned on", "relied on", "was persuaded by", "defended", or "argued for" anything — none of that happened. Phrase leanedFramework as what the user's starting claim most resembles (e.g. "Your starting claim was closest to Mill's harm principle"), and weakestReason as a property of the original premises alone (e.g. "the most vulnerable assumption in your starting position"), not something they argued for.`,
+  low: `The user responded meaningfully only once or twice, without clearly committing to a changed position. Use cautious, hedged language — "your responses remained closer to…", "you did not clearly adopt either position", "your original view remained largely intact". Do not overstate intellectual change from one or two exchanges.`,
+  full: `The user engaged substantially across multiple rounds. Stronger, more direct language is appropriate here IF the transcript actually supports it — e.g. "you leaned increasingly on…", "you rejected [X]'s strongest objection", "your final position moved away from your starting claim". Ground every claim in what the transcript actually shows; do not invent agreement or rejection the user didn't express.`,
 }
 
 debateRouter.post('/verdict', async (req, res) => {
-  const { claim, conclusion, premises, rounds } = req.body ?? {}
+  const { claim, conclusion, premises, rounds, participationLevel } = req.body ?? {}
   if (typeof claim !== 'string' || !claim.trim()) return badRequest(res, 'claim is required')
   if (typeof conclusion !== 'string' || !conclusion.trim()) return badRequest(res, 'conclusion is required')
   if (!validPremises(premises)) return badRequest(res, 'premises is required')
   if (!Array.isArray(rounds)) return badRequest(res, 'rounds is required')
+  if (!PARTICIPATION_LEVELS.includes(participationLevel)) return badRequest(res, 'participationLevel is required')
 
   const transcript = rounds
     .map(
       (r: { round: number; attacks: { philosopherId: string; text: string }[]; userResponse: string | null }) =>
         `Round ${r.round}:\n${r.attacks
           .map((a) => `${philosopherById(a.philosopherId)?.name ?? a.philosopherId}: ${a.text}`)
-          .join('\n')}\nUser: ${r.userResponse}`,
+          .join('\n')}\nUser: ${r.userResponse?.trim() ? r.userResponse : '(no response given)'}`,
     )
     .join('\n\n')
 
   try {
     const result = await structured<VerdictResult>({
-      system: 'Write a short, honest verdict for this philosophical debate.',
+      system:
+        'Write a short, honest verdict for this philosophical debate. Honesty about what actually happened in the conversation matters more than sounding dramatic or conclusive.',
       prompt: `Claim: "${claim}"\nConclusion: ${conclusion}\nFinal premise states:\n${premises
         .map((pr) => `${pr.id}: ${pr.text} [${pr.status ?? 'standing'}]`)
-        .join('\n')}\n\nFull transcript:\n${transcript}`,
+        .join('\n')}\n\nParticipation level: ${participationLevel}\n${PARTICIPATION_INSTRUCTIONS[participationLevel as ParticipationLevel]}\n\nFull transcript:\n${transcript}`,
       toolName: 'record_verdict',
       toolDescription: 'Records the debate verdict.',
       schema: {
         type: 'object',
         properties: {
           weakestPremiseId: { type: 'string', enum: premises.map((p) => p.id) },
-          weakestReason: { type: 'string', description: 'Which premise proved weakest and why.' },
+          weakestReason: {
+            type: 'string',
+            description:
+              'Which premise proved weakest and why — phrased per the participation-level instructions above. Never imply the user actively defended or argued for a premise they never responded to.',
+          },
           leanedFramework: {
             type: 'string',
-            description: 'Which philosopher/school the user leaned on most without fully defending it.',
+            description:
+              'Which philosopher/school the user\'s position most resembles — phrased per the participation-level instructions above. Only describe this as something the user "leaned on" or was "persuaded by" if the transcript shows real engagement; otherwise describe it as what the starting claim resembles.',
           },
-          sharpenedClaim: { type: 'string', description: 'A sharpened, more defensible version of their original claim.' },
+          sharpenedClaim: {
+            type: 'string',
+            description:
+              'A sharpened, more defensible version of their claim. With little or no participation, base this on strengthening the original premises alone, not on a conversation that barely happened.',
+          },
+          outcome: {
+            type: 'string',
+            enum: [...OUTCOME_CATEGORIES],
+            description: `The overall trajectory of this session, using the full transcript: REINFORCED = user engaged and largely retained their starting position. REVISED = user modified or qualified the original position. SHIFTED = user moved substantially toward another framework. SYNTHESISED = user combined elements from multiple thinkers into a stronger position. UNRESOLVED = user participated but the central issue remained open. Choose based on actual transcript evidence, not assumption.`,
+          },
         },
-        required: ['weakestPremiseId', 'weakestReason', 'leanedFramework', 'sharpenedClaim'],
+        required: ['weakestPremiseId', 'weakestReason', 'leanedFramework', 'sharpenedClaim', 'outcome'],
       },
-      maxTokens: 500,
+      maxTokens: 550,
     })
+    // Zero participation can never earn a real trajectory category — this
+    // is enforced here rather than trusted to the model, since it's the
+    // single most important honesty guarantee this endpoint makes.
+    if (participationLevel === 'none') result.outcome = 'UNTESTED'
     res.json(result)
   } catch (err) {
     console.error('verdict failed', err)

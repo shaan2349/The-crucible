@@ -16,7 +16,7 @@ import { loadDebates, saveDebates } from '../lib/storage'
 import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import { useCastReadiness } from '../hooks/usePortrait'
-import type { Debate as DebateState, Round } from '../types'
+import type { Debate as DebateState, ParticipationLevel, Round } from '../types'
 
 const MAX_ROUNDS = 3
 const MAX_COUNCIL = 5
@@ -41,6 +41,17 @@ const REFLECTION_PROMPTS = [
 
 function reflectionPrompt(debateId: number): string {
   return REFLECTION_PROMPTS[debateId % REFLECTION_PROMPTS.length]
+}
+
+/** Any round the user actually typed something into counts as a real
+ * turn — including "I don't know", which is a meaningful answer, not a
+ * non-answer. This is the single source of truth for whether the verdict
+ * is allowed to describe the user as having participated at all. */
+function participationLevel(rounds: Round[]): ParticipationLevel {
+  const meaningful = rounds.filter((r) => r.userResponse && r.userResponse.trim().length > 0)
+  if (meaningful.length === 0) return 'none'
+  if (meaningful.length === 1) return 'low'
+  return 'full'
 }
 
 /** A short reminder of what was actually said, not a full transcript —
@@ -187,13 +198,15 @@ export function CouncilView({
         phase: nextPhase,
       }))
     } else if (debate.phase === 'verdict-loading') {
+      const level = participationLevel(debate.rounds)
       const verdict = await api.fetchVerdict({
         claim: debate.claim,
         conclusion: debate.conclusion,
         premises: debate.premises,
         rounds: debate.rounds,
+        participationLevel: level,
       })
-      updateDebate((d) => ({ ...d, verdict, phase: 'verdict' }))
+      updateDebate((d) => ({ ...d, verdict, participationLevel: level, phase: 'verdict' }))
     }
   }
 
@@ -215,15 +228,28 @@ export function CouncilView({
   function endNow() {
     updateDebate((d) => {
       const rounds = [...d.rounds]
-      if (rounds.length && !rounds[rounds.length - 1].userResponse) {
-        rounds[rounds.length - 1] = {
-          ...rounds[rounds.length - 1],
-          userResponse: response.trim() || '(ended debate here)',
-        }
+      // Only save what the user actually typed — never invent a response
+      // on their behalf. A round left with no userResponse is the honest
+      // record of "the user didn't respond to this one", and the verdict
+      // prompt relies on that being genuinely null, not a placeholder
+      // string it might mistake for real participation.
+      if (rounds.length && !rounds[rounds.length - 1].userResponse && response.trim()) {
+        rounds[rounds.length - 1] = { ...rounds[rounds.length - 1], userResponse: response.trim() }
       }
       return { ...d, rounds, phase: 'verdict-loading' }
     })
     setResponse('')
+  }
+
+  /** Lets the user step back into an early-ended session instead of
+   * being stuck with a paused-inquiry card — reopens the most recent
+   * round for a response if it's still waiting on one. */
+  function resumeCouncil() {
+    updateDebate((d) => ({
+      ...d,
+      verdict: null,
+      phase: d.rounds.length > 0 && !d.rounds[d.rounds.length - 1].userResponse ? 'awaiting-response' : 'attacking',
+    }))
   }
 
   function saveAndFinish() {
@@ -435,7 +461,11 @@ export function CouncilView({
         </div>
       )}
 
-      {debate.phase === 'verdict' && debate.verdict && (
+      {debate.phase === 'verdict' && debate.verdict && debate.participationLevel === 'none' && (
+        <EarlyEndOutcome debate={debate} onResume={resumeCouncil} onSave={saveAndFinish} />
+      )}
+
+      {debate.phase === 'verdict' && debate.verdict && debate.participationLevel !== 'none' && (
         <div className="mt-8">
           {debate.philosopherIds.length > 0 && (
             <div
@@ -444,13 +474,15 @@ export function CouncilView({
             >
               {debate.philosopherIds.map((id, i) => (
                 <div key={id} className="relative w-20 text-center sm:w-28">
-                  <div
-                    className="pointer-events-none absolute -inset-3 rounded-full blur-md"
-                    style={{
-                      background: `radial-gradient(circle, ${SIDE_ACCENT[i % SIDE_ACCENT.length]}55 0%, transparent 70%)`,
-                      animation: `triumphantGlow 2.6s ease-in-out ${i * 0.4}s infinite`,
-                    }}
-                  />
+                  {debate.participationLevel === 'full' && (
+                    <div
+                      className="pointer-events-none absolute -inset-3 rounded-full blur-md"
+                      style={{
+                        background: `radial-gradient(circle, ${SIDE_ACCENT[i % SIDE_ACCENT.length]}55 0%, transparent 70%)`,
+                        animation: `triumphantGlow 2.6s ease-in-out ${i * 0.4}s infinite`,
+                      }}
+                    />
+                  )}
                   <PortraitFrame id={id} size={400} duotone={SIDE_DUOTONE[i % SIDE_DUOTONE.length]} className="relative w-full" />
                   <p
                     className="mt-1.5 font-display text-[11px] font-medium uppercase tracking-wide"
@@ -471,7 +503,9 @@ export function CouncilView({
               className="h-px flex-1"
               style={{ background: 'linear-gradient(90deg, transparent, #c2531d55)' }}
             />
-            <p className="font-display text-sm uppercase tracking-wide text-forge-ember">The crucible has spoken</p>
+            <p className="font-display text-sm uppercase tracking-wide text-forge-ember">
+              {debate.participationLevel === 'full' ? 'The crucible has spoken' : 'What the Council found so far'}
+            </p>
             <span
               className="h-px flex-1"
               style={{ background: 'linear-gradient(90deg, #c2531d55, transparent)' }}
@@ -483,11 +517,15 @@ export function CouncilView({
             style={{ animation: 'revealUp 0.5s ease both', animationDelay: '120ms' }}
           >
             <Card className="p-4">
-              <p className="mb-1 font-display text-[13px] italic text-forge-ember">Weakest premise</p>
+              <p className="mb-1 font-display text-[13px] italic text-forge-ember">
+                {debate.participationLevel === 'full' ? 'Weakest premise' : 'Most vulnerable assumption'}
+              </p>
               <p className="text-sm leading-relaxed text-parchment-800">{debate.verdict.weakestReason}</p>
             </Card>
             <Card className="p-4">
-              <p className="mb-1 font-display text-[13px] italic text-forge-ember">You leaned on</p>
+              <p className="mb-1 font-display text-[13px] italic text-forge-ember">
+                {debate.participationLevel === 'full' ? 'You leaned on' : 'Closest starting framework'}
+              </p>
               <p className="text-sm leading-relaxed text-parchment-800">{debate.verdict.leanedFramework}</p>
             </Card>
           </div>
@@ -552,6 +590,57 @@ export function CouncilView({
           </Button>
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * The honest outcome for a session ended before any real response — no
+ * "crucible has spoken" fanfare, no glowing portraits, no pretend winner.
+ * Only two things are actually knowable at this point: what the starting
+ * claim resembled, and where it was weakest. Both come straight from the
+ * verdict call (still real analysis of the claim/premises), just without
+ * a narrative implying a conversation that didn't happen.
+ */
+function EarlyEndOutcome({
+  debate,
+  onResume,
+  onSave,
+}: {
+  debate: DebateState
+  onResume: () => void
+  onSave: () => void
+}) {
+  if (!debate.verdict) return null
+  return (
+    <div className="mt-8" style={{ animation: 'revealUp 0.5s ease both' }}>
+      <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">Inquiry paused</p>
+      <p className="font-display text-xl leading-snug text-parchment-900">You ended the inquiry early.</p>
+      <p className="mt-1 text-sm text-parchment-500">
+        Here's what can honestly be said from your starting claim alone — no conversation happened for the Council to weigh in on.
+      </p>
+
+      <div className="mt-6 space-y-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-parchment-500">
+            Your starting position was closest to
+          </p>
+          <p className="mt-0.5 font-display text-lg text-parchment-900">{debate.verdict.leanedFramework}</p>
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-parchment-500">
+            Most vulnerable assumption
+          </p>
+          <p className="mt-0.5 text-sm leading-relaxed text-parchment-800">{debate.verdict.weakestReason}</p>
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-2">
+        <Button onClick={onResume}>Continue the conversation</Button>
+        <Button variant="ghost" onClick={onSave}>
+          Save to Journal
+        </Button>
+      </div>
     </div>
   )
 }

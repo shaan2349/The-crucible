@@ -1,3 +1,5 @@
+import type { CouncilOutcome, ParticipationLevel } from '../types'
+
 // In local dev this stays empty and Vite's dev-server proxy (vite.config.ts)
 // forwards /api to the backend. When client and server are deployed as
 // separate services (e.g. Render static site + web service), this points
@@ -80,12 +82,14 @@ export interface VerdictResponse {
   weakestReason: string
   leanedFramework: string
   sharpenedClaim: string
+  outcome: CouncilOutcome
 }
 export function fetchVerdict(params: {
   claim: string
   conclusion: string
   premises: { id: string; text: string; status: string }[]
   rounds: { round: number; attacks: { philosopherId: string; text: string }[]; userResponse: string | null }[]
+  participationLevel: ParticipationLevel
 }) {
   return postJSON<VerdictResponse>('/claude/debate/verdict', params)
 }
