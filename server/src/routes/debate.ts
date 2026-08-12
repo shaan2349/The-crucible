@@ -128,6 +128,7 @@ debateRouter.post('/decompose', async (req, res) => {
 interface AttackResult {
   targetPremiseId: string
   text: string
+  spokenText: string
 }
 
 debateRouter.post('/attack', async (req, res) => {
@@ -184,11 +185,19 @@ ${sameRoundText ? "- Another thinker has already spoken this round (see below). 
         type: 'object',
         properties: {
           targetPremiseId: { type: 'string', enum: premises.map((p) => p.id) },
-          text: { type: 'string' },
+          text: {
+            type: 'string',
+            description: 'The formal written response, as displayed on screen. Full sentences, precise wording.',
+          },
+          spokenText: {
+            type: 'string',
+            description:
+              "The SAME argument, rewritten for speech, not read aloud verbatim from `text`. Use shorter sentences, contractions (\"that's\", \"you're\", \"can't\"), natural discourse markers (\"But\", \"Look,\", \"Now,\"), the occasional sentence fragment or rhetorical question a real person would actually say out loud, and a little less formal precision than the written version — e.g. instead of \"Your underlying assumption appears to be...\" say something like \"But that assumes something important — why?\" Keep the same intellectual content and the same target premise; do not soften or drop the actual challenge, only its register. No filler words like um/uh/like.",
+          },
         },
-        required: ['targetPremiseId', 'text'],
+        required: ['targetPremiseId', 'text', 'spokenText'],
       },
-      maxTokens: 280,
+      maxTokens: 450,
     })
     res.json(result)
   } catch (err) {

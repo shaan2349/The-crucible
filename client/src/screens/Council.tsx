@@ -172,7 +172,12 @@ export function CouncilView({
           priorRounds,
           sameRoundAttacks: attacks.map((a) => ({ philosopherId: a.philosopherId, text: a.text })),
         })
-        attacks.push({ philosopherId, targetPremiseId: result.targetPremiseId, text: result.text })
+        attacks.push({
+          philosopherId,
+          targetPremiseId: result.targetPremiseId,
+          text: result.text,
+          spokenText: result.spokenText,
+        })
       }
       setThinkingId(null)
       const round: Round = { round: debate.currentRound, attacks, userResponse: null }
@@ -373,9 +378,9 @@ export function CouncilView({
                       {tts.supported && (
                         <button
                           type="button"
-                          onClick={() => tts.speak(speechId, a.text)}
-                          aria-label={isSpeaking ? `Stop reading ${ph.name}'s response` : `Read ${ph.name}'s response aloud`}
-                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-parchment-400 transition-colors hover:text-forge-ember"
+                          onClick={() => tts.speak(speechId, a.spokenText || a.text, a.philosopherId)}
+                          aria-label={isSpeaking ? `Stop reading ${ph.name}'s response` : `Hear ${ph.name}'s response — generated voice`}
+                          className="-m-2.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full p-2.5 text-parchment-400 transition-colors hover:text-forge-ember focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
                         >
                           {isSpeaking ? <Square className="h-3 w-3" /> : <Volume2 className="h-3.5 w-3.5" />}
                         </button>

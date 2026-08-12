@@ -10,6 +10,11 @@ export interface Attack {
   philosopherId: string
   targetPremiseId: string
   text: string
+  /** Same argument, rewritten for speech — shorter sentences, natural
+   * discourse markers, contractions. Used for TTS playback instead of
+   * reading `text` verbatim. Optional so debates saved before this
+   * existed still load; playback falls back to `text` for those. */
+  spokenText?: string
 }
 
 export interface Round {

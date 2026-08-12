@@ -52,6 +52,7 @@ export function decompose(claim: string) {
 export interface AttackResponse {
   targetPremiseId: string
   text: string
+  spokenText: string
 }
 export function attack(params: {
   claim: string
