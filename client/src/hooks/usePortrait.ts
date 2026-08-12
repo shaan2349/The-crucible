@@ -135,3 +135,22 @@ export function usePortrait(
 
   return { url, failed }
 }
+
+const MAX_CAST_SLOTS = 5
+
+/**
+ * True once every philosopher in `ids` has settled (loaded or definitively
+ * failed) at the given width — never true while any one of them is still
+ * in flight. Used to gate a group reveal (e.g. Council's cast) so the
+ * whole group appears together, rather than philosophers popping in one
+ * at a time as their individual fetches happen to resolve.
+ *
+ * Calls usePortrait a fixed MAX_CAST_SLOTS times regardless of how many
+ * ids are actually passed (Rules of Hooks forbid a variable-length loop
+ * here) — slots beyond `ids.length` get `undefined`, which usePortrait
+ * already treats as inert, and are excluded from the readiness check.
+ */
+export function useCastReadiness(ids: string[], width = 1200): boolean {
+  const slots = Array.from({ length: MAX_CAST_SLOTS }, (_, i) => usePortrait(ids[i], width))
+  return slots.every((s, i) => i >= ids.length || s.url !== null || s.failed)
+}

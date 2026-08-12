@@ -7,6 +7,7 @@ import { Loader } from '../components/Loader'
 import { PremiseRow } from '../components/PremiseRow'
 import { PhilosopherAvatar } from '../components/PhilosopherAvatar'
 import { PortraitFrame } from '../components/PortraitFrame'
+import { PortraitFallback } from '../components/PortraitFallback'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { DebateBackdrop } from '../components/DebateBackdrop'
 import { PHILOSOPHERS, philosopherById, SIDE_ACCENT, SIDE_DUOTONE } from '../data/philosophers'
@@ -14,6 +15,7 @@ import * as api from '../lib/api'
 import { loadDebates, saveDebates } from '../lib/storage'
 import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import { useSpeechToText } from '../hooks/useSpeechToText'
+import { useCastReadiness } from '../hooks/usePortrait'
 import type { Debate as DebateState, Round } from '../types'
 
 const MAX_ROUNDS = 3
@@ -97,6 +99,11 @@ export function CouncilView({
   const tts = useTextToSpeech()
   const stt = useSpeechToText()
   const [micField, setMicField] = useState<'response' | 'reflection' | null>(null)
+  // The cast never reveals partially — every selected philosopher's
+  // portrait must settle (loaded or definitively failed) before any of
+  // them appear, so a slow connection can't show one thinker while the
+  // other is still a blank gap.
+  const castReady = useCastReadiness(debate.philosopherIds, 400)
 
   function toggleMic(field: 'response' | 'reflection', append: (text: string) => void) {
     if (stt.listening && micField === field) {
@@ -271,7 +278,13 @@ export function CouncilView({
         >
           {debate.philosopherIds.map((id, i) => (
             <div key={id} className="w-20 text-center sm:w-28">
-              <PortraitFrame id={id} size={400} duotone={SIDE_DUOTONE[i % SIDE_DUOTONE.length]} className="w-full" />
+              {castReady ? (
+                <PortraitFrame id={id} size={400} duotone={SIDE_DUOTONE[i % SIDE_DUOTONE.length]} className="w-full" />
+              ) : (
+                <div className="relative overflow-hidden rounded-xl" style={{ aspectRatio: '3/4', boxShadow: 'var(--shadow-card)' }}>
+                  <PortraitFallback markOpacity={0.14} />
+                </div>
+              )}
               <p
                 className="mt-1.5 font-display text-xs font-medium uppercase tracking-wide"
                 style={{ color: SIDE_ACCENT[i % SIDE_ACCENT.length] }}

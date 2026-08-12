@@ -1,4 +1,5 @@
 import { usePortrait } from '../hooks/usePortrait'
+import { philosopherById, initials } from '../data/philosophers'
 import { PortraitFallback } from './PortraitFallback'
 
 interface PortraitFrameProps {
@@ -30,6 +31,7 @@ export function PortraitFrame({
   busted = true,
 }: PortraitFrameProps) {
   const { url, failed } = usePortrait(id, size)
+  const name = philosopherById(id)?.name
 
   return (
     <div
@@ -44,7 +46,21 @@ export function PortraitFrame({
         position: 'relative',
       }}
     >
-      {busted && <PortraitFallback markOpacity={failed ? 0.3 : 0.16} />}
+      {busted && <PortraitFallback markOpacity={failed ? 0.12 : 0.16} />}
+      {/* Text/initial treatment as the last-resort identity signal — every
+          philosopher's fallback card stays recognizable by name even when
+          no artwork loads, rather than every failed portrait looking like
+          the same generic card. */}
+      {busted && failed && name && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span
+            className="font-display text-lg font-medium text-parchment-700 sm:text-2xl"
+            style={{ letterSpacing: '0.04em', opacity: 0.6 }}
+          >
+            {initials(name)}
+          </span>
+        </div>
+      )}
       {url && (
         <img
           key={url}
