@@ -7,7 +7,7 @@ import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { CouncilBackdrop, CouncilView } from './Council'
 import { DEBATE_BACKDROP_PORTRAIT_SIZE } from '../components/DebateBackdrop'
 import { PHILOSOPHER_TAGS, SUGGESTED_TOPICS, philosopherById } from '../data/philosophers'
-import { loadReflectDraft, saveReflectDraft, clearReflectDraft, loadInterests } from '../lib/storage'
+import { loadDebateDraft, saveDebateDraft, clearDebateDraft, loadInterests } from '../lib/storage'
 import { useDebateContext } from '../context/DebateContext'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import { preloadPortrait } from '../hooks/usePortrait'
@@ -102,7 +102,7 @@ export function Debate() {
   }
 
   useEffect(() => {
-    setSavedDraft(loadReflectDraft())
+    setSavedDraft(loadDebateDraft())
   }, [])
 
   // A philosopher's "Try a conversation" question arrives via router state
@@ -115,13 +115,13 @@ export function Debate() {
 
   useEffect(() => {
     const t = setTimeout(() => {
-      if (claim.trim()) saveReflectDraft(claim)
-      else clearReflectDraft()
+      if (claim.trim()) saveDebateDraft(claim)
+      else clearDebateDraft()
     }, 600)
     return () => clearTimeout(t)
   }, [claim])
 
-  // The signature Reflect -> Council moment: a brief in-place transition,
+  // The signature Debate -> Council moment: a brief in-place transition,
   // not a route change — Council isn't a separate destination, it's what
   // this same screen becomes. Opponent selection and portrait preloading
   // both happen DURING the transition overlay, so by the time CouncilView
@@ -137,7 +137,7 @@ export function Debate() {
     setEnterError(null)
     setAssembled(null)
     setSubmittedClaim(trimmed)
-    clearReflectDraft()
+    clearDebateDraft()
     try {
       const minWait = new Promise<void>((resolve) => setTimeout(resolve, 650))
       const [{ ids }] = await Promise.all([api.selectOpponents(trimmed), minWait])

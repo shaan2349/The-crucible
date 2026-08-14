@@ -1,10 +1,16 @@
-import type { Debate, TrainingStats } from '../types'
+import type { Debate, ReflectSession, TrainingStats } from '../types'
 import type { BioResponse } from './api'
 
 const KEYS = {
   debates: 'crucible:debates',
+  reflectSessions: 'crucible:reflectSessions',
   bios: 'crucible:bios',
   trainingStats: 'crucible:trainingStats',
+  // Named for what actually uses it now (Debate.tsx's composer) — this
+  // used to be Reflect's draft key back when Reflect and Debate were the
+  // same screen. reflectDraft below is a distinct key for the real
+  // Reflect screen's own composer, not a renamed alias of this one.
+  debateDraft: 'crucible:debateDraft',
   reflectDraft: 'crucible:reflectDraft',
   preferences: 'crucible:preferences',
   onboarded: 'crucible:onboarded',
@@ -74,6 +80,20 @@ export function saveTrainingStats(stats: TrainingStats): void {
   save(KEYS.trainingStats, stats)
 }
 
+export function loadDebateDraft(): string | null {
+  return load<string | null>(KEYS.debateDraft, null)
+}
+export function saveDebateDraft(text: string): void {
+  save(KEYS.debateDraft, text)
+}
+export function clearDebateDraft(): void {
+  try {
+    localStorage.removeItem(KEYS.debateDraft)
+  } catch {
+    // ignore
+  }
+}
+
 export function loadReflectDraft(): string | null {
   return load<string | null>(KEYS.reflectDraft, null)
 }
@@ -86,6 +106,13 @@ export function clearReflectDraft(): void {
   } catch {
     // ignore
   }
+}
+
+export function loadReflectSessions(): ReflectSession[] {
+  return load<ReflectSession[]>(KEYS.reflectSessions, [])
+}
+export function saveReflectSessions(sessions: ReflectSession[]): void {
+  save(KEYS.reflectSessions, sessions)
 }
 
 export function loadPreferences(): Preferences {

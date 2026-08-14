@@ -72,6 +72,57 @@ export interface Debate {
   participationLevel?: ParticipationLevel
 }
 
+/* -------------------------------- Reflect -------------------------------- */
+// A deliberately separate shape from Debate/Round/Attack above — Reflect
+// has no premises to extract or attack, no verdict, no weakest-premise
+// concept. Conflating the two data models would have dragged Debate's
+// argument-testing vocabulary into what's supposed to be a genuinely
+// different kind of conversation.
+
+export interface ReflectTurn {
+  philosopherId: string
+  text: string
+  spokenText?: string
+}
+
+export interface ReflectRound {
+  round: number
+  turns: ReflectTurn[]
+  userMessage: string | null
+}
+
+export interface ReflectEndingPerspective {
+  philosopherId: string
+  summary: string
+}
+
+/** The non-verdict ending — see the brief's "WHAT THE COUNCIL SEES" /
+ * "WHAT SEEMS TO MATTER TO YOU" / "THREE WAYS TO SEE IT" / "A QUESTION TO
+ * CARRY WITH YOU" structure. Never a winner, never forced closure. */
+export interface ReflectEnding {
+  tension: string
+  whatMatters: string
+  perspectives: ReflectEndingPerspective[]
+  question: string
+}
+
+export type ReflectPhase = 'awaiting-response' | 'responding' | 'ending-loading' | 'ended'
+
+export interface ReflectSession {
+  id: number
+  situation: string
+  philosopherIds: string[]
+  /** Each chosen philosopher's opening take on the situation — keyed by
+   * id since, unlike Debate's rounds, these aren't tied to a round
+   * number. */
+  openings: Record<string, string>
+  rounds: ReflectRound[]
+  phase: ReflectPhase
+  ending: ReflectEnding | null
+  error?: string | null
+  userReflection?: string
+}
+
 export interface Bio {
   life: string
   works: string

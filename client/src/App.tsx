@@ -12,6 +12,7 @@ import { Profile } from './screens/Profile'
 import { Settings } from './screens/Settings'
 import { DuotoneDefs } from './components/DuotoneDefs'
 import { DebateProvider } from './context/DebateContext'
+import { ReflectProvider } from './context/ReflectContext'
 import { PreferencesProvider } from './context/PreferencesContext'
 
 function App() {
@@ -20,24 +21,26 @@ function App() {
       <DuotoneDefs />
       <PreferencesProvider>
         <DebateProvider>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/app" element={<AppShell />}>
-              <Route index element={<Navigate to="reflect" replace />} />
-              <Route path="reflect" element={<Reflect />} />
-              <Route path="debate" element={<Debate />} />
-              <Route path="council" element={<Council />} />
-              <Route path="archive" element={<Library />} />
-              <Route path="train" element={<Train />} />
-              <Route path="mythinking" element={<History />} />
-              {/* Old bookmarks/back-forward history to the pre-restructure
-                  Journal route still land somewhere real. */}
-              <Route path="journal" element={<Navigate to="/app/mythinking" replace />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-          </Routes>
+          <ReflectProvider>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/app" element={<AppShell />}>
+                <Route index element={<Navigate to="reflect" replace />} />
+                <Route path="reflect" element={<Reflect />} />
+                <Route path="debate" element={<Debate />} />
+                <Route path="council" element={<Council />} />
+                <Route path="archive" element={<Library />} />
+                <Route path="train" element={<Train />} />
+                <Route path="mythinking" element={<History />} />
+                {/* Old bookmarks/back-forward history to the pre-restructure
+                    Journal route still land somewhere real. */}
+                <Route path="journal" element={<Navigate to="/app/mythinking" replace />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
+            </Routes>
+          </ReflectProvider>
         </DebateProvider>
       </PreferencesProvider>
     </BrowserRouter>

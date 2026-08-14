@@ -95,6 +95,44 @@ export function fetchVerdict(params: {
   return postJSON<VerdictResponse>('/claude/debate/verdict', params)
 }
 
+/* -------------------------------- reflect -------------------------------- */
+
+export interface BeginReflectionResponse {
+  philosopherIds: string[]
+  openings: { philosopherId: string; take: string }[]
+}
+export function beginReflection(situation: string) {
+  return postJSON<BeginReflectionResponse>('/claude/reflect/begin', { situation })
+}
+
+export interface RespondReflectionResponse {
+  text: string
+  spokenText: string
+}
+export function respondReflection(params: {
+  situation: string
+  openings: Record<string, string>
+  rounds: { round: number; turns: { philosopherId: string; text: string }[]; userMessage: string | null }[]
+  philosopherId: string
+  userMessage?: string
+}) {
+  return postJSON<RespondReflectionResponse>('/claude/reflect/respond', params)
+}
+
+export interface EndReflectionResponse {
+  tension: string
+  whatMatters: string
+  perspectives: { philosopherId: string; summary: string }[]
+  question: string
+}
+export function endReflection(params: {
+  situation: string
+  openings: Record<string, string>
+  rounds: { round: number; turns: { philosopherId: string; text: string }[]; userMessage: string | null }[]
+}) {
+  return postJSON<EndReflectionResponse>('/claude/reflect/ending', params)
+}
+
 export interface BioResponse {
   positioning: string
   overview: string

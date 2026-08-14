@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import { rateLimit } from 'express-rate-limit'
 import { debateRouter } from './routes/debate.js'
+import { reflectRouter } from './routes/reflect.js'
 import { libraryRouter } from './routes/library.js'
 import { trainRouter } from './routes/train.js'
 
@@ -26,6 +27,7 @@ app.use(
 )
 
 app.use('/api/claude/debate', debateRouter)
+app.use('/api/claude/reflect', reflectRouter)
 app.use('/api/claude/library', libraryRouter)
 app.use('/api/claude/train', trainRouter)
 
