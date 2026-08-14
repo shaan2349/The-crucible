@@ -129,10 +129,12 @@ export interface Bio {
   legacy: string
 }
 
+export type TrainExerciseType = 'deconstruct' | 'construct' | 'spot-flaw' | 'steelman' | 'framework-lens' | 'premise-audit'
+
 export interface TrainingSession {
   date: number
   level: 'easy' | 'medium' | 'hard'
-  direction: 'forward' | 'reverse'
+  exerciseType: TrainExerciseType
   score: number
 }
 

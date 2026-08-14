@@ -165,30 +165,46 @@ export function searchThinkers(query: string) {
 }
 
 export type TrainLevel = 'easy' | 'medium' | 'hard'
-export type TrainDirection = 'forward' | 'reverse'
+export type TrainExerciseType = 'deconstruct' | 'construct' | 'spot-flaw' | 'steelman' | 'framework-lens' | 'premise-audit'
 
 export interface TrainGenerateResponse {
-  direction: TrainDirection
+  exerciseType: TrainExerciseType
   topic?: string
-  passage?: string
-  conclusion?: string
+  passage?: string // deconstruct, spot-flaw
+  conclusion?: string // construct
+  claim?: string // steelman
+  scenario?: string // framework-lens
+  framework?: string // framework-lens
+  argument?: string // premise-audit
+  premises?: { id: string; text: string }[] // premise-audit
 }
-export function generateChallenge(level: TrainLevel, direction: TrainDirection) {
-  return postJSON<TrainGenerateResponse>('/claude/train/generate', { level, direction })
+export function generateChallenge(level: TrainLevel, exerciseType: TrainExerciseType) {
+  return postJSON<TrainGenerateResponse>('/claude/train/generate', { level, exerciseType })
 }
 
 export interface TrainScoreResponse {
   score: number
   feedback: string
-  trueConclusion?: string
-  truePremises?: string[]
+  trueConclusion?: string // deconstruct
+  truePremises?: string[] // deconstruct
+  actualFlaw?: string // spot-flaw
+  modelPick?: string // premise-audit
 }
 export function scoreChallenge(params: {
-  direction: TrainDirection
+  exerciseType: TrainExerciseType
   passage?: string
   conclusion?: string
+  claim?: string
+  scenario?: string
+  framework?: string
+  argument?: string
+  premises?: { id: string; text: string }[]
   userConclusion?: string
-  userPremises: string[]
+  userPremises?: string[]
+  userAnswer?: string
+  userArgument?: string
+  userPremiseId?: string
+  userExplanation?: string
 }) {
   return postJSON<TrainScoreResponse>('/claude/train/score', params)
 }

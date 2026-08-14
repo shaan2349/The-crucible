@@ -1,11 +1,17 @@
-import { useEffect, useState } from 'react'
-import { Shuffle, RotateCcw, Feather, PenLine, Flame } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { RotateCcw, PenLine, Flame, Search, Swords, Shield, Compass, Scale, ArrowLeft } from 'lucide-react'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
-import { EmptyState } from '../components/EmptyState'
 import { Loader } from '../components/Loader'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
-import { generateChallenge, scoreChallenge, type TrainDirection, type TrainLevel, type TrainGenerateResponse, type TrainScoreResponse } from '../lib/api'
+import {
+  generateChallenge,
+  scoreChallenge,
+  type TrainExerciseType,
+  type TrainLevel,
+  type TrainGenerateResponse,
+  type TrainScoreResponse,
+} from '../lib/api'
 import { loadTrainingStats, saveTrainingStats } from '../lib/storage'
 import type { TrainingStats } from '../types'
 
@@ -21,36 +27,90 @@ function daysBetween(a: number, b: number): number {
 
 const LEVELS: TrainLevel[] = ['easy', 'medium', 'hard']
 
+/** Six genuinely different reasoning exercises, not one exercise with six
+ * skins — each teaches a distinct skill (extraction, construction, flaw
+ * detection, charitable interpretation, applying a framework's own
+ * internal logic, and judging real vulnerability) and none of them turn
+ * on a leaderboard or streak-chasing mechanic; scoring stays qualitative
+ * ("Sharp reading") and stats stay to plain counts. */
+const EXERCISE_CONFIG: Record<TrainExerciseType, { label: string; description: string; icon: ReactNode; promptLabel: string }> = {
+  deconstruct: {
+    label: 'Deconstruct',
+    description: 'Extract the hidden premises from a real-style argument.',
+    icon: <Search className="h-5 w-5" />,
+    promptLabel: 'The passage',
+  },
+  construct: {
+    label: 'Construct',
+    description: 'Build a valid, sound argument from scratch.',
+    icon: <PenLine className="h-5 w-5" />,
+    promptLabel: 'The conclusion',
+  },
+  'spot-flaw': {
+    label: 'Spot the flaw',
+    description: 'Find the one logical flaw hiding in the argument.',
+    icon: <Search className="h-5 w-5" />,
+    promptLabel: 'The argument',
+  },
+  steelman: {
+    label: 'Steelman',
+    description: 'Build the strongest possible case for a claim, even one you might not hold.',
+    icon: <Shield className="h-5 w-5" />,
+    promptLabel: 'The claim',
+  },
+  'framework-lens': {
+    label: 'Framework lens',
+    description: 'Reason through a real situation the way a specific philosophy would.',
+    icon: <Compass className="h-5 w-5" />,
+    promptLabel: 'The scenario',
+  },
+  'premise-audit': {
+    label: 'Premise audit',
+    description: 'Find the weakest link in an argument, and explain why it actually is.',
+    icon: <Scale className="h-5 w-5" />,
+    promptLabel: 'The argument',
+  },
+}
+
+const EXERCISE_ORDER: TrainExerciseType[] = ['deconstruct', 'construct', 'spot-flaw', 'steelman', 'framework-lens', 'premise-audit']
+
 export function Train() {
+  const [exerciseType, setExerciseType] = useState<TrainExerciseType | null>(null)
   const [level, setLevel] = useState<TrainLevel>('easy')
-  const [direction, setDirection] = useState<TrainDirection>('forward')
   const [challenge, setChallenge] = useState<TrainGenerateResponse | null>(null)
   const [loading, setLoading] = useState(false)
-  const [conclusionInput, setConclusionInput] = useState('')
-  const [premiseInputs, setPremiseInputs] = useState(['', ''])
   const [feedback, setFeedback] = useState<TrainScoreResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [stats, setStats] = useState<TrainingStats>({
-    correct: 0,
-    total: 0,
-    sessions: [],
-    streak: 0,
-    lastSessionDate: null,
-  })
+
+  const [conclusionInput, setConclusionInput] = useState('')
+  const [premiseInputs, setPremiseInputs] = useState(['', ''])
+  const [freeformAnswer, setFreeformAnswer] = useState('')
+  const [selectedPremiseId, setSelectedPremiseId] = useState<string | null>(null)
+  const [premiseExplanation, setPremiseExplanation] = useState('')
+
+  const [stats, setStats] = useState<TrainingStats>({ correct: 0, total: 0, sessions: [], streak: 0, lastSessionDate: null })
 
   useEffect(() => {
     setStats(loadTrainingStats())
   }, [])
 
-  async function generate() {
+  function resetAnswers() {
+    setConclusionInput('')
+    setPremiseInputs(['', ''])
+    setFreeformAnswer('')
+    setSelectedPremiseId(null)
+    setPremiseExplanation('')
+  }
+
+  async function generate(type: TrainExerciseType) {
+    setExerciseType(type)
     setLoading(true)
     setChallenge(null)
     setFeedback(null)
     setError(null)
-    setPremiseInputs(['', ''])
-    setConclusionInput('')
+    resetAnswers()
     try {
-      const result = await generateChallenge(level, direction)
+      const result = await generateChallenge(level, type)
       setChallenge(result)
     } catch (e) {
       setError((e as Error)?.message || 'Something went wrong generating the challenge.')
@@ -58,17 +118,33 @@ export function Train() {
     setLoading(false)
   }
 
+  function backToPicker() {
+    setExerciseType(null)
+    setChallenge(null)
+    setFeedback(null)
+    setError(null)
+  }
+
   async function submit() {
-    if (!challenge) return
+    if (!challenge || !exerciseType) return
     setLoading(true)
     setError(null)
     try {
       const result = await scoreChallenge({
-        direction,
+        exerciseType,
         passage: challenge.passage,
         conclusion: challenge.conclusion,
-        userConclusion: conclusionInput,
-        userPremises: premiseInputs,
+        claim: challenge.claim,
+        scenario: challenge.scenario,
+        framework: challenge.framework,
+        argument: challenge.argument,
+        premises: challenge.premises,
+        userConclusion: exerciseType === 'deconstruct' ? conclusionInput : undefined,
+        userPremises: exerciseType === 'deconstruct' || exerciseType === 'construct' ? premiseInputs : undefined,
+        userAnswer: exerciseType === 'spot-flaw' || exerciseType === 'framework-lens' ? freeformAnswer : undefined,
+        userArgument: exerciseType === 'steelman' ? freeformAnswer : undefined,
+        userPremiseId: exerciseType === 'premise-audit' ? selectedPremiseId ?? undefined : undefined,
+        userExplanation: exerciseType === 'premise-audit' ? premiseExplanation : undefined,
       })
       setFeedback(result)
       const now = Date.now()
@@ -77,7 +153,7 @@ export function Train() {
       const nextStats: TrainingStats = {
         correct: stats.correct + (result.score >= 3 ? 1 : 0),
         total: stats.total + 1,
-        sessions: [...stats.sessions, { date: now, level, direction, score: result.score }].slice(-30),
+        sessions: [...stats.sessions, { date: now, level, exerciseType, score: result.score }].slice(-30),
         streak,
         lastSessionDate: now,
       }
@@ -97,18 +173,23 @@ export function Train() {
     })
   }
 
+  const canSubmit = (() => {
+    if (!exerciseType) return false
+    if (exerciseType === 'deconstruct') return premiseInputs.some(Boolean) || conclusionInput.trim().length > 0
+    if (exerciseType === 'construct') return premiseInputs.some(Boolean)
+    if (exerciseType === 'spot-flaw' || exerciseType === 'steelman' || exerciseType === 'framework-lens') return freeformAnswer.trim().length > 0
+    if (exerciseType === 'premise-audit') return Boolean(selectedPremiseId) && premiseExplanation.trim().length > 0
+    return false
+  })()
+
   return (
     <>
       <RotatingBackdrop screen="train" />
       <div className="standard-container relative z-[1] px-6 pb-10 pt-8">
         <header className="mb-6">
-          <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">
-            The Study Desk
-          </p>
-          <h1 className="font-display text-2xl font-medium text-parchment-900">Deconstruction training</h1>
-          <p className="mt-1 text-sm text-parchment-600">
-            Extract hidden premises from real-style arguments, or build one from scratch.
-          </p>
+          <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">The Study Desk</p>
+          <h1 className="font-display text-2xl font-medium text-parchment-900">Training</h1>
+          <p className="mt-1 text-sm text-parchment-600">Six ways to practice reasoning well, not just win an argument.</p>
         </header>
 
         {stats.total > 0 && (
@@ -118,9 +199,7 @@ export function Train() {
               <p className="mt-0.5 text-[11px] text-parchment-500">Attempts</p>
             </Card>
             <Card className="p-3.5 text-center">
-              <p className="font-display text-xl font-medium text-parchment-900">
-                {Math.round((stats.correct / stats.total) * 100)}%
-              </p>
+              <p className="font-display text-xl font-medium text-parchment-900">{Math.round((stats.correct / stats.total) * 100)}%</p>
               <p className="mt-0.5 text-[11px] text-parchment-500">Solid reads</p>
             </Card>
             <Card className="p-3.5 text-center">
@@ -139,7 +218,7 @@ export function Train() {
             {stats.sessions.slice(-8).map((s, i) => (
               <span
                 key={i}
-                title={`${s.level} · scored ${s.score}/5`}
+                title={`${EXERCISE_CONFIG[s.exerciseType]?.label ?? s.exerciseType} · ${s.level} · scored ${s.score}/5`}
                 className="flex h-6 w-6 items-center justify-center rounded-full font-display text-[11px] font-semibold"
                 style={{
                   background: s.score >= 4 ? 'var(--color-side-gold-soft)' : s.score >= 3 ? '#c2531d22' : '#8a2a1218',
@@ -152,201 +231,332 @@ export function Train() {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          <div
-            className="flex gap-1 rounded-lg border border-parchment-300/70 bg-parchment-200 p-1"
-            style={{ boxShadow: 'var(--shadow-embossed)' }}
-          >
-            {LEVELS.map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setLevel(l)}
-                className={`rounded-md px-3 py-1 text-xs capitalize transition-colors ${level === l ? 'bg-forge-ember font-semibold text-parchment-50' : 'text-parchment-700'}`}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
-          <div
-            className="flex gap-1 rounded-lg border border-parchment-300/70 bg-parchment-200 p-1"
-            style={{ boxShadow: 'var(--shadow-embossed)' }}
-          >
-            <button
-              type="button"
-              onClick={() => setDirection('forward')}
-              className={`rounded-md px-3 py-1 text-xs transition-colors ${direction === 'forward' ? 'bg-forge-ember font-semibold text-parchment-50' : 'text-parchment-700'}`}
+        {!exerciseType ? (
+          <>
+            <div
+              className="mb-6 flex gap-1 rounded-lg border border-parchment-300/70 bg-parchment-200 p-1"
+              style={{ boxShadow: 'var(--shadow-embossed)', width: 'fit-content' }}
             >
-              Deconstruct
-            </button>
-            <button
-              type="button"
-              onClick={() => setDirection('reverse')}
-              className={`rounded-md px-3 py-1 text-xs transition-colors ${direction === 'reverse' ? 'bg-forge-ember font-semibold text-parchment-50' : 'text-parchment-700'}`}
-            >
-              Construct
-            </button>
-          </div>
-        </div>
-
-        {stats.sessions.length > 0 && (
-          <p className="mt-2 text-[11px] text-parchment-500">
-            {LEVELS.filter((l) => stats.sessions.some((s) => s.level === l))
-              .map((l) => `${l[0].toUpperCase()}${l.slice(1)} ${stats.sessions.filter((s) => s.level === l).length}`)
-              .join(' · ')}
-          </p>
-        )}
-
-        {!challenge && !loading && !error && (
-          <div className="mt-8">
-            <EmptyState
-              decoration={
-                <Feather className="pointer-events-none absolute -right-5 -top-5 h-32 w-32 rotate-[18deg] text-parchment-300/40" />
-              }
-              icon={<Feather className="h-9 w-9 text-parchment-400" />}
-              headline="An unopened manuscript awaits"
-              body="Extract the hidden premises from a real-style argument, or build one from scratch."
-              action={{
-                label: (
-                  <>
-                    <Shuffle className="-mt-0.5 mr-1.5 inline h-4 w-4" />
-                    Begin a new manuscript
-                  </>
-                ),
-                onClick: generate,
-              }}
-            />
-          </div>
-        )}
-        {loading && <Loader label="Working…" />}
-        {error && !loading && (
-          <Card className="mt-5 border-rose-300/70 bg-rose-50 p-4">
-            <p className="mb-3 text-sm text-rose-700">Something went wrong: {error}</p>
-            <Button onClick={challenge ? submit : generate}>Retry</Button>
-          </Card>
-        )}
-
-        {challenge && !loading && (
-          <div className="mt-8">
-            <div className="relative" style={{ animation: 'unfurl 0.5s ease both', transformOrigin: 'top center' }}>
-              <div
-                className="absolute inset-0 translate-x-1.5 translate-y-1.5 rounded-2xl border border-parchment-400/50 bg-parchment-100"
-                style={{ transform: 'rotate(1.1deg)' }}
-              />
-              {direction === 'forward' ? (
-                <Card className="relative overflow-hidden p-5" style={{ transform: 'rotate(-0.6deg)' }}>
-                  <div
-                    className="pointer-events-none absolute inset-0 opacity-[0.35]"
-                    style={{
-                      backgroundImage:
-                        'repeating-linear-gradient(180deg, transparent, transparent 27px, rgba(74,61,42,0.08) 28px)',
-                    }}
-                  />
-                  <p className="relative font-body text-[15px] leading-loose text-parchment-800 first-letter:float-left first-letter:mr-2 first-letter:font-display first-letter:text-5xl first-letter:font-medium first-letter:leading-[0.8] first-letter:text-forge-ember">
-                    {challenge.passage}
-                  </p>
-                </Card>
-              ) : (
-                <Card variant="hero" className="relative p-5" style={{ transform: 'rotate(-0.6deg)' }}>
-                  <p className="mb-1.5 font-display text-[13px] italic text-forge-ember">The conclusion</p>
-                  <p className="font-display text-lg leading-snug text-parchment-900">{challenge.conclusion}</p>
-                </Card>
-              )}
+              {LEVELS.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLevel(l)}
+                  className={`rounded-md px-3 py-1 text-xs capitalize transition-colors ${level === l ? 'bg-forge-ember font-semibold text-parchment-50' : 'text-parchment-700'}`}
+                >
+                  {l}
+                </button>
+              ))}
             </div>
 
-            {!feedback && (
-              <div className="mt-8 space-y-4 border-l-2 border-dashed border-parchment-400/70 pl-4">
-                {direction === 'forward' && (
-                  <label className="block">
-                    <span className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">
-                      <PenLine className="h-3 w-3" />
-                      What is the passage's conclusion?
-                    </span>
-                    <input
-                      value={conclusionInput}
-                      onChange={(e) => setConclusionInput(e.target.value)}
-                      placeholder="Write it here…"
-                      className="w-full border-0 border-b-2 border-dashed border-parchment-400 bg-transparent px-1 py-1.5 font-display text-[15px] text-parchment-900 outline-none placeholder:font-body placeholder:italic placeholder:text-parchment-400 focus:border-forge-ember"
-                    />
-                  </label>
-                )}
-                {premiseInputs.map((p, i) => (
-                  <label key={i} className="block">
-                    <span className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">
-                      <PenLine className="h-3 w-3" />
-                      Premise {i + 1}
-                    </span>
-                    <input
-                      value={p}
-                      onChange={(e) => updatePremise(i, e.target.value)}
-                      placeholder="Write it here…"
-                      className="w-full border-0 border-b-2 border-dashed border-parchment-400 bg-transparent px-1 py-1.5 font-display text-[15px] text-parchment-900 outline-none placeholder:font-body placeholder:italic placeholder:text-parchment-400 focus:border-forge-ember"
-                    />
-                  </label>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setPremiseInputs((p) => [...p, ''])}
-                  className="text-xs text-parchment-500 hover:text-forge-ember"
-                >
-                  + add another premise
-                </button>
-                <div className="flex gap-2 pt-2">
-                  <Button onClick={submit} disabled={!premiseInputs.some(Boolean)}>
-                    Submit
-                  </Button>
-                  <Button variant="ghost" onClick={generate}>
-                    <RotateCcw className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
-                    New challenge
-                  </Button>
-                </div>
-              </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {EXERCISE_ORDER.map((type, i) => {
+                const cfg = EXERCISE_CONFIG[type]
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => generate(type)}
+                    className="text-left transition-transform duration-200 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forge-ember/50"
+                    style={{ animation: 'revealUp 0.35s ease both', animationDelay: `${i * 40}ms` }}
+                  >
+                    <Card className="flex h-full flex-col gap-2 p-4">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full text-forge-ember" style={{ background: 'var(--color-side-gold-soft)' }}>
+                        {cfg.icon}
+                      </span>
+                      <p className="font-display text-base font-medium text-parchment-900">{cfg.label}</p>
+                      <p className="text-sm leading-relaxed text-parchment-600">{cfg.description}</p>
+                    </Card>
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        ) : (
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={backToPicker}
+              className="mb-5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500 hover:text-forge-ember"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Choose a different exercise
+            </button>
+
+            {loading && !challenge && <Loader label="Working…" />}
+            {error && !challenge && !loading && (
+              <Card className="border-rose-300/70 bg-rose-50 p-4">
+                <p className="mb-3 text-sm text-rose-700">Something went wrong: {error}</p>
+                <Button onClick={() => generate(exerciseType)}>Retry</Button>
+              </Card>
             )}
 
-            {feedback && (
-              <div className="mt-8" style={{ animation: 'revealUp 0.4s ease both' }}>
-                <div className="flex flex-col items-center text-center">
-                  <div
-                    className="flex h-20 w-20 items-center justify-center rounded-full border-4 font-display text-xl font-bold"
-                    style={{
-                      borderColor: '#8a2a1266',
-                      color: '#8a2a12',
-                      background: 'radial-gradient(circle, #f3ddb055, transparent 70%)',
-                      animation: 'stampDown 0.5s ease both',
-                    }}
-                  >
-                    {feedback.score}/5
-                  </div>
-                  <p
-                    className="mt-2.5 font-display text-sm uppercase tracking-[0.15em] text-forge-char"
-                    style={{ transform: 'rotate(-8deg)' }}
-                  >
-                    {feedback.score >= 4 ? 'Sharp reading' : feedback.score >= 3 ? 'Solid attempt' : 'Worth another pass'}
-                  </p>
-                </div>
-
-                <Card className="mt-5 p-5">
-                  {feedback.trueConclusion && (
-                    <p className="mb-1 text-xs text-parchment-600">
-                      <span className="font-medium text-parchment-700">Actual conclusion:</span> {feedback.trueConclusion}
-                    </p>
-                  )}
-                  {feedback.truePremises && (
-                    <p className="mb-3 text-xs text-parchment-600">
-                      <span className="font-medium text-parchment-700">Actual premises:</span>{' '}
-                      {feedback.truePremises.join(' · ')}
-                    </p>
-                  )}
-                  <p className="text-sm leading-relaxed text-parchment-800">{feedback.feedback}</p>
-                  <Button className="mt-4" onClick={generate}>
-                    Next challenge
-                  </Button>
-                </Card>
-              </div>
+            {challenge && (
+              <ExerciseSession
+                exerciseType={exerciseType}
+                level={level}
+                challenge={challenge}
+                loading={loading}
+                error={feedback ? null : error}
+                feedback={feedback}
+                conclusionInput={conclusionInput}
+                setConclusionInput={setConclusionInput}
+                premiseInputs={premiseInputs}
+                setPremiseInputs={setPremiseInputs}
+                updatePremise={updatePremise}
+                freeformAnswer={freeformAnswer}
+                setFreeformAnswer={setFreeformAnswer}
+                selectedPremiseId={selectedPremiseId}
+                setSelectedPremiseId={setSelectedPremiseId}
+                premiseExplanation={premiseExplanation}
+                setPremiseExplanation={setPremiseExplanation}
+                canSubmit={canSubmit}
+                onSubmit={submit}
+                onNext={() => generate(exerciseType)}
+              />
             )}
           </div>
         )}
       </div>
     </>
+  )
+}
+
+/* ------------------------------- ExerciseSession ------------------------------- */
+
+function ExerciseSession({
+  exerciseType,
+  challenge,
+  loading,
+  error,
+  feedback,
+  conclusionInput,
+  setConclusionInput,
+  premiseInputs,
+  updatePremise,
+  setPremiseInputs,
+  freeformAnswer,
+  setFreeformAnswer,
+  selectedPremiseId,
+  setSelectedPremiseId,
+  premiseExplanation,
+  setPremiseExplanation,
+  canSubmit,
+  onSubmit,
+  onNext,
+}: {
+  exerciseType: TrainExerciseType
+  level: TrainLevel
+  challenge: TrainGenerateResponse
+  loading: boolean
+  error: string | null
+  feedback: TrainScoreResponse | null
+  conclusionInput: string
+  setConclusionInput: (v: string) => void
+  premiseInputs: string[]
+  setPremiseInputs: (fn: (p: string[]) => string[]) => void
+  updatePremise: (i: number, v: string) => void
+  freeformAnswer: string
+  setFreeformAnswer: (v: string) => void
+  selectedPremiseId: string | null
+  setSelectedPremiseId: (v: string) => void
+  premiseExplanation: string
+  setPremiseExplanation: (v: string) => void
+  canSubmit: boolean
+  onSubmit: () => void
+  onNext: () => void
+}) {
+  const cfg = EXERCISE_CONFIG[exerciseType]
+
+  return (
+    <div className="mt-2">
+      <div className="relative" style={{ animation: 'unfurl 0.5s ease both', transformOrigin: 'top center' }}>
+        <div
+          className="absolute inset-0 translate-x-1.5 translate-y-1.5 rounded-2xl border border-parchment-400/50 bg-parchment-100"
+          style={{ transform: 'rotate(1.1deg)' }}
+        />
+        {exerciseType === 'deconstruct' || exerciseType === 'spot-flaw' || exerciseType === 'premise-audit' ? (
+          <Card className="relative overflow-hidden p-5" style={{ transform: 'rotate(-0.6deg)' }}>
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.35]"
+              style={{ backgroundImage: 'repeating-linear-gradient(180deg, transparent, transparent 27px, rgba(74,61,42,0.08) 28px)' }}
+            />
+            <p className="relative mb-1.5 font-display text-[13px] italic text-forge-ember">{cfg.promptLabel}</p>
+            <p className="relative font-body text-[15px] leading-loose text-parchment-800 first-letter:float-left first-letter:mr-2 first-letter:font-display first-letter:text-5xl first-letter:font-medium first-letter:leading-[0.8] first-letter:text-forge-ember">
+              {exerciseType === 'premise-audit' ? challenge.argument : challenge.passage}
+            </p>
+          </Card>
+        ) : (
+          <Card variant="hero" className="relative p-5" style={{ transform: 'rotate(-0.6deg)' }}>
+            <p className="mb-1.5 font-display text-[13px] italic text-forge-ember">{cfg.promptLabel}</p>
+            {exerciseType === 'framework-lens' && challenge.framework && (
+              <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-parchment-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-forge-ember">
+                <Swords className="h-3 w-3" />
+                {challenge.framework}
+              </p>
+            )}
+            <p className="font-display text-lg leading-snug text-parchment-900">
+              {exerciseType === 'construct' ? challenge.conclusion : exerciseType === 'steelman' ? challenge.claim : challenge.scenario}
+            </p>
+          </Card>
+        )}
+      </div>
+
+      {!feedback && (
+        <div className="mt-8 space-y-4 border-l-2 border-dashed border-parchment-400/70 pl-4">
+          {exerciseType === 'deconstruct' && (
+            <label className="block">
+              <span className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">
+                <PenLine className="h-3 w-3" />
+                What is the passage's conclusion?
+              </span>
+              <input
+                value={conclusionInput}
+                onChange={(e) => setConclusionInput(e.target.value)}
+                placeholder="Write it here…"
+                className="w-full border-0 border-b-2 border-dashed border-parchment-400 bg-transparent px-1 py-1.5 font-display text-[15px] text-parchment-900 outline-none placeholder:font-body placeholder:italic placeholder:text-parchment-400 focus:border-forge-ember"
+              />
+            </label>
+          )}
+
+          {(exerciseType === 'deconstruct' || exerciseType === 'construct') && (
+            <>
+              {premiseInputs.map((p, i) => (
+                <label key={i} className="block">
+                  <span className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">
+                    <PenLine className="h-3 w-3" />
+                    Premise {i + 1}
+                  </span>
+                  <input
+                    value={p}
+                    onChange={(e) => updatePremise(i, e.target.value)}
+                    placeholder="Write it here…"
+                    className="w-full border-0 border-b-2 border-dashed border-parchment-400 bg-transparent px-1 py-1.5 font-display text-[15px] text-parchment-900 outline-none placeholder:font-body placeholder:italic placeholder:text-parchment-400 focus:border-forge-ember"
+                  />
+                </label>
+              ))}
+              <button type="button" onClick={() => setPremiseInputs((p) => [...p, ''])} className="text-xs text-parchment-500 hover:text-forge-ember">
+                + add another premise
+              </button>
+            </>
+          )}
+
+          {(exerciseType === 'spot-flaw' || exerciseType === 'steelman' || exerciseType === 'framework-lens') && (
+            <label className="block">
+              <span className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">
+                <PenLine className="h-3 w-3" />
+                {exerciseType === 'spot-flaw' && "What's the flaw, and where does it happen?"}
+                {exerciseType === 'steelman' && 'Write the strongest possible case for this claim.'}
+                {exerciseType === 'framework-lens' && `How would ${challenge.framework ?? 'this tradition'} reason through this?`}
+              </span>
+              <textarea
+                value={freeformAnswer}
+                onChange={(e) => setFreeformAnswer(e.target.value)}
+                placeholder="Write it here…"
+                rows={5}
+                className="w-full resize-none rounded-xl border border-parchment-300 bg-parchment-50 p-3 font-display text-[15px] leading-relaxed text-parchment-900 outline-none placeholder:font-body placeholder:italic placeholder:text-parchment-400 focus:border-forge-ember"
+              />
+            </label>
+          )}
+
+          {exerciseType === 'premise-audit' && (
+            <>
+              <p className="text-xs font-medium uppercase tracking-wide text-parchment-500">Which premise is weakest?</p>
+              <div className="space-y-1.5">
+                {(challenge.premises ?? []).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setSelectedPremiseId(p.id)}
+                    className="block w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors"
+                    style={
+                      selectedPremiseId === p.id
+                        ? { borderColor: 'var(--color-forge-ember)', background: 'var(--color-side-gold-soft)', color: 'var(--color-parchment-900)' }
+                        : { borderColor: 'var(--color-parchment-300)', color: 'var(--color-parchment-700)' }
+                    }
+                  >
+                    {p.text}
+                  </button>
+                ))}
+              </div>
+              <label className="block">
+                <span className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">
+                  <PenLine className="h-3 w-3" />
+                  Why is it the weakest?
+                </span>
+                <textarea
+                  value={premiseExplanation}
+                  onChange={(e) => setPremiseExplanation(e.target.value)}
+                  placeholder="Write it here…"
+                  rows={3}
+                  className="w-full resize-none rounded-xl border border-parchment-300 bg-parchment-50 p-3 font-display text-[15px] leading-relaxed text-parchment-900 outline-none placeholder:font-body placeholder:italic placeholder:text-parchment-400 focus:border-forge-ember"
+                />
+              </label>
+            </>
+          )}
+
+          {error && <p className="text-sm text-rose-700">Something went wrong: {error}</p>}
+
+          <div className="flex gap-2 pt-2">
+            <Button onClick={onSubmit} disabled={!canSubmit || loading}>
+              {loading ? 'Scoring…' : error ? 'Retry' : 'Submit'}
+            </Button>
+            <Button variant="ghost" onClick={onNext} disabled={loading}>
+              <RotateCcw className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
+              New challenge
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {feedback && (
+        <div className="mt-8" style={{ animation: 'revealUp 0.4s ease both' }}>
+          <div className="flex flex-col items-center text-center">
+            <div
+              className="flex h-20 w-20 items-center justify-center rounded-full border-4 font-display text-xl font-bold"
+              style={{
+                borderColor: '#8a2a1266',
+                color: '#8a2a12',
+                background: 'radial-gradient(circle, #f3ddb055, transparent 70%)',
+                animation: 'stampDown 0.5s ease both',
+              }}
+            >
+              {feedback.score}/5
+            </div>
+            <p className="mt-2.5 font-display text-sm uppercase tracking-[0.15em] text-forge-char" style={{ transform: 'rotate(-8deg)' }}>
+              {feedback.score >= 4 ? 'Sharp reading' : feedback.score >= 3 ? 'Solid attempt' : 'Worth another pass'}
+            </p>
+          </div>
+
+          <Card className="mt-5 p-5">
+            {feedback.trueConclusion && (
+              <p className="mb-1 text-xs text-parchment-600">
+                <span className="font-medium text-parchment-700">Actual conclusion:</span> {feedback.trueConclusion}
+              </p>
+            )}
+            {feedback.truePremises && (
+              <p className="mb-3 text-xs text-parchment-600">
+                <span className="font-medium text-parchment-700">Actual premises:</span> {feedback.truePremises.join(' · ')}
+              </p>
+            )}
+            {feedback.actualFlaw && (
+              <p className="mb-3 text-xs text-parchment-600">
+                <span className="font-medium text-parchment-700">The actual flaw:</span> {feedback.actualFlaw}
+              </p>
+            )}
+            {feedback.modelPick && (
+              <p className="mb-3 text-xs text-parchment-600">
+                <span className="font-medium text-parchment-700">Genuinely weakest:</span>{' '}
+                {challenge.premises?.find((p) => p.id === feedback.modelPick)?.text ?? feedback.modelPick}
+              </p>
+            )}
+            <p className="text-sm leading-relaxed text-parchment-800">{feedback.feedback}</p>
+            <Button className="mt-4" onClick={onNext}>
+              Next challenge
+            </Button>
+          </Card>
+        </div>
+      )}
+    </div>
   )
 }
