@@ -3,9 +3,10 @@ import { clsx } from 'clsx'
 
 const TABS = [
   { to: '/app/reflect', label: 'Reflect' },
-  { to: '/app/journal', label: 'Journal' },
+  { to: '/app/debate', label: 'Debate' },
   { to: '/app/archive', label: 'Library' },
-  { to: '/app/profile', label: 'Profile' },
+  { to: '/app/mythinking', label: 'My Thinking' },
+  { to: '/app/train', label: 'Training' },
 ] as const
 
 export function TabBar() {
@@ -18,7 +19,7 @@ export function TabBar() {
               to={tab.to}
               className={({ isActive }) =>
                 clsx(
-                  'flex flex-col items-center gap-1 py-3 font-display text-xs transition-colors',
+                  'flex flex-col items-center gap-1 px-0.5 py-3 text-center font-display text-[11px] leading-tight transition-colors sm:text-xs',
                   isActive ? 'text-forge-ember' : 'text-parchment-500 hover:text-parchment-700',
                 )
               }
@@ -32,7 +33,7 @@ export function TabBar() {
                     )}
                     style={{ background: 'linear-gradient(135deg, #e8a33d, #8a2a12)' }}
                   />
-                  {tab.label}
+                  <span className="whitespace-nowrap">{tab.label}</span>
                 </>
               )}
             </NavLink>

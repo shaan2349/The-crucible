@@ -71,12 +71,12 @@ function summarizeConversation(debate: DebateState): string {
 
 // Council was previously a standalone tab, including an empty "No
 // discussion in progress" state when nothing was active — confusing,
-// since Council isn't really a destination, it's what Reflect becomes
-// once a question is submitted. The route stays (for old links/direct
-// navigation) but only ever redirects: Reflect itself now renders the
+// since Council isn't really a destination, it's what Debate becomes
+// once a claim is submitted. The route stays (for old links/direct
+// navigation) but only ever redirects: Debate itself now renders the
 // live conversation in place whenever one exists.
 export function Council() {
-  return <Navigate to="/app/reflect" replace />
+  return <Navigate to="/app/debate" replace />
 }
 
 /** Picks the right ambient backdrop for wherever a live discussion is
@@ -264,12 +264,12 @@ export function CouncilView({
       : debate
     saveDebates([...history, toSave])
     onExit()
-    navigate('/app/journal')
+    navigate('/app/mythinking')
   }
 
-  function exitToReflect() {
+  function exitToDebate() {
     onExit()
-    navigate('/app/reflect')
+    navigate('/app/debate')
   }
 
   function addThinker(id: string) {
@@ -296,7 +296,7 @@ export function CouncilView({
 
   return (
     <div className="reading-container relative z-[1] px-6 pb-10 pt-8">
-      <button type="button" onClick={exitToReflect} className="mb-4 text-xs text-parchment-500 hover:text-forge-ember">
+      <button type="button" onClick={exitToDebate} className="mb-4 text-xs text-parchment-500 hover:text-forge-ember">
         ← New position
       </button>
 

@@ -165,7 +165,7 @@ export function History() {
 
   return (
     <>
-      <RotatingBackdrop screen="journal" />
+      <RotatingBackdrop screen="mythinking" />
       <div className="standard-container relative z-[1] px-6 pb-10 pt-8">
         {openEntry ? (
           <JournalEntry

@@ -2,7 +2,8 @@ export type BackgroundScreenId =
   | 'landing'
   | 'onboarding'
   | 'reflect'
-  | 'journal'
+  | 'debate'
+  | 'mythinking'
   | 'library'
   | 'profile'
   | 'train'
@@ -26,8 +27,11 @@ interface BackgroundStrategy {
 export const BACKGROUND_REGISTRY: Record<BackgroundScreenId, BackgroundStrategy> = {
   landing: { pool: ['descartes', 'sartre', 'hayek', 'thomson'], dimmed: false },
   onboarding: { pool: ['plato', 'epicurus', 'rawls', 'foucault'], dimmed: false },
-  reflect: { pool: ['socrates', 'marcus', 'nietzsche', 'arendt', 'camus', 'beauvoir', 'confucius', 'buddha'], dimmed: false },
-  journal: { pool: ['kierkegaard', 'hume', 'rousseau', 'wollstonecraft', 'mill', 'sen'], dimmed: true },
+  reflect: { pool: ['socrates', 'marcus', 'arendt', 'camus', 'beauvoir', 'confucius', 'buddha', 'laozi'], dimmed: false },
+  // Distinct from reflect's more contemplative pool — argumentative/
+  // rigorous thinkers, fitting a screen about testing claims.
+  debate: { pool: ['nietzsche', 'kant', 'mill', 'hegel', 'marx', 'wittgenstein', 'rousseau'], dimmed: false },
+  mythinking: { pool: ['kierkegaard', 'hume', 'wollstonecraft', 'sen'], dimmed: true },
   library: { pool: ['aristotle', 'aquinas', 'hegel', 'kant'], dimmed: true },
   profile: { pool: ['wittgenstein', 'popper', 'berlin', 'nussbaum'], dimmed: true },
   train: { pool: ['locke', 'hobbes', 'machiavelli', 'burke'], dimmed: true },

@@ -3,6 +3,7 @@ import { Landing } from './screens/Landing'
 import { Onboarding } from './screens/Onboarding'
 import { AppShell } from './components/AppShell'
 import { Reflect } from './screens/Reflect'
+import { Debate } from './screens/Debate'
 import { Council } from './screens/Council'
 import { Library } from './screens/Library'
 import { Train } from './screens/Train'
@@ -25,10 +26,14 @@ function App() {
             <Route path="/app" element={<AppShell />}>
               <Route index element={<Navigate to="reflect" replace />} />
               <Route path="reflect" element={<Reflect />} />
+              <Route path="debate" element={<Debate />} />
               <Route path="council" element={<Council />} />
               <Route path="archive" element={<Library />} />
               <Route path="train" element={<Train />} />
-              <Route path="journal" element={<History />} />
+              <Route path="mythinking" element={<History />} />
+              {/* Old bookmarks/back-forward history to the pre-restructure
+                  Journal route still land somewhere real. */}
+              <Route path="journal" element={<Navigate to="/app/mythinking" replace />} />
               <Route path="profile" element={<Profile />} />
               <Route path="settings" element={<Settings />} />
             </Route>

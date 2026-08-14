@@ -291,7 +291,9 @@ function PhilosopherDetail({
 
   function startConversation(question?: string) {
     const prefill = question ?? (bio && !isError ? bio.conversationStarters?.[0] : undefined)
-    navigate('/app/reflect', prefill ? { state: { prefill } } : undefined)
+    // Conversation starters are phrased as claims/positions, not personal
+    // dilemmas — that's Debate's territory (Reflect is life-guidance).
+    navigate('/app/debate', prefill ? { state: { prefill } } : undefined)
   }
 
   function exploreRelated() {
