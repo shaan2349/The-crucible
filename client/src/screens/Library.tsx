@@ -126,13 +126,32 @@ export function Library() {
               <button
                 type="button"
                 onClick={() => setCompareOpen(true)}
-                aria-label="Compare two thinkers"
-                className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-parchment-600 transition-colors hover:text-forge-ember"
+                className="mt-1 flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-parchment-700 transition-colors hover:text-forge-ember"
                 style={{ boxShadow: 'var(--shadow-card)', background: 'var(--color-parchment-50)' }}
               >
                 <Scale className="h-4 w-4" />
+                Compare
               </button>
             </header>
+
+            {!query && (
+              <button
+                type="button"
+                onClick={() => setCompareOpen(true)}
+                className="mb-6 flex w-full items-center gap-4 rounded-2xl p-4 text-left transition-transform duration-200 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forge-ember/50"
+                style={{ boxShadow: 'var(--shadow-card)', background: 'linear-gradient(155deg, var(--color-side-gold-soft) 0%, var(--color-parchment-50) 70%)' }}
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-forge-ember" style={{ background: 'var(--color-parchment-50)' }}>
+                  <Scale className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-display text-base font-medium text-parchment-900">Compare two minds</span>
+                  <span className="block text-sm text-parchment-600">
+                    Pick any two thinkers and a question — see exactly where they'd disagree.
+                  </span>
+                </span>
+              </button>
+            )}
 
             <div className="relative">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-parchment-400" />
