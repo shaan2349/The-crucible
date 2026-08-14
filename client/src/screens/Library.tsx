@@ -11,6 +11,7 @@ import { PortraitFrame } from '../components/PortraitFrame'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { fetchBio, compareThinkers, searchThinkers, type BioResponse, type CompareResponse, type SearchResponse } from '../lib/api'
 import { loadBios, saveBios } from '../lib/storage'
+import { usePreferencesContext } from '../context/PreferencesContext'
 
 type BioState = BioResponse | { error: string } | undefined
 type BrowseMode = 'thinkers' | 'schools'
@@ -33,6 +34,7 @@ export function Library() {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
   const [aiQueryFor, setAiQueryFor] = useState('')
+  const { preferences } = usePreferencesContext()
 
   useEffect(() => {
     setBios(loadBios())
@@ -49,7 +51,7 @@ export function Library() {
   async function loadBio(id: string) {
     setBios((b) => ({ ...b, [id]: undefined }))
     try {
-      const bio = await fetchBio(id)
+      const bio = await fetchBio(id, { language: preferences.language, depth: preferences.depth })
       setBios((b) => {
         const next = { ...b, [id]: bio }
         saveBios(next as Record<string, BioResponse>)

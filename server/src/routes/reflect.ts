@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { structured } from '../claude.js'
 import { PHILOSOPHERS, philosopherById, philosopherVoice } from '../data/philosophers.js'
+import { styleBlock } from '../preferences.js'
 
 export const reflectRouter = Router()
 
@@ -59,6 +60,7 @@ reflectRouter.post('/begin', async (req, res) => {
   const situation = typeof req.body?.situation === 'string' ? req.body.situation.trim() : ''
   if (!situation) return badRequest(res, 'situation is required')
   if (situation.length > 2000) return badRequest(res, 'situation is too long')
+  const { language, depth } = req.body ?? {}
 
   const list = PHILOSOPHERS.map((p) => `${p.id}: ${p.name} — ${p.framework}`).join('\n')
 
@@ -68,7 +70,7 @@ reflectRouter.post('/begin', async (req, res) => {
 
 Choose exactly 2-3 philosophers from the list whose frameworks would lead them to notice DIFFERENT things about this specific situation — not philosophers who'd agree with each other, but who'd genuinely point the user's attention somewhere different (one toward character/habit, one toward authenticity/choice, one toward what's actually controllable, etc. — whatever fits THIS situation, don't force a formula).
 
-For each chosen philosopher, write a short opening take (aim for 15-30 words) that names the specific angle they'd bring to THIS situation — not a debate position, a way of SEEING it. Stay philosophically authentic to their actual framework; do not write generic life-coach language. Example register: "Question whether the safe option reflects genuine choice or fear of choosing yourself" (Kierkegaard) — specific, philosophically grounded, not therapeutic filler.`,
+For each chosen philosopher, write a short opening take (aim for 15-30 words) that names the specific angle they'd bring to THIS situation — not a debate position, a way of SEEING it. Stay philosophically authentic to their actual framework; do not write generic life-coach language. Example register: "Question whether the safe option reflects genuine choice or fear of choosing yourself" (Kierkegaard) — specific, philosophically grounded, not therapeutic filler.${styleBlock(language, depth)}`,
       prompt: `The user's situation: "${situation}"\n\nPhilosophers:\n${list}`,
       toolName: 'begin_reflection',
       toolDescription: 'Records the chosen thinkers and each one\'s opening take on the situation.',
@@ -117,7 +119,7 @@ interface RespondResult {
 }
 
 reflectRouter.post('/respond', async (req, res) => {
-  const { situation, openings, rounds, philosopherId, userMessage } = req.body ?? {}
+  const { situation, openings, rounds, philosopherId, userMessage, language, depth } = req.body ?? {}
   if (typeof situation !== 'string' || !situation.trim()) return badRequest(res, 'situation is required')
   if (!openings || typeof openings !== 'object') return badRequest(res, 'openings is required')
   if (!validRounds(rounds)) return badRequest(res, 'rounds is required')
@@ -142,7 +144,7 @@ Rules:
 - Speak in first person, in your own register and era.
 - Reference what the user actually said, not a generic version of their situation.
 - Do not moralize or lecture. Do not conclude with a summary platitude.
-- Also write a spokenText version of the same guidance — shorter sentences, contractions, natural discourse markers, the way you'd actually say it out loud, not read a formal paragraph.`,
+- Also write a spokenText version of the same guidance — shorter sentences, contractions, natural discourse markers, the way you'd actually say it out loud, not read a formal paragraph.${styleBlock(language, depth)}`,
       prompt: `Situation: "${situation}"\n\n${formatHistory(openings, rounds)}${
         userMessage ? `\n\nUser just said: "${userMessage}"` : ''
       }`,
@@ -175,7 +177,7 @@ interface EndingResult {
 }
 
 reflectRouter.post('/ending', async (req, res) => {
-  const { situation, openings, rounds } = req.body ?? {}
+  const { situation, openings, rounds, language, depth } = req.body ?? {}
   if (typeof situation !== 'string' || !situation.trim()) return badRequest(res, 'situation is required')
   if (!openings || typeof openings !== 'object') return badRequest(res, 'openings is required')
   if (!validRounds(rounds)) return badRequest(res, 'rounds is required')
@@ -184,7 +186,7 @@ reflectRouter.post('/ending', async (req, res) => {
 
   try {
     const result = await structured<EndingResult>({
-      system: `Close a Reflect session honestly — this is NOT a verdict or a winner, it's a summary of real ground covered. Never invent anything the user didn't actually say or that the philosophers didn't actually say. If the conversation was brief, keep every section short and modest rather than padding it out.`,
+      system: `Close a Reflect session honestly — this is NOT a verdict or a winner, it's a summary of real ground covered. Never invent anything the user didn't actually say or that the philosophers didn't actually say. If the conversation was brief, keep every section short and modest rather than padding it out.${styleBlock(language, depth)}`,
       prompt: `Situation: "${situation}"\n\n${formatHistory(openings, rounds)}\n\nWrite:\n1. tension: the main tension in the situation, one or two sentences, grounded in what was actually discussed.\n2. whatMatters: what seems to matter most to the user, based ONLY on what they actually said — if they said very little, keep this modest and honest rather than inventing depth.\n3. perspectives: a very short (one sentence each) summary of each philosopher's strongest point from this conversation.\n4. question: one genuinely open question worth carrying forward — not a rhetorical wrap-up, an actual unresolved question.`,
       toolName: 'record_reflection_ending',
       toolDescription: 'Records the closing summary of the reflection.',

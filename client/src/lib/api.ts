@@ -1,4 +1,14 @@
 import type { CouncilOutcome, ParticipationLevel } from '../types'
+import type { Language, Depth } from './storage'
+
+/** Sent on every request whose response is prose a user reads — Debate's
+ * attack/verdict, Reflect's begin/respond/ending, Library's bio — so the
+ * Settings preference actually changes what comes back, not just a label
+ * nobody's request carries. */
+export interface StyleParams {
+  language?: Language
+  depth?: Depth
+}
 
 // In local dev this stays empty and Vite's dev-server proxy (vite.config.ts)
 // forwards /api to the backend. When client and server are deployed as
@@ -61,7 +71,7 @@ export function attack(params: {
   philosopherId: string
   priorRounds: { round: number; userResponse: string | null }[]
   sameRoundAttacks?: { philosopherId: string; text: string }[]
-}) {
+} & StyleParams) {
   return postJSON<AttackResponse>('/claude/debate/attack', params)
 }
 
@@ -91,7 +101,7 @@ export function fetchVerdict(params: {
   premises: { id: string; text: string; status: string }[]
   rounds: { round: number; attacks: { philosopherId: string; text: string }[]; userResponse: string | null }[]
   participationLevel: ParticipationLevel
-}) {
+} & StyleParams) {
   return postJSON<VerdictResponse>('/claude/debate/verdict', params)
 }
 
@@ -101,8 +111,8 @@ export interface BeginReflectionResponse {
   philosopherIds: string[]
   openings: { philosopherId: string; take: string }[]
 }
-export function beginReflection(situation: string) {
-  return postJSON<BeginReflectionResponse>('/claude/reflect/begin', { situation })
+export function beginReflection(situation: string, style?: StyleParams) {
+  return postJSON<BeginReflectionResponse>('/claude/reflect/begin', { situation, ...style })
 }
 
 export interface RespondReflectionResponse {
@@ -115,7 +125,7 @@ export function respondReflection(params: {
   rounds: { round: number; turns: { philosopherId: string; text: string }[]; userMessage: string | null }[]
   philosopherId: string
   userMessage?: string
-}) {
+} & StyleParams) {
   return postJSON<RespondReflectionResponse>('/claude/reflect/respond', params)
 }
 
@@ -129,7 +139,7 @@ export function endReflection(params: {
   situation: string
   openings: Record<string, string>
   rounds: { round: number; turns: { philosopherId: string; text: string }[]; userMessage: string | null }[]
-}) {
+} & StyleParams) {
   return postJSON<EndReflectionResponse>('/claude/reflect/ending', params)
 }
 
@@ -143,8 +153,8 @@ export interface BioResponse {
   modernTakes: { topic: string; take: string }[]
   conversationStarters: string[]
 }
-export function fetchBio(philosopherId: string) {
-  return postJSON<BioResponse>('/claude/library/bio', { philosopherId })
+export function fetchBio(philosopherId: string, style?: StyleParams) {
+  return postJSON<BioResponse>('/claude/library/bio', { philosopherId, ...style })
 }
 
 export interface CompareResponse {

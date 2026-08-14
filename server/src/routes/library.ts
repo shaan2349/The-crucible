@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { structured } from '../claude.js'
 import { PHILOSOPHERS, philosopherById } from '../data/philosophers.js'
+import { styleBlock } from '../preferences.js'
 
 export const libraryRouter = Router()
 
@@ -23,12 +24,14 @@ libraryRouter.post('/bio', async (req, res) => {
     return
   }
 
+  const { language, depth } = req.body ?? {}
+
   try {
     const result = await structured<BioResult>({
       system:
         'You write engaging, accurate, editorial-quality profiles of philosophers for a curious student — ' +
         'the register of a well-written magazine profile, not a dry encyclopedia entry or a stitched-together ' +
-        'list of facts.',
+        `list of facts.${styleBlock(language, depth)}`,
       prompt: `Philosopher: ${philosopher.name} (${philosopher.era}). Framework: ${philosopher.framework}.`,
       toolName: 'record_bio',
       toolDescription: "Records the philosopher's editorial profile.",

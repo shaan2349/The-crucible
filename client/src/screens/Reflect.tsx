@@ -10,6 +10,7 @@ import { RotatingBackdrop } from '../components/RotatingBackdrop'
 import { PHILOSOPHER_TAGS, SIDE_ACCENT, philosopherById } from '../data/philosophers'
 import { loadReflectDraft, saveReflectDraft, clearReflectDraft, loadReflectSessions, saveReflectSessions } from '../lib/storage'
 import { useReflectContext } from '../context/ReflectContext'
+import { usePreferencesContext } from '../context/PreferencesContext'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import { preloadPortrait } from '../hooks/usePortrait'
@@ -63,6 +64,7 @@ const CAST_PORTRAIT_SIZE = 400
 
 export function Reflect() {
   const { session, setSession } = useReflectContext()
+  const { preferences } = usePreferencesContext()
   const navigate = useNavigate()
 
   const [situation, setSituation] = useState('')
@@ -121,7 +123,10 @@ export function Reflect() {
     clearReflectDraft()
     try {
       const minWait = new Promise<void>((resolve) => setTimeout(resolve, 650))
-      const [result] = await Promise.all([api.beginReflection(trimmed), minWait])
+      const [result] = await Promise.all([
+        api.beginReflection(trimmed, { language: preferences.language, depth: preferences.depth }),
+        minWait,
+      ])
       await Promise.all(result.philosopherIds.map((id) => preloadPortrait(id, CAST_PORTRAIT_SIZE)))
       setAssembled(result.philosopherIds)
       await new Promise<void>((resolve) => setTimeout(resolve, 450))
@@ -408,6 +413,7 @@ function ReflectView({
   const [thinkingId, setThinkingId] = useState<string | null>(null)
   const [reflectionText, setReflectionText] = useState('')
   const navigate = useNavigate()
+  const { preferences } = usePreferencesContext()
   const tts = useTextToSpeech()
   const stt = useSpeechToText()
   const [micField, setMicField] = useState<'message' | 'reflection' | null>(null)
@@ -449,6 +455,8 @@ function ReflectView({
         situation: session.situation,
         openings: session.openings,
         rounds: roundsForApi(),
+        language: preferences.language,
+        depth: preferences.depth,
       })
       updateSession((s) => ({
         ...s,
@@ -485,6 +493,8 @@ function ReflectView({
           rounds: priorRounds,
           philosopherId,
           userMessage: trimmed,
+          language: preferences.language,
+          depth: preferences.depth,
         })
         turns.push({ philosopherId, text: result.text, spokenText: result.spokenText })
       }
@@ -613,7 +623,7 @@ function ReflectView({
                       <p className="font-display text-xs font-semibold uppercase tracking-wide" style={{ color: accent }}>
                         {ph.name}
                       </p>
-                      {tts.supported && (
+                      {tts.supported && preferences.voiceEnabled && (
                         <button
                           type="button"
                           onClick={() => tts.speak(speechId, t.spokenText || t.text, t.philosopherId)}

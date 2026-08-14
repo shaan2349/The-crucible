@@ -106,6 +106,65 @@ export function Settings() {
         </Card>
 
         <Card className="mt-3 p-4">
+          <p className="mb-3 font-display text-[13px] italic text-forge-ember">Thinking style</p>
+          <p className="mb-1.5 text-xs text-parchment-500">
+            Applies across Reflect, Debate, and the Library — every philosopher, not one setting per screen.
+          </p>
+
+          <p className="mb-1.5 mt-3 text-xs font-medium uppercase tracking-wide text-parchment-500">Language</p>
+          <div className="mb-4 flex gap-1 rounded-lg border border-parchment-300/70 bg-parchment-200 p-1">
+            {(['simple', 'standard', 'scholarly'] as const).map((language) => (
+              <button
+                key={language}
+                type="button"
+                onClick={() => updatePreferences({ language })}
+                className={`flex-1 rounded-md px-3 py-1.5 text-xs capitalize transition-colors ${
+                  preferences.language === language ? 'bg-forge-ember font-semibold text-parchment-50' : 'text-parchment-700'
+                }`}
+              >
+                {language}
+              </button>
+            ))}
+          </div>
+
+          <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">Depth</p>
+          <div className="flex gap-1 rounded-lg border border-parchment-300/70 bg-parchment-200 p-1">
+            {(['quick', 'normal', 'deep'] as const).map((depth) => (
+              <button
+                key={depth}
+                type="button"
+                onClick={() => updatePreferences({ depth })}
+                className={`flex-1 rounded-md px-3 py-1.5 text-xs capitalize transition-colors ${
+                  preferences.depth === depth ? 'bg-forge-ember font-semibold text-parchment-50' : 'text-parchment-700'
+                }`}
+              >
+                {depth}
+              </button>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="mt-3 p-4">
+          <p className="mb-3 font-display text-[13px] italic text-forge-ember">Voice</p>
+          <button
+            type="button"
+            onClick={() => updatePreferences({ voiceEnabled: !preferences.voiceEnabled })}
+            className="flex w-full items-center justify-between"
+          >
+            <span className="text-sm text-parchment-800">Spoken responses</span>
+            <span
+              className="relative h-6 w-11 rounded-full transition-colors"
+              style={{ background: preferences.voiceEnabled ? 'var(--color-forge-ember)' : 'var(--color-parchment-300)' }}
+            >
+              <span
+                className="absolute top-0.5 h-5 w-5 rounded-full bg-parchment-50 transition-transform"
+                style={{ transform: preferences.voiceEnabled ? 'translateX(22px)' : 'translateX(2px)' }}
+              />
+            </span>
+          </button>
+        </Card>
+
+        <Card className="mt-3 p-4">
           <p className="mb-3 font-display text-[13px] italic text-forge-ember">Accessibility</p>
           <button
             type="button"

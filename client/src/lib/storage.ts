@@ -17,11 +17,24 @@ const KEYS = {
   interests: 'crucible:interests',
 } as const
 
+export type Language = 'simple' | 'standard' | 'scholarly'
+export type Depth = 'quick' | 'normal' | 'deep'
+
 export interface Preferences {
   theme: 'light' | 'dark' | 'system'
   fontSize: 'normal' | 'large'
   readingWidth: 'comfortable' | 'wide'
   reduceMotion: boolean
+  /** How philosophers phrase their responses, across Debate, Reflect,
+   * and Library — actually sent to the AI on every relevant request, not
+   * just a cosmetic label. */
+  language: Language
+  /** How much a response elaborates — also sent to the AI, not cosmetic. */
+  depth: Depth
+  /** Independent of whether the browser supports speech synthesis — this
+   * is the user's own choice to hide spoken-response controls even when
+   * the browser could technically speak. */
+  voiceEnabled: boolean
 }
 
 const DEFAULT_PREFERENCES: Preferences = {
@@ -29,6 +42,9 @@ const DEFAULT_PREFERENCES: Preferences = {
   fontSize: 'normal',
   readingWidth: 'comfortable',
   reduceMotion: false,
+  language: 'standard',
+  depth: 'normal',
+  voiceEnabled: true,
 }
 
 function load<T>(key: string, fallback: T): T {

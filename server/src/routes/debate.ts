@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { structured } from '../claude.js'
 import { PHILOSOPHERS, philosopherById, philosopherVoice } from '../data/philosophers.js'
+import { styleBlock } from '../preferences.js'
 
 export const debateRouter = Router()
 
@@ -132,7 +133,7 @@ interface AttackResult {
 }
 
 debateRouter.post('/attack', async (req, res) => {
-  const { claim, conclusion, premises, philosopherId, priorRounds, sameRoundAttacks } = req.body ?? {}
+  const { claim, conclusion, premises, philosopherId, priorRounds, sameRoundAttacks, language, depth } = req.body ?? {}
   if (typeof claim !== 'string' || !claim.trim()) return badRequest(res, 'claim is required')
   if (typeof conclusion !== 'string' || !conclusion.trim()) return badRequest(res, 'conclusion is required')
   if (!validPremises(premises)) return badRequest(res, 'premises is required')
@@ -174,7 +175,7 @@ Rules for your response:
 - Target exactly one premise, and be precise about which exact word or claim in it is the problem.
 - Speak in first person, in a register that fits your era and temperament (e.g. Nietzsche is provocative and cutting; Kant is precise and formal; Confucius is measured).
 - Match your depth to how the user has actually been engaging (see their prior responses below): if their answers have been short and simple, ask something equally direct and concrete rather than escalating complexity on them; if they've engaged substantively, you may go deeper. If their most recent response was "I don't know" or similar uncertainty, treat that as a real, meaningful answer worth building on — help them locate WHY it's unclear (missing evidence vs. an unclear principle), don't press harder as if they dodged the question.
-${sameRoundText ? "- Another thinker has already spoken this round (see below). This is a live discussion between you, not parallel monologues — agree with a caveat, sharpen their point, or directly and specifically contest what THEY said, not just the user's original premise." : ''}`,
+${sameRoundText ? "- Another thinker has already spoken this round (see below). This is a live discussion between you, not parallel monologues — agree with a caveat, sharpen their point, or directly and specifically contest what THEY said, not just the user's original premise." : ''}${styleBlock(language, depth)}`,
       prompt: `User's original position: "${claim}"\nConclusion: ${conclusion}\nPremises:\n${premises
         .map((pr) => `${pr.id}: ${pr.text} [current status: ${pr.status ?? 'standing'}]`)
         .join('\n')}\n\nPrior rounds:\n${priorText || '(this is round 1)'}${
@@ -295,7 +296,7 @@ const PARTICIPATION_INSTRUCTIONS: Record<ParticipationLevel, string> = {
 }
 
 debateRouter.post('/verdict', async (req, res) => {
-  const { claim, conclusion, premises, rounds, participationLevel } = req.body ?? {}
+  const { claim, conclusion, premises, rounds, participationLevel, language, depth } = req.body ?? {}
   if (typeof claim !== 'string' || !claim.trim()) return badRequest(res, 'claim is required')
   if (typeof conclusion !== 'string' || !conclusion.trim()) return badRequest(res, 'conclusion is required')
   if (!validPremises(premises)) return badRequest(res, 'premises is required')
@@ -313,8 +314,7 @@ debateRouter.post('/verdict', async (req, res) => {
 
   try {
     const result = await structured<VerdictResult>({
-      system:
-        'Write a short, honest verdict for this philosophical debate. Honesty about what actually happened in the conversation matters more than sounding dramatic or conclusive.',
+      system: `Write a short, honest verdict for this philosophical debate. Honesty about what actually happened in the conversation matters more than sounding dramatic or conclusive.${styleBlock(language, depth)}`,
       prompt: `Claim: "${claim}"\nConclusion: ${conclusion}\nFinal premise states:\n${premises
         .map((pr) => `${pr.id}: ${pr.text} [${pr.status ?? 'standing'}]`)
         .join('\n')}\n\nParticipation level: ${participationLevel}\n${PARTICIPATION_INSTRUCTIONS[participationLevel as ParticipationLevel]}\n\nFull transcript:\n${transcript}`,

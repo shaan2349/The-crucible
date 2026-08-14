@@ -16,6 +16,7 @@ import { loadDebates, saveDebates } from '../lib/storage'
 import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import { useCastReadiness } from '../hooks/usePortrait'
+import { usePreferencesContext } from '../context/PreferencesContext'
 import type { Debate as DebateState, ParticipationLevel, Round } from '../types'
 
 const MAX_ROUNDS = 3
@@ -107,6 +108,7 @@ export function CouncilView({
   const [thinkingId, setThinkingId] = useState<string | null>(null)
   const [reflectionText, setReflectionText] = useState('')
   const navigate = useNavigate()
+  const { preferences } = usePreferencesContext()
   const tts = useTextToSpeech()
   const stt = useSpeechToText()
   const [micField, setMicField] = useState<'response' | 'reflection' | null>(null)
@@ -171,6 +173,8 @@ export function CouncilView({
           philosopherId,
           priorRounds,
           sameRoundAttacks: attacks.map((a) => ({ philosopherId: a.philosopherId, text: a.text })),
+          language: preferences.language,
+          depth: preferences.depth,
         })
         attacks.push({
           philosopherId,
@@ -210,6 +214,8 @@ export function CouncilView({
         premises: debate.premises,
         rounds: debate.rounds,
         participationLevel: level,
+        language: preferences.language,
+        depth: preferences.depth,
       })
       updateDebate((d) => ({ ...d, verdict, participationLevel: level, phase: 'verdict' }))
     }
@@ -375,7 +381,7 @@ export function CouncilView({
                       <p className="font-display text-xs font-semibold uppercase tracking-wide" style={{ color: accent }}>
                         {ph.name}
                       </p>
-                      {tts.supported && (
+                      {tts.supported && preferences.voiceEnabled && (
                         <button
                           type="button"
                           onClick={() => tts.speak(speechId, a.spokenText || a.text, a.philosopherId)}
