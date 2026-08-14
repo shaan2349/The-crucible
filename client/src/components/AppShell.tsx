@@ -41,8 +41,8 @@ export function AppShell() {
       </header>
       {/* No shared width constraint here — each screen picks its own
           container tier (reading/standard/wide, see index.css) since
-          Reflect's conversation, Journal/Profile's pages, and Library's
-          grid all want different desktop measures. */}
+          Reflect/Debate's conversations, My Thinking/Profile's pages, and
+          Library's grid all want different desktop measures. */}
       <div className="relative z-[1] flex-1 overflow-y-auto">
         <Outlet />
       </div>

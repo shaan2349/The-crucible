@@ -643,7 +643,7 @@ function EarlyEndOutcome({
       <div className="mt-6 flex flex-wrap gap-2">
         <Button onClick={onResume}>Continue the conversation</Button>
         <Button variant="ghost" onClick={onSave}>
-          Save to Journal
+          Save to My Thinking
         </Button>
       </div>
     </div>

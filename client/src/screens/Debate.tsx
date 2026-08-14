@@ -191,8 +191,8 @@ export function Debate() {
 
   // Council is not a separate page — it's this same screen showing a
   // different phase of the same journey. Whether the user just submitted
-  // a question here, or navigated back to Reflect mid-conversation from
-  // Journal or Library, a live debate always renders in place, right here.
+  // a question here, or navigated back to Debate mid-conversation from
+  // My Thinking or Library, a live debate always renders in place, right here.
   if (debate) {
     return (
       <>
