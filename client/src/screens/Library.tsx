@@ -116,24 +116,13 @@ export function Library() {
           <CompareView onBack={() => setCompareOpen(false)} />
         ) : (
           <>
-            <header className="mb-6 flex items-start justify-between gap-3">
-              <div>
-                <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">
-                  The Library
-                </p>
-                <h1 className="font-display text-2xl font-medium text-parchment-900">
-                  {PHILOSOPHERS.length} thinkers, centuries of arguments
-                </h1>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCompareOpen(true)}
-                className="mt-1 flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-parchment-700 transition-colors hover:text-forge-ember"
-                style={{ boxShadow: 'var(--shadow-card)', background: 'var(--color-parchment-50)' }}
-              >
-                <Scale className="h-4 w-4" />
-                Compare
-              </button>
+            <header className="mb-6">
+              <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">
+                The Library
+              </p>
+              <h1 className="font-display text-2xl font-medium text-parchment-900">
+                {PHILOSOPHERS.length} thinkers, centuries of arguments
+              </h1>
             </header>
 
             {!query && (
