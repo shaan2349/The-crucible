@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, BookOpen, Search } from 'lucide-react'
-import { philosopherById } from '../data/philosophers'
+import { philosopherById, PHILOSOPHER_CATEGORIES } from '../data/philosophers'
 import { Card } from '../components/Card'
 import { EmptyState } from '../components/EmptyState'
 import { PortraitFrame } from '../components/PortraitFrame'
@@ -171,13 +171,92 @@ function relatedEntries(entry: Entry, all: Entry[]): Entry[] {
     .slice(0, 3)
 }
 
-type Tab = 'now' | 'timeline' | 'threads' | 'changes' | 'saved'
+/* -------------------------------- Profile -------------------------------- */
+// Previously a separate screen reached only via a small avatar-menu icon
+// ("who you're becoming, philosophically") — moved here because it's the
+// same underlying question My Thinking already asks (what patterns show
+// up across your sessions), just phrased as a standing summary instead
+// of a scrolling history. Same anti-fabrication rules as the rest of
+// this screen: every line traces to real entries, and there is no fake
+// precision ("you are 67% Stoic") anywhere in it — see philosophicalProfileInsights.
+
+interface ProfileInsight {
+  label: string
+  value: string
+}
+
+/** Only Debate produces a leanedFramework — Reflect has no verdict
+ * concept to derive one from, and a session where the user never
+ * actually responded doesn't count as evidence of anything they engaged
+ * with. */
+function tallyFrameworksFromEntries(entries: Entry[]): [string, number][] {
+  const counts: Record<string, number> = {}
+  entries.forEach((e) => {
+    if (e.kind !== 'debate') return
+    if (e.debate.participationLevel === 'none') return
+    if (e.debate.verdict?.leanedFramework) counts[e.debate.verdict.leanedFramework] = (counts[e.debate.verdict.leanedFramework] ?? 0) + 1
+  })
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])
+}
+
+/** Every line here is computed directly from stored entries — nothing is
+ * invented, and each insight is independently gated on having a real
+ * pattern behind it (not just one data point), so a thin history
+ * produces fewer lines rather than weak or misleading ones. Deliberately
+ * never outputs a percentage or a categorical label like "you are an
+ * existentialist" — only hedged, evidence-traceable phrasing. */
+function philosophicalProfileInsights(entries: Entry[]): ProfileInsight[] {
+  if (entries.length < 3) return []
+  const insights: ProfileInsight[] = []
+  const sorted = [...entries].sort((a, b) => entryId(a) - entryId(b))
+
+  const recentFrameworks = tallyFrameworksFromEntries(sorted.slice(-5))
+  const currentStyle = recentFrameworks.length > 0 && recentFrameworks[0][1] >= 2 ? recentFrameworks[0][0] : null
+  if (currentStyle) {
+    insights.push({ label: 'Your recent reasoning often overlaps with', value: currentStyle })
+  }
+
+  const allFrameworks = tallyFrameworksFromEntries(entries)
+  if (allFrameworks.length > 0 && allFrameworks[0][1] >= 2 && allFrameworks[0][0] !== currentStyle) {
+    insights.push({ label: 'Framework you keep returning to', value: allFrameworks[0][0] })
+  }
+
+  const philosopherCounts: Record<string, number> = {}
+  entries.forEach((e) => entryPhilosophers(e).forEach((id) => (philosopherCounts[id] = (philosopherCounts[id] ?? 0) + 1)))
+  const philosopherEntries = Object.entries(philosopherCounts).sort((a, b) => b[1] - a[1])
+  if (philosopherEntries.length > 0) {
+    const [topId, topCount] = philosopherEntries[0]
+    const runnerUp = philosopherEntries[1]?.[1] ?? 0
+    if (topCount >= 3 && topCount > runnerUp) {
+      const name = philosopherById(topId)?.name
+      if (name) insights.push({ label: 'Thinker whose reasoning you keep returning to', value: name })
+    }
+  }
+
+  if (allFrameworks.length >= 2 && allFrameworks[0][1] >= 2 && allFrameworks[1][1] >= 2) {
+    insights.push({ label: 'A tension you keep sitting with', value: `${allFrameworks[0][0]} vs ${allFrameworks[1][0]}` })
+  }
+
+  if (sorted.length >= 4) {
+    const mid = Math.floor(sorted.length / 2)
+    const earlyTop = tallyFrameworksFromEntries(sorted.slice(0, mid))[0]
+    const lateTop = tallyFrameworksFromEntries(sorted.slice(mid))[0]
+    if (earlyTop && lateTop && earlyTop[0] !== lateTop[0]) {
+      insights.push({ label: 'A shift over time', value: `From ${earlyTop[0]} toward ${lateTop[0]}` })
+    }
+  }
+
+  return insights
+}
+
+type Tab = 'now' | 'timeline' | 'threads' | 'changes' | 'profile' | 'saved'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'now', label: 'Now' },
   { id: 'timeline', label: 'Timeline' },
   { id: 'threads', label: 'Threads' },
   { id: 'changes', label: 'Belief changes' },
+  { id: 'profile', label: 'Profile' },
   { id: 'saved', label: 'Saved ideas' },
 ]
 
@@ -322,6 +401,10 @@ export function MyThinking() {
             )}
 
             {tab === 'changes' && <ChangesTab debates={debates} onOpen={(d) => setOpenKey(`debate:${d.id}`)} />}
+
+            {tab === 'profile' && (
+              <ProfileTab entries={entries} favourites={favourites} onOpenThinker={openThinker} />
+            )}
 
             {tab === 'saved' && (
               <SavedTab reflections={reflections} onOpen={(r) => setOpenKey(`reflect:${r.id}`)} />
@@ -666,6 +749,110 @@ function ChangesTab({ debates, onOpen }: { debates: Debate[]; onOpen: (d: Debate
           </Card>
         </button>
       ))}
+    </div>
+  )
+}
+
+/* --------------------------------- Profile --------------------------------- */
+
+function categoryNameOf(id: string): string | null {
+  const cat = PHILOSOPHER_CATEGORIES.find((c) => (c.ids as readonly string[]).includes(id))
+  return cat?.name ?? null
+}
+
+function ProfileTab({
+  entries,
+  favourites,
+  onOpenThinker,
+}: {
+  entries: Entry[]
+  favourites: string[]
+  onOpenThinker: (id: string) => void
+}) {
+  const insights = useMemo(() => philosophicalProfileInsights(entries), [entries])
+
+  const stats = useMemo(() => {
+    const debateCount = entries.filter((e) => e.kind === 'debate').length
+    const reflectCount = entries.filter((e) => e.kind === 'reflect').length
+    const thinkerIds = new Set<string>()
+    const schools = new Set<string>()
+    entries.forEach((e) =>
+      entryPhilosophers(e).forEach((id) => {
+        thinkerIds.add(id)
+        const school = categoryNameOf(id)
+        if (school) schools.add(school)
+      }),
+    )
+    return { debateCount, reflectCount, thinkers: thinkerIds.size, schools: schools.size }
+  }, [entries])
+
+  if (entries.length === 0) {
+    return (
+      <EmptyState
+        headline="Nothing to show yet"
+        body="Reflect on something or put a claim to the Council, and your profile starts building here."
+      />
+    )
+  }
+
+  return (
+    <div style={{ animation: 'revealUp 0.35s ease both' }}>
+      {insights.length > 0 ? (
+        <div className="space-y-4">
+          {insights.map((insight) => (
+            <div key={insight.label}>
+              <p className="text-xs font-medium uppercase tracking-wide text-parchment-500">{insight.label}</p>
+              <p className="mt-0.5 font-display text-xl leading-snug text-parchment-900">{insight.value}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="font-display text-lg leading-snug text-parchment-700">
+          Your profile develops as you question, debate, and reflect — a few more sessions and real patterns will show up here.
+        </p>
+      )}
+
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card className="p-4">
+          <p className="font-display text-xl font-medium text-parchment-800">{stats.debateCount}</p>
+          <p className="mt-0.5 text-xs text-parchment-500">Debates</p>
+        </Card>
+        <Card className="p-4">
+          <p className="font-display text-xl font-medium text-parchment-800">{stats.reflectCount}</p>
+          <p className="mt-0.5 text-xs text-parchment-500">Reflections</p>
+        </Card>
+        <Card className="p-4">
+          <p className="font-display text-xl font-medium text-parchment-800">{stats.thinkers}</p>
+          <p className="mt-0.5 text-xs text-parchment-500">Thinkers encountered</p>
+        </Card>
+        <Card className="p-4">
+          <p className="font-display text-xl font-medium text-parchment-800">{stats.schools}</p>
+          <p className="mt-0.5 text-xs text-parchment-500">Schools explored</p>
+        </Card>
+      </div>
+
+      {favourites.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-2.5 font-display text-[13px] italic text-forge-ember">Thinkers you return to</p>
+          <div className="flex flex-wrap gap-3">
+            {favourites.map((id) => {
+              const p = philosopherById(id)
+              if (!p) return null
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onOpenThinker(id)}
+                  className="w-16 rounded-lg text-center transition-transform duration-150 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
+                >
+                  <PortraitFrame id={id} size={200} className="w-full" />
+                  <p className="mt-1 truncate text-xs font-medium text-parchment-800">{p.name}</p>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
