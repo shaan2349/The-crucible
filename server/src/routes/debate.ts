@@ -1,7 +1,9 @@
 import { Router } from 'express'
 import { structured } from '../claude.js'
 import { PHILOSOPHERS, philosopherById, philosopherVoice } from '../data/philosophers.js'
+import { constitutionBlock } from '../data/constitutions.js'
 import { styleBlock } from '../preferences.js'
+import { AUTHENTICITY_RULES, NO_MANUFACTURED_DISAGREEMENT_RULE } from '../authenticity.js'
 
 export const debateRouter = Router()
 
@@ -43,8 +45,10 @@ debateRouter.post('/select-opponents', async (req, res) => {
     const result = await structured<SelectOpponentsResult>({
       system:
         "You select debate opponents for a philosophy app. Given the user's position, choose exactly 2 " +
-        'philosophers from the provided list whose frameworks most directly and interestingly conflict ' +
-        'with the position, ideally from different traditions.',
+        'philosophers from the provided list whose actual, documented frameworks genuinely and substantively ' +
+        'conflict with the position — not the two most famous names, and not a pairing that would require ' +
+        "inventing disagreement neither philosopher would really have. If a philosopher's real framework " +
+        "would mostly agree with the user's position, do not select them just to manufacture a fight.",
       prompt: `Position: "${claim}"\n\nPhilosophers:\n${list}`,
       toolName: 'select_opponents',
       toolDescription: 'Records the two chosen philosopher ids.',
@@ -175,7 +179,11 @@ Rules for your response:
 - Target exactly one premise, and be precise about which exact word or claim in it is the problem.
 - Speak in first person, in a register that fits your era and temperament (e.g. Nietzsche is provocative and cutting; Kant is precise and formal; Confucius is measured).
 - Match your depth to how the user has actually been engaging (see their prior responses below): if their answers have been short and simple, ask something equally direct and concrete rather than escalating complexity on them; if they've engaged substantively, you may go deeper. If their most recent response was "I don't know" or similar uncertainty, treat that as a real, meaningful answer worth building on — help them locate WHY it's unclear (missing evidence vs. an unclear principle), don't press harder as if they dodged the question.
-${sameRoundText ? "- Another thinker has already spoken this round (see below). This is a live discussion between you, not parallel monologues — agree with a caveat, sharpen their point, or directly and specifically contest what THEY said, not just the user's original premise." : ''}${styleBlock(language, depth)}`,
+${sameRoundText ? "- Another thinker has already spoken this round (see below). This is a live discussion between you, not parallel monologues — agree with a caveat, sharpen their point, or directly and specifically contest what THEY said, not just the user's original premise." : ''}
+${NO_MANUFACTURED_DISAGREEMENT_RULE}
+${constitutionBlock(philosopher.id)}
+${AUTHENTICITY_RULES}
+${styleBlock(language, depth)}`,
       prompt: `User's original position: "${claim}"\nConclusion: ${conclusion}\nPremises:\n${premises
         .map((pr) => `${pr.id}: ${pr.text} [current status: ${pr.status ?? 'standing'}]`)
         .join('\n')}\n\nPrior rounds:\n${priorText || '(this is round 1)'}${

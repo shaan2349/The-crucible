@@ -1,7 +1,9 @@
 import { Router } from 'express'
 import { structured } from '../claude.js'
 import { PHILOSOPHERS, philosopherById } from '../data/philosophers.js'
+import { constitutionBlock } from '../data/constitutions.js'
 import { styleBlock } from '../preferences.js'
+import { AUTHENTICITY_RULES } from '../authenticity.js'
 
 export const libraryRouter = Router()
 
@@ -31,7 +33,7 @@ libraryRouter.post('/bio', async (req, res) => {
       system:
         'You write engaging, accurate, editorial-quality profiles of philosophers for a curious student — ' +
         'the register of a well-written magazine profile, not a dry encyclopedia entry or a stitched-together ' +
-        `list of facts.${styleBlock(language, depth)}`,
+        `list of facts. The "works" field must be drawn from their real primary works listed below, never invented titles.${constitutionBlock(philosopher.id)}\n${AUTHENTICITY_RULES}${styleBlock(language, depth)}`,
       prompt: `Philosopher: ${philosopher.name} (${philosopher.era}). Framework: ${philosopher.framework}.`,
       toolName: 'record_bio',
       toolDescription: "Records the philosopher's editorial profile.",
@@ -150,7 +152,8 @@ libraryRouter.post('/compare', async (req, res) => {
         'You compare two philosophers on a topic for a curious student. Each position must be reasoned ' +
         "from that philosopher's actual framework, in their voice — never a generic modern opinion wearing " +
         'their name. Be concrete: name the actual concept or principle each would invoke, not just a vague ' +
-        'stance.',
+        "stance. Do not manufacture disagreement — if they would substantively agree on this topic, say so " +
+        `plainly in sharedGround rather than inventing a conflict.\n${AUTHENTICITY_RULES}\n\nPhilosopher A's constitution:${constitutionBlock(a.id)}\n\nPhilosopher B's constitution:${constitutionBlock(b.id)}`,
       prompt: `Topic: "${topicText}"\n\nPhilosopher A: ${a.name} (${a.era}). Framework: ${a.framework}.\nPhilosopher B: ${b.name} (${b.era}). Framework: ${b.framework}.`,
       toolName: 'record_comparison',
       toolDescription: 'Records how each philosopher approaches the topic and where they conflict and agree.',
