@@ -1,4 +1,4 @@
-import type { BackgroundScreenId } from '../data/backgrounds'
+import { BACKGROUND_REGISTRY, type BackgroundScreenId } from '../data/backgrounds'
 import { useScreenBackground } from '../hooks/useScreenBackground'
 import { PortraitFallback } from './PortraitFallback'
 
@@ -21,7 +21,7 @@ export function RotatingBackdrop({ screen }: { screen: BackgroundScreenId }) {
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden bg-parchment-100">
-      <PortraitFallback markOpacity={0.14} />
+      <PortraitFallback markOpacity={0.14} family={BACKGROUND_REGISTRY[screen].family} />
       {bgUrl && (
         <div
           key={bgUrl}
