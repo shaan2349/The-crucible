@@ -15,6 +15,7 @@ const KEYS = {
   preferences: 'crucible:preferences',
   onboarded: 'crucible:onboarded',
   interests: 'crucible:interests',
+  trainTopics: 'crucible:trainTopics',
 } as const
 
 export type Language = 'simple' | 'standard' | 'scholarly'
@@ -94,6 +95,22 @@ export function loadTrainingStats(): TrainingStats {
 }
 export function saveTrainingStats(stats: TrainingStats): void {
   save(KEYS.trainingStats, stats)
+}
+
+const RECENT_TRAIN_TOPICS_LIMIT = 15
+
+/** Topics from challenges the user actually attempted, most recent last
+ * — sent back to the generator so it avoids repeating the same broad
+ * theme. Only grows on a completed attempt, not on every challenge
+ * merely shown, so browsing (without submitting) doesn't crowd out
+ * genuine variety for no reason. */
+export function loadRecentTrainTopics(): string[] {
+  return load<string[]>(KEYS.trainTopics, [])
+}
+export function addRecentTrainTopic(topic: string | undefined): void {
+  if (!topic?.trim()) return
+  const next = [...loadRecentTrainTopics(), topic.trim()].slice(-RECENT_TRAIN_TOPICS_LIMIT)
+  save(KEYS.trainTopics, next)
 }
 
 export function loadDebateDraft(): string | null {

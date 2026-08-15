@@ -188,8 +188,8 @@ export interface TrainGenerateResponse {
   argument?: string // premise-audit
   premises?: { id: string; text: string }[] // premise-audit
 }
-export function generateChallenge(level: TrainLevel, exerciseType: TrainExerciseType) {
-  return postJSON<TrainGenerateResponse>('/claude/train/generate', { level, exerciseType })
+export function generateChallenge(level: TrainLevel, exerciseType: TrainExerciseType, recentTopics?: string[]) {
+  return postJSON<TrainGenerateResponse>('/claude/train/generate', { level, exerciseType, recentTopics })
 }
 
 export interface TrainScoreResponse {

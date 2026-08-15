@@ -36,12 +36,35 @@ function badRequest(res: import('express').Response, message: string) {
   res.status(400).json({ error: message })
 }
 
+// A deliberately broad set of everyday domains — without this, the
+// generator kept drifting back to the same handful of "safe" abstract
+// topics (AI regulation, free will, government) across many consecutive
+// challenges. Sampling a random subset per request, plus explicitly
+// excluding the user's own recently-attempted topics, is what actually
+// produces variety rather than just asking for it once and hoping.
+const TOPIC_DOMAINS = [
+  'friendships', 'family', 'school', 'university', 'careers', 'money', 'ambition', 'relationships', 'love',
+  'jealousy', 'loyalty', 'honesty', 'lying', 'social media', 'privacy', 'technology', 'AI', 'sport', 'competition',
+  'art', 'beauty', 'religion', 'death', 'happiness', 'suffering', 'meaning', 'free will', 'punishment', 'justice',
+  'inequality', 'politics', 'government', 'war', 'the environment', 'animals', 'responsibility', 'conformity',
+  'freedom', 'identity', 'education', 'work', 'success', 'failure', 'risk', 'obligations to friends', 'charity',
+  'consumerism', 'fame', 'revenge', 'forgiveness',
+]
+
+function topicDiversityBlock(recentTopics: unknown): string {
+  const recent = Array.isArray(recentTopics) ? recentTopics.filter((t): t is string => typeof t === 'string').slice(-15) : []
+  const domainSample = [...TOPIC_DOMAINS].sort(() => Math.random() - 0.5).slice(0, 12).join(', ')
+  const recentBlock = recent.length > 0 ? ` The user has recently done challenges on: ${recent.join('; ')} — pick a genuinely different theme, not a variation on any of these.` : ''
+  return `\n\nDraw from a wide range of everyday domains, for example: ${domainSample}. Do not default repeatedly to AI regulation, free will, government, or public libraries — those are overused defaults, not the only interesting topics.${recentBlock}`
+}
+
 /* -------------------------------- generate -------------------------------- */
 
 trainRouter.post('/generate', async (req, res) => {
-  const { level, exerciseType } = req.body ?? {}
+  const { level, exerciseType, recentTopics } = req.body ?? {}
   if (!isLevel(level)) return badRequest(res, 'level must be easy, medium, or hard')
   if (!isExerciseType(exerciseType)) return badRequest(res, 'exerciseType is invalid')
+  const diversity = topicDiversityBlock(recentTopics)
 
   try {
     if (exerciseType === 'deconstruct') {
@@ -50,7 +73,7 @@ trainRouter.post('/generate', async (req, res) => {
           'Write an ORIGINAL short persuasive passage (80-150 words, op-ed or speech style) arguing for a ' +
           'real-world position, entirely in your own words — do not quote, closely paraphrase, or imitate ' +
           'the specific wording of any real, identifiable speech, article, or public figure. Embed 2-4 ' +
-          `premises leading to a conclusion; at least one premise should be implicit/unstated. Difficulty: ${level}.`,
+          `premises leading to a conclusion; at least one premise should be implicit/unstated. Difficulty: ${level}.${diversity}`,
         prompt: 'Generate a new challenge now, on a fresh topic.',
         toolName: 'record_challenge',
         toolDescription: 'Records the generated passage and its topic label.',
@@ -68,7 +91,7 @@ trainRouter.post('/generate', async (req, res) => {
       const result = await structured<{ topic: string; conclusion: string }>({
         system:
           'Generate a single provocative conclusion/claim on a real-world topic for a student to construct ' +
-          `a supporting argument for. Difficulty: ${level}.`,
+          `a supporting argument for. Difficulty: ${level}.${diversity}`,
         prompt: 'Generate a new conclusion now, on a fresh topic.',
         toolName: 'record_conclusion',
         toolDescription: 'Records the generated conclusion.',
@@ -89,7 +112,7 @@ trainRouter.post('/generate', async (req, res) => {
           '(never quoting or imitating a real identifiable speech or article), that contains exactly ONE clear ' +
           'logical flaw — pick one of: strawman, false dilemma, ad hominem, hasty generalization, appeal to ' +
           'authority, circular reasoning, slippery slope, or post hoc. Do not name or hint at the flaw in the ' +
-          `text itself — it should be discoverable, not announced. Subtlety scales with difficulty: ${level}.`,
+          `text itself — it should be discoverable, not announced. Subtlety scales with difficulty: ${level}.${diversity}`,
         prompt: 'Generate a new flawed argument now, on a fresh topic.',
         toolName: 'record_flawed_argument',
         toolDescription: 'Records the generated passage and its topic label.',
@@ -108,7 +131,7 @@ trainRouter.post('/generate', async (req, res) => {
         system:
           'Generate one real-world claim that people commonly dismiss too quickly or strawman rather than ' +
           `engage with seriously — something genuinely contentious, not a strawman itself. Difficulty: ${level} ` +
-          '(harder = more counterintuitive or unpopular the claim).',
+          `(harder = more counterintuitive or unpopular the claim).${diversity}`,
         prompt: 'Generate a new claim now, on a fresh topic.',
         toolName: 'record_claim',
         toolDescription: 'Records the generated claim and its topic label.',
@@ -127,7 +150,7 @@ trainRouter.post('/generate', async (req, res) => {
       const result = await structured<{ topic: string; scenario: string }>({
         system:
           'Write a short, concrete real-world scenario (60-110 words) that raises a genuine ethical or ' +
-          `practical question — a situation, not an abstract debate topic. Difficulty: ${level}.`,
+          `practical question — a situation, not an abstract debate topic. Difficulty: ${level}.${diversity}`,
         prompt: 'Generate a new scenario now, on a fresh topic.',
         toolName: 'record_scenario',
         toolDescription: 'Records the generated scenario and its topic label.',
@@ -146,7 +169,7 @@ trainRouter.post('/generate', async (req, res) => {
       system:
         'Write an ORIGINAL short argument (2-4 numbered premises leading to a conclusion) on a real-world ' +
         `topic, entirely in your own words. One premise should be genuinely more contestable than the others ` +
-        `— not absurd, just the weakest link. Difficulty: ${level}.`,
+        `— not absurd, just the weakest link. Difficulty: ${level}.${diversity}`,
       prompt: 'Generate a new argument now, on a fresh topic.',
       toolName: 'record_argument',
       toolDescription: 'Records the generated argument, its premises, and conclusion.',
