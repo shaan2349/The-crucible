@@ -49,6 +49,9 @@ Takes about 10 minutes. You'll need a GitHub account signed into
      trailing slash), e.g. `https://crucible-server-xxxx.onrender.com`
 4. Click **Create Static Site**. When it finishes, its URL — something like
    `https://crucible-client-xxxx.onrender.com` — is the live app.
+5. Open the static site's **Redirects/Rewrites** tab and add one rule:
+   **Source** `/*`, **Destination** `/index.html`, **Action** `Rewrite`.
+   Without it, refreshing any page other than the front page shows "Not Found".
 
 ## Step C — connect them
 
