@@ -9,32 +9,13 @@ import { loadDebates, saveDebates } from '../lib/storage'
 import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import { usePreferencesContext } from '../context/PreferencesContext'
+import { NIGHT, NIGHT_FONT } from '../night/theme'
 import type { Debate as DebateState, ParticipationLevel, Premise, PremiseStatus, Round, TempleEnding } from '../types'
 
 const MAX_ROUNDS = 3
 
-/* The night-world palette, shared with the Temple scene. */
-const C = {
-  night: '#0B0D11',
-  panel: '#11141A',
-  raised: '#171B21',
-  line: 'rgba(194,161,94,.2)',
-  lineStrong: 'rgba(194,161,94,.45)',
-  gilt: '#C2A15E',
-  gold: '#F3D27A',
-  ivory: '#EDE6D6',
-  body: '#D9D2C2',
-  muted: '#A39D90',
-  ember: '#E07A62',
-  sage: '#7FC4A6',
-  iris: '#ABA4EC',
-}
-const F = {
-  display: "'Gloock', Georgia, serif",
-  inscr: "'Cinzel', Georgia, serif",
-  read: "'Libre Caslon Text', Georgia, serif",
-  ui: "'Hanken Grotesk', system-ui, sans-serif",
-}
+const C = NIGHT
+const F = NIGHT_FONT
 const SIDE_COLOR = [C.ember, C.iris]
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V']

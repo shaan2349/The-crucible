@@ -51,6 +51,30 @@ function formatHistory(openings: Record<string, string>, rounds: RoundInput[]): 
   return `Opening perspectives:\n${openingLines}${roundLines ? `\n\nConversation since:\n${roundLines}` : ''}`
 }
 
+/** The Symposium: the user can address one philosopher or the whole table,
+ * and philosophers who speak later in a round answer the ones before them. */
+function symposiumNote(selfId: string, sameRoundTurns: unknown, addressedTo: unknown): string {
+  const turns = Array.isArray(sameRoundTurns)
+    ? (sameRoundTurns as TurnInput[]).filter((t) => t && typeof t.philosopherId === 'string' && typeof t.text === 'string')
+    : []
+  let note = ''
+  if (typeof addressedTo === 'string' && addressedTo !== 'all') {
+    const target = philosopherById(addressedTo)
+    if (target && target.id === selfId) note += '\n\nThe user addressed this to you by name. Answer them directly.'
+  }
+  if (turns.length) {
+    note +=
+      `\n\nAlready said at the table this round, just before you:\n${turns
+        .map((t) => `${philosopherById(t.philosopherId)?.name ?? t.philosopherId}: ${t.text}`)
+        .join('\n')}` +
+      '\n\nThis is a live conversation around one table, not separate monologues. Respond to what was just said where it matters: ' +
+      'agree and sharpen it, or disagree precisely, then still speak to the user\'s situation. Only attribute to another ' +
+      'philosopher what they actually said here or genuinely hold; never invent a position for them. Keep it shorter than a ' +
+      'first answer when the point has already been made.'
+  }
+  return note
+}
+
 /* ------------------------------- begin ------------------------------- */
 
 interface BeginResult {
@@ -123,7 +147,7 @@ interface RespondResult {
 }
 
 reflectRouter.post('/respond', async (req, res) => {
-  const { situation, openings, rounds, philosopherId, userMessage, language, depth } = req.body ?? {}
+  const { situation, openings, rounds, philosopherId, userMessage, sameRoundTurns, addressedTo, language, depth } = req.body ?? {}
   if (typeof situation !== 'string' || !situation.trim()) return badRequest(res, 'situation is required')
   if (!openings || typeof openings !== 'object') return badRequest(res, 'openings is required')
   if (!validRounds(rounds)) return badRequest(res, 'rounds is required')
@@ -160,7 +184,7 @@ ${AUTHENTICITY_RULES}
 ${styleBlock(language, depth)}`,
       prompt: `Situation: "${situation}"\n\n${formatHistory(openings, rounds)}${
         userMessage ? `\n\nUser just said: "${userMessage}"` : ''
-      }`,
+      }${symposiumNote(philosopher.id, sameRoundTurns, addressedTo)}`,
       toolName: 'record_reflection_response',
       toolDescription: 'Records this philosopher\'s next response in the conversation.',
       schema: {

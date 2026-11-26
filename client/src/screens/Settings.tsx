@@ -30,7 +30,7 @@ export function Settings() {
   function handleDelete() {
     deleteAllData()
     setConfirmingDelete(false)
-    navigate('/app/reflect')
+    navigate('/app')
     window.location.reload()
   }
 

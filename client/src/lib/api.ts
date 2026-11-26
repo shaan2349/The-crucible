@@ -126,6 +126,10 @@ export function respondReflection(params: {
   rounds: { round: number; turns: { philosopherId: string; text: string }[]; userMessage: string | null }[]
   philosopherId: string
   userMessage?: string
+  /** What others at the table already said this round, so this philosopher can answer them. */
+  sameRoundTurns?: { philosopherId: string; text: string }[]
+  /** A philosopher id when the user spoke to one person, or 'all'. */
+  addressedTo?: string
 } & StyleParams) {
   return postJSON<RespondReflectionResponse>('/claude/reflect/respond', params)
 }

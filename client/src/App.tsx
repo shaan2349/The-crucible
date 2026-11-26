@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Landing } from './screens/Landing'
 import { Onboarding } from './screens/Onboarding'
 import { AppShell } from './components/AppShell'
-import { Reflect } from './screens/Reflect'
 import { Debate } from './screens/Debate'
 import { Council } from './screens/Council'
 import { Library } from './screens/Library'
@@ -11,6 +10,7 @@ import { MyThinking } from './screens/MyThinking'
 import { Profile } from './screens/Profile'
 import { Settings } from './screens/Settings'
 import { Sanctuary } from './screens/Sanctuary'
+import { Symposium } from './screens/Symposium'
 import { DuotoneDefs } from './components/DuotoneDefs'
 import { DebateProvider } from './context/DebateContext'
 import { ReflectProvider } from './context/ReflectContext'
@@ -28,7 +28,9 @@ function App() {
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/app" element={<AppShell />}>
                 <Route index element={<Sanctuary />} />
-                <Route path="reflect" element={<Reflect />} />
+                <Route path="symposium" element={<Symposium />} />
+                {/* Reflect became the Symposium; old links still land there. */}
+                <Route path="reflect" element={<Navigate to="/app/symposium" replace />} />
                 <Route path="debate" element={<Debate />} />
                 <Route path="council" element={<Council />} />
                 <Route path="archive" element={<Library />} />
