@@ -1,13 +1,34 @@
 # The Crucible
 
-A philosophy debate app: state a real position, have it broken into premises,
-and have two philosophers with genuinely opposing frameworks attack it.
+A philosophy app that feels like a world you enter at night. You test what you
+believe against great thinkers, talk real situations through with them, and
+watch your own thinking take shape on a hillside.
+
+## The world
+
+The app opens on **the Sanctuary**, a moonlit hill with five places:
+
+| Place | What you do there | Route |
+| --- | --- | --- |
+| The Temple | Defend a belief against two philosophers. Your thesis is the roof, each premise a column; objections crack columns, and your replies seal them in gold, rebuild them, or let them fall. Ends in Victory, Stands reshaped, Still contested or Collapse. | `/app/debate` |
+| The Symposium | Talk something real through with philosophers seated around a lamplit table. Speak to one or to everyone; they answer each other. | `/app/symposium` |
+| Hall of Minds | 47 thinkers as marble busts, wing by wing. Wake one to read their plaque, talk to them alone, or seat them at the Symposium. | `/app/hall` |
+| The Oracle | One everyday question a day. Answer in a sentence; hear what your answer rests on and how two thinkers would see it. | `/app/oracle` |
+| Your Landscape | Every belief you have tested stands as its own temple, drawn from how the debate went; conversations leave lamps. | `/app/landscape` |
+
+Older routes (`/app/reflect`, `/app/archive`, `/app/train`, `/app/mythinking`)
+redirect to their new places. The product vision and build plan live in the
+"The Crucible: Vision and Build Plan" doc.
 
 ## Structure
 
-- `client/` — Vite + React + TypeScript + Tailwind v4
-- `server/` — Express backend that holds the Claude API key and proxies
-  structured-output requests to it. The client never sees the key.
+- `client/` — Vite + React + TypeScript + Tailwind v4.
+  - `src/screens/` — one file per place (`Sanctuary`, `TempleDebate`, `Symposium`, `Hall`, `Oracle`, `Landscape`) plus the debate composer, onboarding, profile and settings.
+  - `src/temple/` — the 3D temple (`TempleScene.ts`, three.js), its synthesised sounds, and the shared ending rules (`ending.ts`).
+  - `src/night/theme.ts` — the night world's colours and fonts. Fonts are bundled through Fontsource.
+- `server/` — Express backend that holds the Claude API key and asks Claude for structured answers.
+  - `src/routes/` — `debate`, `reflect` (the Symposium), `library`, `oracle`, `train` (unused, kept for now).
+  - `src/data/constitutions.ts` — a researched profile of each philosopher's real views, injected so they argue as themselves.
 
 ## Running locally
 
@@ -16,88 +37,44 @@ and have two philosophers with genuinely opposing frameworks attack it.
 cd server
 cp .env.example .env   # fill in ANTHROPIC_API_KEY
 npm install
-npm run dev             # http://localhost:8787
+npm run dev            # http://localhost:8787
 
 # terminal 2
 cd client
 npm install
-npm run dev              # http://localhost:5173, proxies /api to :8787
+npm run dev            # http://localhost:5173, proxies /api to :8787
 ```
 
-## Deploying (no terminal needed)
+## Settings (server environment)
 
-See [DEPLOY.md](./DEPLOY.md) — dashboard-only steps for Render, including
-where to paste your API key.
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `ANTHROPIC_API_KEY` | none | Required. Never sent to the browser. |
+| `CLAUDE_MODEL` | `claude-opus-5-5` | Model for everything a philosopher says. |
+| `CLAUDE_LIGHT_MODEL` | `claude-haiku-5-5` | Cheaper model for hidden jobs: choosing opponents, splitting premises, search. |
+| `DAILY_SESSION_LIMIT` | `12` | New debates, symposiums and Oracle answers per visitor per day. `0` turns it off. |
+| `CLIENT_ORIGIN` | `http://localhost:5173` | The website's address, for CORS. |
 
-## Status
+Every request is also rate limited to 20 per minute per visitor. Set a monthly
+spending cap in the Anthropic console as the final safeguard.
 
-Project scaffold and app shell (landing screen, bottom tab bar, Debate/
-Library/Train/History routes) are in place. Core debate logic, the
-47-philosopher dataset, and the real prompt wording are pending — they're
-being ported from a prototype file that hasn't come through yet. See open
-items below.
+## Deploying
 
-## Design notes / decisions worth knowing about
+See [DEPLOY.md](./DEPLOY.md): dashboard-only steps for Render. Once set up,
+every push to the tracked branch redeploys the app automatically.
 
-- **Structured output over delimiter parsing.** The prototype used a
-  hand-rolled `MARKER: value` format because JSON kept breaking on
-  unescaped quotes in philosophical prose. The real API supports forced
-  tool use, so `server/src/claude.ts` has Claude fill in a tool call
-  against a JSON schema instead — the SDK parses it, there's no
-  quote-escaping to get wrong, and there's no text format to break.
-- **The `via-[#hex]` Tailwind bug is avoided, not just worked around.**
-  All forge gradients use inline `style={{ background: 'linear-gradient(...)' }}`
-  rather than Tailwind's `via-` utility, so this doesn't depend on
-  whichever Tailwind/JIT version ends up in the build.
-- **`min-h-full` vs `min-h-svh`.** The landing screen initially used
-  `min-h-full` for centering and silently failed to center — percentage
-  heights need a definite-height ancestor chain, and `min-height` on an
-  ancestor doesn't count as "definite" for that purpose, so the browser
-  fell back to auto-sizing. Switched to `min-h-svh` (viewport-relative,
-  no ancestor chain needed) and it centers correctly.
-- **Bust illustrations are one component, not four.** `BustPlain`/
-  `BustLaurel`/`BustBearded`/`BustPlinth` from the prototype are one
-  `<Bust laurel bearded plinth>` component with boolean props here —
-  same visual variety, no duplicated paths to keep in sync.
+## Design decisions worth knowing
 
-## Flags on the brief (read before going further)
+- **Structured output through a tool call.** `server/src/claude.ts` offers one tool and asks Claude to call it, so answers arrive as parsed JSON. Current models reject a forced `tool_choice`, so it uses `auto` with an explicit instruction and one retry.
+- **Thinking counts toward `max_tokens`.** Current models always think first, so per-route token limits are treated as a floor of 16,000; length is set in each prompt.
+- **The judge decides what happens to a column.** After each reply, `/debate/evaluate` returns `standing`, `defended`, `weakened`, `conceded` or `revised` (with the rewritten premise) and a one-line reason per touched premise. Changing your mind for a good reason never counts as losing.
+- **Honest endings.** Endings are derived from final premise states in `client/src/temple/ending.ts`, shared by the Temple and the Landscape; a session with no replies is Untested, never a win or a loss.
+- **The 3D library loads only in the Temple**, so the rest of the app stays quick to open.
+- **Reduced motion is respected** everywhere: camera sway, particles and entrance animations switch off.
 
-1. **Rate limiting is not optional once this is deployed.** A backend
-   proxy that holds the API key still means anyone who finds the URL can
-   burn your Claude spend if there's no limiter. `server/src/index.ts` has
-   a basic per-IP `express-rate-limit` on `/api` (20 req/min) — treat this
-   as a floor, not a finished answer. If this ends up on a public URL for
-   your CV, consider adding a lightweight app-level check too (e.g. a
-   shared secret header set at build time), since IP-based limits alone
-   are easy to route around.
-2. **Photos behind text need a scrim.** Rotating real Wikimedia portraits
-   as backgrounds behind philosopher text will fight for contrast against
-   whatever the debate/library UI renders on top, especially portrait
-   photos with busy backgrounds. Plan on a consistent gradient/scrim
-   overlay (e.g. parchment-to-transparent) rather than raw `<img>` behind
-   text, or contrast will vary debate to debate depending on which photo
-   rotates in.
-3. **Wikimedia filenames need a validity check at build/runtime, not just
-   at spec-writing time.** Files get renamed or deleted on Commons.
-   Fetching by exact filename with no fallback means a single renamed
-   file silently breaks a philosopher's whole background rotation — worth
-   a fallback to the `Bust` illustration if an image 404s, which also
-   gives the "keep or improve the busts" ask a real job to do instead of
-   being pure decoration.
-4. **AI-generated bios "fetched on first view and cached" need a real
-   cache layer**, not just a component-level `useState`. If it's
-   per-browser (`localStorage`) that's fine for a solo CV project, but if
-   this is ever shown to someone else it refetches for them — worth
-   deciding now whether caching is per-user or shared (would need the
-   backend to own the cache, e.g. a small SQLite/KV store keyed by
-   philosopher id).
-5. **Fraunces is on Google Fonts and via `@fontsource/fraunces`** (used
-   here) — confirmed working, no concern there.
+## Still to do
 
-## Still needed from you
-
-The prototype file (`crucible.jsx`) didn't come through in this session —
-checked the working directory, scratchpad, and the GitHub repo, all empty.
-Please paste its contents (or re-attach) so the 47-philosopher roster,
-`BG_FILES` list, and the actual prompt wording can be ported in rather than
-reconstructed from the description alone.
+- Accounts and sign-in, so the daily allowance and saved history follow a person rather than a device.
+- Matching artwork for the 47 busts in the Hall of Minds (currently stand-ins).
+- Packaging as an iPhone app and App Store submission.
+- The landing and onboarding screens still use the earlier light style.
