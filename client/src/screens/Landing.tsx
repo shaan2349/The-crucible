@@ -1,130 +1,35 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CrucibleMark } from '../components/CrucibleMark'
-import { useScreenBackground } from '../hooks/useScreenBackground'
 import { hasOnboarded } from '../lib/storage'
+import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
+import { NightSky } from '../night/NightSky'
 
-type BootPhase = 'flare' | 'fadeout' | null
-
+/** The first thing anyone sees: the sanctuary's name under the night sky. */
 export function Landing() {
   const navigate = useNavigate()
-  const [bootPhase, setBootPhase] = useState<BootPhase>('flare')
-  const { bgUrl, bgPosition } = useScreenBackground('landing')
-
-  useEffect(() => {
-    const t1 = setTimeout(() => setBootPhase('fadeout'), 750)
-    const t2 = setTimeout(() => setBootPhase(null), 1350)
-    return () => {
-      clearTimeout(t1)
-      clearTimeout(t2)
-    }
-  }, [])
-
   return (
-    <div className="relative min-h-svh overflow-hidden bg-parchment-100">
-      {bootPhase && (
-        <div
-          className={`fixed inset-0 z-50 flex items-center justify-center bg-parchment-100 transition-opacity duration-500 ${
-            bootPhase === 'fadeout' ? 'opacity-0' : 'opacity-100'
-          }`}
-        >
-          <div className="relative flex flex-col items-center">
-            <div className="relative flex h-16 w-16 items-center justify-center">
-              <span
-                className="absolute h-3 w-3 rounded-full"
-                style={{ background: '#e8a33d', animation: 'emberRing 1s ease-out' }}
-              />
-              <span
-                className="absolute h-3 w-3 rounded-full"
-                style={{
-                  background: '#e8a33d',
-                  boxShadow: '0 0 18px 6px rgba(217,119,6,0.7)',
-                  animation: 'emberCore 0.9s ease-out',
-                }}
-              />
-            </div>
-            <p
-              className="mt-4 font-display text-sm uppercase text-forge-ember"
-              style={{ animation: 'bootTitleReveal 0.9s ease-out forwards' }}
-            >
-              The Crucible
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/*
-        Restrained duotone portrait — barely-there texture behind the
-        hero, not competing with the CTA. Ties Landing into the same
-        photographic system as the rest of the app (see DuotoneDefs)
-        instead of the flat illustration-only treatment this had before
-        the photo coverage was reliable enough to trust here.
-      */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {bgUrl && (
-          <div
-            key={bgUrl}
-            className="absolute inset-0 animate-[backdropFade_1.4s_ease] bg-cover"
-            style={{ backgroundImage: `url(${bgUrl})`, backgroundPosition: bgPosition, filter: 'url(#duotone-neutral)' }}
-          />
-        )}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--color-parchment-100) 78%, transparent) 0%, color-mix(in srgb, var(--color-parchment-100) 93%, transparent) 55%, color-mix(in srgb, var(--color-parchment-100) 99%, transparent) 100%)',
-          }}
-        />
-      </div>
-
-      <div className="reading-container relative flex min-h-svh flex-col items-center justify-center px-6 py-16 text-center">
-        <div
-          className="mb-8 flex h-20 w-20 items-center justify-center rounded-2xl shadow-embossed"
-          style={{ background: 'linear-gradient(155deg, #e8a33d 0%, #c2531d 55%, #8a2a12 100%)', animation: 'revealUp 0.6s ease 650ms both' }}
-        >
-          <CrucibleMark size={44} className="text-parchment-50" />
-        </div>
-
-        <p
-          className="mb-2 font-display text-sm tracking-wide text-parchment-600"
-          style={{ animation: 'revealUp 0.6s ease 730ms both' }}
-        >
-          A philosophy debate forge
-        </p>
-        <h1
-          className="mb-4 font-display text-5xl font-medium leading-[1.05] text-parchment-900"
-          style={{ animation: 'revealUp 0.6s ease 810ms both' }}
-        >
+    <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6 text-center" style={{ background: C.night, color: C.ivory, fontFamily: F.ui }}>
+      <NightSky />
+      <div className="night-enter relative flex max-w-[560px] flex-col items-center gap-5">
+        <span style={{ fontFamily: F.inscr, fontSize: 11, fontWeight: 600, letterSpacing: '.34em', color: C.gilt }}>ΓΝΩΘΙ ΣΕΑΥΤΟΝ</span>
+        <h1 className="m-0" style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(44px, 12vw, 72px)', lineHeight: 1 }}>
           The Crucible
         </h1>
-        <p
-          className="mb-12 text-lg leading-relaxed text-parchment-700"
-          style={{ animation: 'revealUp 0.6s ease 890ms both' }}
-        >
-          State a real position. Two philosophers, in genuine opposition, will
-          put it under heat. What survives is stronger for it.
+        <p style={{ fontFamily: F.read, fontSize: 18, lineHeight: 1.55, color: C.body }}>
+          Test what you believe against history’s greatest minds. Talk real questions through with them. Watch your thinking take shape.
         </p>
-
-        <button
-          type="button"
-          onClick={() => navigate(hasOnboarded() ? '/app' : '/onboarding')}
-          className="group relative overflow-hidden rounded-full px-9 py-4 font-display text-lg font-medium text-parchment-50 shadow-embossed transition-transform active:scale-[0.98]"
-          style={{
-            background: 'linear-gradient(120deg, #e8a33d 0%, #c2531d 55%, #8a2a12 100%)',
-            animation: 'revealUp 0.6s ease 970ms both',
-          }}
-        >
-          Enter the Crucible
-        </button>
-
-        <button
-          type="button"
-          onClick={() => navigate('/app/hall')}
-          className="mt-6 font-body text-sm text-parchment-600 underline decoration-parchment-400 underline-offset-4 hover:text-parchment-800"
-          style={{ animation: 'revealUp 0.6s ease 1050ms both' }}
-        >
-          Or browse the philosophers first
-        </button>
+        <div className="mt-3 flex w-full max-w-[380px] flex-col gap-2.5">
+          <button
+            type="button"
+            onClick={() => navigate(hasOnboarded() ? '/app' : '/onboarding')}
+            className="night-btn min-h-[52px] rounded"
+            style={{ background: C.gilt, color: C.night, fontWeight: 600, fontSize: 16 }}
+          >
+            Enter the sanctuary
+          </button>
+          <button type="button" onClick={() => navigate('/app/hall')} className="night-btn min-h-[48px] rounded border" style={{ borderColor: C.lineStrong, color: '#E9D5A6', fontWeight: 500 }}>
+            Meet the thinkers first
+          </button>
+        </div>
       </div>
     </div>
   )
