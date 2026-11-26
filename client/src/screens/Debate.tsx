@@ -1,18 +1,16 @@
 import { Suspense, lazy, useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { useLocation } from 'react-router-dom'
-import { ArrowRight, Mic } from 'lucide-react'
-import { Button } from '../components/Button'
-import { PortraitFrame } from '../components/PortraitFrame'
-import { RotatingBackdrop } from '../components/RotatingBackdrop'
+import { createPortal } from 'react-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, Mic } from 'lucide-react'
+import { NIGHT, NIGHT_FONT } from '../night/theme'
+import { NightSky } from '../night/NightSky'
 // The 3D temple (and the 3D library behind it) loads only when a debate
 // starts, so the rest of the app stays quick to open.
 const TempleDebate = lazy(() => import('./TempleDebate').then((m) => ({ default: m.TempleDebate })))
-import { DEBATE_BACKDROP_PORTRAIT_SIZE } from '../components/DebateBackdrop'
 import { PHILOSOPHER_TAGS, SUGGESTED_TOPICS, philosopherById } from '../data/philosophers'
 import { loadDebateDraft, saveDebateDraft, clearDebateDraft, loadInterests } from '../lib/storage'
 import { useDebateContext } from '../context/DebateContext'
 import { useSpeechToText } from '../hooks/useSpeechToText'
-import { preloadPortrait } from '../hooks/usePortrait'
 import * as api from '../lib/api'
 import type { Debate as DebateState } from '../types'
 
@@ -53,14 +51,10 @@ function dailySuggestions(): typeof SUGGESTED_TOPICS {
   return ranked.slice(0, 4)
 }
 
-// Portraits are preloaded at the size Council's cast reveal actually uses
-// (see CouncilView), so the preload during the transition is a genuine
-// cache warm, not a different-sized, wasted fetch.
-const CAST_PORTRAIT_SIZE = 400
-
 export function Debate() {
   const { debate, setDebate } = useDebateContext()
   const location = useLocation()
+  const navigate = useNavigate()
 
   const [claim, setClaim] = useState('')
   const [savedDraft, setSavedDraft] = useState<string | null>(null)
@@ -147,12 +141,8 @@ export function Debate() {
       // split-screen portraits need to be warm before anything shows — two
       // different sizes, two different cache entries, both preloaded here
       // so neither pops in late once CouncilView actually mounts.
-      await Promise.all([
-        ...ids.map((id) => preloadPortrait(id, CAST_PORTRAIT_SIZE)),
-        ...ids.map((id) => preloadPortrait(id, DEBATE_BACKDROP_PORTRAIT_SIZE)),
-      ])
       setAssembled(ids)
-      await new Promise<void>((resolve) => setTimeout(resolve, 450))
+      await new Promise<void>((resolve) => setTimeout(resolve, 1400))
       const next: DebateState = {
         id: Date.now(),
         claim: trimmed,
@@ -205,214 +195,146 @@ export function Debate() {
     )
   }
 
-  return (
-    <>
-      <RotatingBackdrop screen="debate" />
-      <div
-        className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-700"
-        style={{ background: '#14100a', opacity: entering ? 0.3 : 0 }}
-      />
-      <div className="reading-container relative z-[1] px-6 pb-16 pt-14 sm:pt-20">
-        <p
-          className="mb-4 font-display text-xs uppercase tracking-[0.15em] text-parchment-500"
-          style={{ animation: 'revealUp 0.4s ease both' }}
-        >
-          The Council awaits.
-        </p>
-
-        <div className="relative mb-12">
-          <h1
-            className="relative font-display text-[34px] font-medium leading-[1.15] tracking-[-0.02em] text-parchment-900 sm:text-[40px]"
-            style={{ animation: 'revealUp 0.5s ease 80ms both' }}
-          >
-            {heroQuestion()}
-          </h1>
+  const C = NIGHT
+  const F = NIGHT_FONT
+  return createPortal(
+    <div className="fixed inset-0 z-[60] overflow-y-auto" style={{ background: C.night, color: C.ivory, fontFamily: F.ui }}>
+      <NightSky />
+      <header className="relative z-[2] flex items-center gap-3 px-4 py-3 sm:px-6" style={{ borderBottom: `1px solid ${C.line}` }}>
+        <button type="button" onClick={() => navigate('/app')} aria-label="Back to the sanctuary" className="night-btn flex h-11 w-11 items-center justify-center rounded-full" style={{ color: C.ivory }}>
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <div>
+          <h1 className="m-0 leading-none" style={{ fontFamily: F.display, fontWeight: 400, fontSize: 24 }}>The Temple</h1>
+          <span style={{ fontFamily: F.inscr, fontSize: 10, fontWeight: 600, letterSpacing: '.24em', color: C.gilt }}>LAY A FOUNDATION</span>
         </div>
+      </header>
 
-        <div className="relative">
-          <div
-            className="transition-all duration-500 ease-out"
-            style={{
-              opacity: entering ? 0 : 1,
-              transform: entering ? 'scale(0.98)' : 'scale(1)',
-              pointerEvents: entering ? 'none' : 'auto',
-            }}
-          >
-            {/* The composer is one deliberate object: writing surface on
-                top, a real action row below it (not floating controls),
-                so the microphone can never end up underneath the CTA no
-                matter how wide that button's label makes it. */}
-            <div
-              className="overflow-hidden rounded-3xl border border-parchment-300/60 bg-parchment-50 transition-shadow duration-200 focus-within:border-forge-ember/50"
-              style={{ animation: 'revealUp 0.5s ease 160ms both', boxShadow: 'var(--shadow-card)' }}
-            >
+      <main className="relative z-[1] mx-auto flex min-h-[calc(100svh-68px)] w-full max-w-[640px] flex-col items-center justify-center px-5 pb-12 pt-6 text-center">
+        <Foundation rise={entering ? 1 : presence} />
+
+        {!entering ? (
+          <div className="night-enter flex w-full flex-col items-center gap-4">
+            <span style={{ fontFamily: F.inscr, fontSize: 10.5, fontWeight: 600, letterSpacing: '.3em', color: C.gilt }}>EVERY TEMPLE BEGINS WITH A BELIEF</span>
+            <h2 className="m-0" style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px, 6vw, 40px)', lineHeight: 1.12, textWrap: 'balance' }}>
+              {heroQuestion()}
+            </h2>
+            <p className="m-0 max-w-[460px]" style={{ fontFamily: F.read, fontSize: 15.5, lineHeight: 1.6, color: C.muted }}>
+              Write it as you would say it. It becomes the roof; what holds it up becomes the columns. Then two philosophers try to bring it down.
+            </p>
+            <div className="mt-2 w-full overflow-hidden rounded" style={{ background: 'rgba(17,20,26,.82)', border: `1px solid ${C.lineStrong}`, backdropFilter: 'blur(6px)' }}>
               <textarea
                 ref={textareaRef}
                 value={claim}
                 onChange={(e) => setClaim(e.target.value)}
                 onKeyDown={handleComposerKeyDown}
-                placeholder="Write freely…"
-                autoFocus
-                aria-label="Your question or position"
-                className="block w-full resize-none overflow-hidden bg-transparent px-6 pb-3 pt-6 text-base text-parchment-900 outline-none placeholder:text-parchment-400 sm:px-7 sm:pt-7 sm:text-lg"
-                style={{ minHeight: '180px' }}
+                placeholder="I believe…"
+                aria-label="Your belief"
+                rows={3}
+                className="block w-full resize-none bg-transparent px-5 pb-3 pt-5 outline-none"
+                style={{ fontFamily: F.read, fontSize: 18, lineHeight: 1.55, color: C.ivory, minHeight: 120 }}
               />
-
-              <div className="flex items-center justify-between gap-3 border-t border-parchment-200/70 px-4 py-3 sm:px-5">
-                <div className="flex min-h-11 items-center gap-2.5">
+              <div className="flex items-center justify-between gap-3 px-3 py-2.5" style={{ borderTop: `1px solid ${C.line}` }}>
+                <div className="flex min-h-11 items-center gap-2">
                   {stt.supported && (
-                    <button
-                      type="button"
-                      onClick={toggleMic}
-                      aria-label={stt.listening ? 'Stop dictating' : 'Dictate your position'}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
-                      style={
-                        stt.listening
-                          ? { background: 'var(--color-forge-ember)', color: 'var(--color-parchment-50)' }
-                          : { color: 'var(--color-parchment-500)' }
-                      }
-                    >
+                    <button type="button" onClick={toggleMic} aria-label={stt.listening ? 'Stop dictation' : 'Speak your belief'} aria-pressed={stt.listening} className="night-btn flex h-11 w-11 items-center justify-center rounded-full" style={{ color: stt.listening ? C.gold : C.muted }}>
                       <Mic className="h-4 w-4" />
                     </button>
                   )}
-                  {stt.listening ? (
-                    <span className="flex items-center gap-1.5 text-xs italic text-parchment-500">
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: 'var(--color-forge-ember)' }} />
-                      Listening…
-                    </span>
-                  ) : (
-                    stt.error && <span className="text-xs text-status-warning">{stt.error}</span>
-                  )}
+                  {stt.listening && <span style={{ fontFamily: F.read, fontStyle: 'italic', fontSize: 13, color: C.muted }}>Listening…</span>}
+                  {!stt.listening && stt.error && <span style={{ fontSize: 12, color: C.ember }}>{stt.error}</span>}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={enter}
-                  disabled={!claim.trim() || submitting}
-                  aria-label="Assemble the Council"
-                  className="group flex h-11 shrink-0 items-center justify-center gap-2 rounded-full px-5 text-parchment-50 transition-all duration-200 hover:brightness-110 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40"
-                  style={{
-                    background: 'linear-gradient(155deg, #e8a33d, #c2531d)',
-                    boxShadow: 'var(--shadow-embossed), inset 0 1px 0 rgba(255,255,255,0.25)',
-                  }}
-                >
-                  <span className="hidden font-display text-sm font-medium sm:inline">Assemble the Council</span>
-                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                <button type="button" onClick={enter} disabled={!claim.trim() || submitting} className="night-btn flex min-h-11 items-center gap-2 rounded px-5 disabled:opacity-40" style={{ background: C.gilt, color: C.night, fontWeight: 600 }}>
+                  Raise the temple <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
             {!promptsHidden && (
-              <div
-                className="mt-10 transition-opacity duration-500"
-                style={{ animation: 'revealUp 0.5s ease 240ms both', opacity: promptsOpacity }}
-              >
-                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-parchment-500">
-                  Need a place to begin?
-                </p>
-                <div className="flex flex-wrap gap-2.5">
-                  {suggestions.map((s) => (
-                    <button
-                      key={s.short}
-                      type="button"
-                      onClick={() => setClaim(s.label)}
-                      className="rounded-full border border-parchment-300/70 px-4 py-2.5 text-sm text-parchment-600 transition-colors hover:border-forge-ember hover:text-forge-ember focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forge-ember/50"
-                    >
-                      {s.short}
+              <div className="mt-3 w-full transition-opacity duration-500" style={{ opacity: promptsOpacity }}>
+                <p className="mb-2.5" style={{ fontFamily: F.inscr, fontSize: 10, fontWeight: 600, letterSpacing: '.24em', color: C.muted }}>OR BEGIN WITH ONE OF THESE</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {suggestions.map((t) => (
+                    <button key={t.short} type="button" onClick={() => setClaim(t.label)} className="night-btn min-h-[40px] rounded-full border px-4" style={{ borderColor: C.lineStrong, color: C.body, fontSize: 14 }}>
+                      {t.short}
                     </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {savedDraft && !claim.trim() && (
-              <button
-                type="button"
-                onClick={resumeDraft}
-                className="mt-6 flex w-full items-center justify-between gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left"
-                style={{ boxShadow: 'var(--shadow-card)', animation: 'revealUp 0.5s ease 320ms both' }}
-              >
+            {savedDraft && !claim && (
+              <button type="button" onClick={resumeDraft} className="night-btn mt-2 flex w-full items-center justify-between gap-3 rounded px-4 py-3 text-left" style={{ background: C.panel, border: `1px solid ${C.line}` }}>
                 <span className="min-w-0">
-                  <span className="block text-[11px] font-medium uppercase tracking-wide text-parchment-500">
-                    Continue where you left off
-                  </span>
-                  <span className="mt-0.5 block truncate text-sm text-parchment-800">{savedDraft}</span>
+                  <span className="block" style={{ fontFamily: F.inscr, fontSize: 10, letterSpacing: '.2em', color: C.muted }}>UNFINISHED</span>
+                  <span className="block truncate" style={{ fontFamily: F.read, fontSize: 14, color: C.body }}>{savedDraft}</span>
                 </span>
-                <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-forge-ember">Resume</span>
+                <span style={{ fontFamily: F.inscr, fontSize: 11, letterSpacing: '.16em', color: C.gold }}>RESUME</span>
               </button>
             )}
           </div>
-
-          {entering && (
-            <div
-              className="absolute inset-0 flex flex-col items-center gap-6 px-6 pt-2 text-center"
-              style={{ animation: 'revealUp 0.35s ease 150ms both' }}
-            >
-              {/* The question stays visible through the whole transition —
-                  the composer behind this overlay fades out, but what was
-                  actually asked never disappears from view. */}
-              <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-parchment-500">Your question</p>
-                <p className="font-display text-lg italic leading-snug text-parchment-900">&ldquo;{submittedClaim}&rdquo;</p>
-              </div>
-
-              {enterError ? (
-                <div className="flex flex-col items-center gap-3">
-                  <p className="font-display text-base text-parchment-700">Couldn't reach the Council.</p>
-                  <p className="text-xs text-parchment-500">{enterError}</p>
-                  <div className="mt-1 flex gap-2">
-                    <Button onClick={enter}>Retry</Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        setEntering(false)
-                        setEnterError(null)
-                      }}
-                    >
-                      Edit question
-                    </Button>
-                  </div>
+        ) : (
+          <div className="night-enter flex flex-col items-center gap-5" aria-live="polite">
+            <p className="m-0 max-w-[520px]" style={{ fontFamily: F.read, fontStyle: 'italic', fontSize: 19, lineHeight: 1.5, color: C.ivory }}>&ldquo;{submittedClaim}&rdquo;</p>
+            {enterError ? (
+              <>
+                <p className="m-0" style={{ fontFamily: F.read, color: C.body }}>The philosophers could not be reached.</p>
+                <p className="m-0" style={{ fontSize: 13, color: C.muted }}>{enterError}</p>
+                <div className="flex gap-2">
+                  <button type="button" onClick={enter} className="night-btn min-h-11 rounded px-5" style={{ background: C.gilt, color: C.night, fontWeight: 600 }}>Try again</button>
+                  <button type="button" onClick={() => { setEntering(false); setEnterError(null) }} className="night-btn min-h-11 rounded border px-5" style={{ borderColor: C.lineStrong, color: C.body }}>Edit belief</button>
                 </div>
-              ) : assembled ? (
-                <div className="flex flex-col items-center gap-4" style={{ animation: 'revealUp 0.4s ease both' }}>
-                  <div className="flex gap-6 sm:gap-8">
-                    {assembled.map((id) => {
-                      const p = philosopherById(id)
-                      if (!p) return null
-                      return (
-                        <div key={id} className="w-20 text-center sm:w-24">
-                          <PortraitFrame id={id} size={CAST_PORTRAIT_SIZE} className="w-full" />
-                          <p className="mt-2 font-display text-sm font-medium text-parchment-900">{p.name}</p>
-                          {PHILOSOPHER_TAGS[id] && (
-                            <p className="mt-0.5 text-[11px] leading-tight text-parchment-500">{PHILOSOPHER_TAGS[id]}</p>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                  <p className="font-display text-sm italic text-parchment-600">
-                    Two different ways of seeing the same problem.
-                  </p>
+              </>
+            ) : assembled ? (
+              <>
+                <span style={{ fontFamily: F.inscr, fontSize: 10.5, fontWeight: 600, letterSpacing: '.3em', color: C.gilt }}>YOUR CHALLENGERS</span>
+                <div className="flex gap-8">
+                  {assembled.map((id) => (
+                    <div key={id} className="flex flex-col items-center gap-1">
+                      <span style={{ fontFamily: F.display, fontSize: 24 }}>{philosopherById(id)?.name}</span>
+                      {PHILOSOPHER_TAGS[id] && <span style={{ fontFamily: F.inscr, fontSize: 10, letterSpacing: '.18em', color: C.muted }}>{PHILOSOPHER_TAGS[id].toUpperCase()}</span>}
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <div className="flex flex-col items-center gap-3">
-                  <span className="relative flex h-5 w-5 items-center justify-center">
-                    <span
-                      className="absolute h-5 w-5 animate-[emberRing_1.3s_ease-out_infinite] rounded-full"
-                      style={{ background: '#e8a33d' }}
-                    />
-                    <span
-                      className="absolute h-2 w-2 rounded-full"
-                      style={{ background: '#c2531d', boxShadow: '0 0 8px 3px rgba(194,83,29,0.6)' }}
-                    />
-                  </span>
-                  <p className="font-display text-base italic text-parchment-600">Assembling perspectives…</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </>
+              </>
+            ) : (
+              <p className="m-0" style={{ fontFamily: F.read, fontStyle: 'italic', color: C.muted }}>Choosing who will challenge it…</p>
+            )}
+          </div>
+        )}
+      </main>
+    </div>,
+    document.body,
   )
 }
+
+/** The bare foundation of a temple: steps, faint column outlines and an empty roof line, filling in as the belief is written. */
+function Foundation({ rise }: { rise: number }) {
+  const r = Math.max(0, Math.min(1, rise))
+  const cols = [70, 130, 190, 250]
+  return (
+    <svg viewBox="0 0 320 150" className="mb-6 w-[220px] sm:w-[280px]" aria-hidden="true">
+      <defs>
+        <linearGradient id="fdGlow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#F3D27A" stopOpacity="0" />
+          <stop offset="1" stopColor="#F3D27A" stopOpacity=".22" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="160" cy="142" rx="150" ry="10" fill="url(#fdGlow)" />
+      <path d="M40 46 L160 12 L280 46 Z" fill="none" stroke="#C2A15E" strokeOpacity={0.25 + r * 0.5} strokeDasharray={r > 0.99 ? undefined : '4 5'} />
+      <rect x="44" y="46" width="232" height="12" fill="none" stroke="#C2A15E" strokeOpacity={0.25 + r * 0.5} strokeDasharray={r > 0.99 ? undefined : '4 5'} />
+      {cols.map((x, i) => {
+        const h = 66 * Math.max(0, Math.min(1, r * 4 - i))
+        return (
+          <g key={x}>
+            <rect x={x - 9} y="58" width="18" height="66" fill="none" stroke="#C2A15E" strokeOpacity=".22" strokeDasharray="3 4" />
+            <rect x={x - 9} y={124 - h} width="18" height={h} fill="#D9CFBA" opacity=".85" style={{ transition: 'all .6s ease' }} />
+          </g>
+        )
+      })}
+      <rect x="30" y="124" width="260" height="7" fill="#CFC5AE" />
+      <rect x="20" y="131" width="280" height="7" fill="#B9AF98" />
+    </svg>
+  )
+}
+

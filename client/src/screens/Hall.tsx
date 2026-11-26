@@ -108,7 +108,7 @@ export function Hall() {
                 </h2>
                 <span style={{ fontFamily: F.inscr, fontSize: 9.5, fontWeight: 600, letterSpacing: '.24em', color: C.gilt }}>{w.sub}</span>
               </div>
-              <div className="hall-row relative flex gap-2 overflow-x-auto px-6 pb-8 pt-4" style={{ justifyContent: ids.length < 4 ? 'center' : 'flex-start' }}>
+              <div className="hall-row relative flex gap-2 overflow-x-auto px-6 pb-8 pt-4" style={{ justifyContent: 'safe center' }}>
                 {ids.map((id) => {
                   const p = philosopherById(id)!
                   return (

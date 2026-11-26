@@ -100,7 +100,11 @@ debateRouter.post('/decompose', async (req, res) => {
         'by it, made explicit and precise, in their spirit. Extract ONLY the position they actually ' +
         "asserted — if their text describes a situation without clearly staking a claim, reconstruct the " +
         "specific stance they're leaning toward from their own wording, but do not silently hand them the " +
-        'strongest or most correct version of it.',
+        'strongest or most correct version of it.\n\n' +
+        'Write everything in the first person, as the user would say it ("I should keep studying ' +
+        'philosophy", never "The user should..."). The conclusion is carved on a temple roof, so keep ' +
+        'it short: one plain sentence of at most 12 words. Each premise is one plain sentence of at ' +
+        'most 18 words.',
       prompt: `Position: "${claim}"`,
       tier: 'light',
       toolName: 'record_breakdown',
@@ -108,7 +112,7 @@ debateRouter.post('/decompose', async (req, res) => {
       schema: {
         type: 'object',
         properties: {
-          conclusion: { type: 'string' },
+          conclusion: { type: 'string', description: 'First person, at most 12 words.' },
           premises: {
             type: 'array',
             minItems: 2,

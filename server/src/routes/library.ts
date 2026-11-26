@@ -18,6 +18,10 @@ interface BioResult {
   conversationStarters: string[]
 }
 
+// A profile is the same for everyone who asks with the same settings, so each
+// is written once and kept in memory (requests already in flight are shared).
+const bioCache = new Map<string, Promise<BioResult>>()
+
 libraryRouter.post('/bio', async (req, res) => {
   const philosopherId = typeof req.body?.philosopherId === 'string' ? req.body.philosopherId : ''
   const philosopher = philosopherById(philosopherId)
@@ -28,8 +32,24 @@ libraryRouter.post('/bio', async (req, res) => {
 
   const { language, depth } = req.body ?? {}
 
+  const cacheKey = `${philosopher.id}|${language ?? ''}|${depth ?? ''}`
   try {
-    const result = await structured<BioResult>({
+    let pending = bioCache.get(cacheKey)
+    if (!pending) {
+      pending = writeBio(philosopher, language, depth)
+      bioCache.set(cacheKey, pending)
+      pending.catch(() => bioCache.delete(cacheKey))
+    }
+    res.json(await pending)
+  } catch (err) {
+    console.error('bio failed', err)
+    res.status(502).json({ error: 'Claude request failed' })
+  }
+})
+
+function writeBio(philosopher: NonNullable<ReturnType<typeof philosopherById>>, language: unknown, depth: unknown): Promise<BioResult> {
+    return structured<BioResult>({
+      tier: 'light',
       system:
         'You write engaging, accurate, editorial-quality profiles of philosophers for a curious student — ' +
         'the register of a well-written magazine profile, not a dry encyclopedia entry or a stitched-together ' +
@@ -121,12 +141,7 @@ libraryRouter.post('/bio', async (req, res) => {
       },
       maxTokens: 900,
     })
-    res.json(result)
-  } catch (err) {
-    console.error('bio failed', err)
-    res.status(502).json({ error: 'Claude request failed' })
-  }
-})
+}
 
 /* --------------------------------- compare --------------------------------- */
 

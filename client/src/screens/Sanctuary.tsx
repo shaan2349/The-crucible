@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { User } from 'lucide-react'
 import { useDebateContext } from '../context/DebateContext'
@@ -64,6 +64,32 @@ export function Sanctuary() {
   const navigate = useNavigate()
   const { debate } = useDebateContext()
   const sceneRef = useRef<HTMLDivElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const [view, setView] = useState('0 0 1200 900')
+
+  // Frame the hill to the screen: on wide, short windows the slice crop
+  // would cut off the lower places, so the view is moved and tightened
+  // around the part of the hill where the places stand (y 258 to 778).
+  useEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+    const fit = () => {
+      const { width, height } = el.getBoundingClientRect()
+      if (!width || !height) return
+      const h = (1200 * height) / width
+      if (h >= 900) return setView('0 0 1200 900')
+      if (h >= 520) {
+        const y = Math.max(0, Math.min(900 - h, 518 - h / 2))
+        return setView(`0 ${y.toFixed(1)} 1200 ${h.toFixed(1)}`)
+      }
+      const w = (520 * width) / height
+      setView(`${(600 - w / 2).toFixed(1)} 258 ${w.toFixed(1)} 520`)
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   // a gentle parallax as the pointer moves (desktop only)
   useEffect(() => {
@@ -149,10 +175,10 @@ export function Sanctuary() {
         </Link>
       </header>
 
-      <div className="relative min-h-0 flex-1">
+      <div ref={stageRef} className="relative min-h-0 flex-1">
         <svg
           className="absolute inset-0 h-full w-full"
-          viewBox="0 0 1200 900"
+          viewBox={view}
           preserveAspectRatio="xMidYMid slice"
           role="group"
           aria-label="The sanctuary. Choose a place to enter."
@@ -191,7 +217,7 @@ export function Sanctuary() {
           </defs>
 
           {/* sky */}
-          <rect width="1200" height="900" fill="url(#sSky)" />
+          <rect x="-1200" width="3600" height="900" fill="url(#sSky)" />
           <g className="layer far" aria-hidden="true">
             {STARS.map((s, i) => (
               <circle key={i} className="star" cx={s.x} cy={s.y} r={s.s} fill="#EDE6D6" style={{ animationDelay: `-${s.d}s` }} />
@@ -208,9 +234,9 @@ export function Sanctuary() {
 
           {/* mountains and sea */}
           <g className="layer far" aria-hidden="true">
-            <path d="M0 470 L90 430 L170 452 L260 398 L340 440 L430 410 L520 446 L600 420 L690 452 L780 404 L860 438 L960 396 L1050 430 L1130 410 L1200 440 L1200 520 L0 520 Z" fill="#141b28" />
-            <path d="M0 500 L120 470 L230 488 L330 462 L470 492 L620 470 L760 494 L900 466 L1040 490 L1200 470 L1200 540 L0 540 Z" fill="#111722" />
-            <rect y="520" width="1200" height="120" fill="url(#sSea)" />
+            <path d="M-300 470 L0 470 L90 430 L170 452 L260 398 L340 440 L430 410 L520 446 L600 420 L690 452 L780 404 L860 438 L960 396 L1050 430 L1130 410 L1200 440 L1500 440 L1500 520 L-300 520 Z" fill="#141b28" />
+            <path d="M-300 500 L0 500 L120 470 L230 488 L330 462 L470 492 L620 470 L760 494 L900 466 L1040 490 L1200 470 L1500 470 L1500 540 L-300 540 Z" fill="#111722" />
+            <rect x="-300" y="520" width="1800" height="120" fill="url(#sSea)" />
             <g className="shimmer">
               {Array.from({ length: 14 }, (_, i) => (
                 <rect key={i} x={760 - 6 - i * 1.6 + ((i * 37) % 11)} y={528 + i * 7} width={12 + i * 3} height="1.4" fill="#F1E8D2" opacity={0.5 - i * 0.025} />
@@ -220,7 +246,7 @@ export function Sanctuary() {
 
           {/* the hill */}
           <g className="layer mid" aria-hidden="true">
-            <path d="M0 640 C 180 600, 330 470, 520 445 C 560 440, 640 440, 680 445 C 870 470, 1020 600, 1200 650 L1200 900 L0 900 Z" fill="#0f131b" />
+            <path d="M-300 690 L0 640 C 180 600, 330 470, 520 445 C 560 440, 640 440, 680 445 C 870 470, 1020 600, 1200 650 L1500 700 L1500 900 L-300 900 Z" fill="#0f131b" />
             <path d="M0 640 C 180 600, 330 470, 520 445 C 560 440, 640 440, 680 445 C 870 470, 1020 600, 1200 650" fill="none" stroke={C.stoneEdge} strokeWidth="1.5" />
             {/* cypresses */}
             {[

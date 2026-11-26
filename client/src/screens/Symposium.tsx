@@ -61,6 +61,19 @@ export function Symposium() {
 
   const ids = session?.philosopherIds.slice(0, 3) ?? []
 
+  // Arriving from the Hall with a chosen thinker starts a fresh table. An
+  // unfinished conversation already in progress is kept as a lamp first.
+  const seatHandled = useRef(false)
+  useEffect(() => {
+    if (seatHandled.current || !seatRequest?.withIds?.length || !session) return
+    seatHandled.current = true
+    const same = seatRequest.withIds.every((id) => session.philosopherIds.includes(id)) && (!seatRequest.only || session.philosopherIds.length === 1)
+    if (same) return
+    if (session.rounds.length > 0) saveReflectSessions([...loadReflectSessions(), session])
+    setSession(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   function update(fn: (s: ReflectSession) => ReflectSession) {
     setSession((prev) => (prev ? fn(prev) : prev))
   }
