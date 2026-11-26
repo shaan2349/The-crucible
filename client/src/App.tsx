@@ -4,13 +4,13 @@ import { Onboarding } from './screens/Onboarding'
 import { AppShell } from './components/AppShell'
 import { Debate } from './screens/Debate'
 import { Council } from './screens/Council'
-import { Library } from './screens/Library'
 import { Train } from './screens/Train'
 import { Profile } from './screens/Profile'
 import { Settings } from './screens/Settings'
 import { Sanctuary } from './screens/Sanctuary'
 import { Symposium } from './screens/Symposium'
 import { Landscape } from './screens/Landscape'
+import { Hall } from './screens/Hall'
 import { DuotoneDefs } from './components/DuotoneDefs'
 import { DebateProvider } from './context/DebateContext'
 import { ReflectProvider } from './context/ReflectContext'
@@ -33,7 +33,9 @@ function App() {
                 <Route path="reflect" element={<Navigate to="/app/symposium" replace />} />
                 <Route path="debate" element={<Debate />} />
                 <Route path="council" element={<Council />} />
-                <Route path="archive" element={<Library />} />
+                <Route path="hall" element={<Hall />} />
+                {/* The Library became the Hall of Minds. */}
+                <Route path="archive" element={<Navigate to="/app/hall" replace />} />
                 <Route path="train" element={<Train />} />
                 <Route path="landscape" element={<Landscape />} />
                 {/* My Thinking became Your Landscape. */}

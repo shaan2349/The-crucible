@@ -112,8 +112,8 @@ export interface BeginReflectionResponse {
   philosopherIds: string[]
   openings: { philosopherId: string; take: string }[]
 }
-export function beginReflection(situation: string, style?: StyleParams) {
-  return postJSON<BeginReflectionResponse>('/claude/reflect/begin', { situation, ...style })
+export function beginReflection(situation: string, style?: StyleParams, seats?: { withIds?: string[]; only?: boolean }) {
+  return postJSON<BeginReflectionResponse>('/claude/reflect/begin', { situation, ...style, ...seats })
 }
 
 export interface RespondReflectionResponse {

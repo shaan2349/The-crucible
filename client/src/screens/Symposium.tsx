@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Mic, Play, Square } from 'lucide-react'
 import { philosopherById } from '../data/philosophers'
 import * as api from '../lib/api'
@@ -36,6 +36,11 @@ function wait(ms: number) {
 
 export function Symposium() {
   const navigate = useNavigate()
+  const location = useLocation()
+  // Arriving from the Hall of Minds: a chosen thinker is saved a seat, or
+  // sits with you alone.
+  const seatRequest = (location.state as { withIds?: string[]; only?: boolean } | null) ?? null
+  const chosen = (seatRequest?.withIds ?? []).map((id) => philosopherById(id)?.name).filter(Boolean) as string[]
   const { session, setSession } = useReflectContext()
   const { preferences } = usePreferencesContext()
   const tts = useTextToSpeech()
@@ -73,7 +78,7 @@ export function Symposium() {
     setStarting(true)
     setStartError(null)
     try {
-      const result = await api.beginReflection(text, { language: preferences.language, depth: preferences.depth })
+      const result = await api.beginReflection(text, { language: preferences.language, depth: preferences.depth }, seatRequest?.withIds?.length ? { withIds: seatRequest.withIds, only: !!seatRequest.only } : undefined)
       const next: ReflectSession = {
         id: Date.now(),
         situation: text,
@@ -266,11 +271,17 @@ export function Symposium() {
           <div className="mx-auto flex max-w-[560px] flex-col gap-3 px-[18px] pt-4">
             {!session && (
               <div className="sym-enter flex flex-col gap-3">
-                <Eyebrow>A SEAT IS WAITING FOR YOU</Eyebrow>
+                <Eyebrow>{seatRequest?.only && chosen.length ? `A CONVERSATION WITH ${chosen[0].toUpperCase()}` : 'A SEAT IS WAITING FOR YOU'}</Eyebrow>
                 <label htmlFor="sym-situation" style={{ fontFamily: F.display, fontSize: 24, lineHeight: 1.15 }}>
-                  What’s on your mind?
+                  {seatRequest?.only && chosen.length ? `What would you like to ask ${chosen[0]}?` : 'What’s on your mind?'}
                 </label>
-                <p style={{ fontFamily: F.read, fontSize: 15, color: C.muted }}>A decision, a worry or a question. Three philosophers will sit with you and talk it through.</p>
+                <p style={{ fontFamily: F.read, fontSize: 15, color: C.muted }}>
+                  {seatRequest?.only && chosen.length
+                    ? `A question, a decision or something you have been turning over. ${chosen[0]} will answer in their own way.`
+                    : chosen.length
+                      ? `A decision, a worry or a question. ${chosen.join(' and ')} will be at the table, with others who see it differently.`
+                      : 'A decision, a worry or a question. Three philosophers will sit with you and talk it through.'}
+                </p>
                 <div className="relative">
                   <textarea
                     id="sym-situation"
@@ -346,7 +357,7 @@ export function Symposium() {
 
                 {session.phase === 'awaiting-response' && revealedOpenings >= Math.min(3, ids.length) && (
                   <div className="sym-enter flex flex-col gap-2.5 pt-1">
-                    <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Who you are speaking to">
+                    {ids.length > 1 && <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Who you are speaking to">
                       <Eyebrow>SPEAK TO</Eyebrow>
                       {[{ id: 'all', name: 'Everyone' }, ...seats].map((s) => (
                         <button
@@ -365,7 +376,7 @@ export function Symposium() {
                           {s.name}
                         </button>
                       ))}
-                    </div>
+                    </div>}
                     <div className="relative">
                       <label htmlFor="sym-message" className="sr-only">
                         Your reply
@@ -378,7 +389,7 @@ export function Symposium() {
                           if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') send()
                         }}
                         rows={3}
-                        placeholder={addressee === 'all' ? 'Say something to the table…' : `Say something to ${seats.find((s) => s.id === addressee)?.name}…`}
+                        placeholder={ids.length === 1 ? `Say something to ${seats[0]?.name}…` : addressee === 'all' ? 'Say something to the table…' : `Say something to ${seats.find((s) => s.id === addressee)?.name}…`}
                         className="w-full resize-none rounded p-3.5 pr-12 outline-none"
                         style={{ background: C.raised, border: `1px solid ${C.lineStrong}`, color: C.ivory, fontFamily: F.read, fontSize: 16, lineHeight: 1.55 }}
                       />

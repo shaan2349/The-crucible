@@ -87,6 +87,17 @@ reflectRouter.post('/begin', async (req, res) => {
   if (!situation) return badRequest(res, 'situation is required')
   if (situation.length > 2000) return badRequest(res, 'situation is too long')
   const { language, depth } = req.body ?? {}
+  // From the Hall of Minds: a chosen thinker joins the table, or (with
+  // `only`) sits with the user alone for a one-on-one conversation.
+  const withIds: string[] = Array.isArray(req.body?.withIds)
+    ? (req.body.withIds as unknown[]).filter((id): id is string => typeof id === 'string' && !!philosopherById(id)).slice(0, 3)
+    : []
+  const only = req.body?.only === true && withIds.length > 0
+  const seatNote = only
+    ? `\n\nThis is a one-on-one conversation. Choose ONLY these philosophers, no one else: ${withIds.join(', ')}.`
+    : withIds.length
+      ? `\n\nThe user has asked for ${withIds.map((id) => philosopherById(id)?.name).join(' and ')} to be at the table: include ${withIds.join(', ')} and choose the rest so the perspectives genuinely differ.`
+      : ''
 
   const list = PHILOSOPHERS.map((p) => `${p.id}: ${p.name} — ${p.framework}`).join('\n')
 
@@ -99,7 +110,7 @@ Choose exactly 2-3 philosophers from the list whose frameworks would lead them t
 For each chosen philosopher, write a short opening take (aim for 15-30 words) that names the specific angle they'd bring to THIS situation — not a debate position, a way of SEEING it. Stay philosophically authentic to their actual framework; do not write generic life-coach language. Example register: "Question whether the safe option reflects genuine choice or fear of choosing yourself" (Kierkegaard) — specific, philosophically grounded, not therapeutic filler.
 ${AUTHENTICITY_RULES}
 ${styleBlock(language, depth)}`,
-      prompt: `The user's situation: "${situation}"\n\nPhilosophers:\n${list}`,
+      prompt: `The user's situation: "${situation}"\n\nPhilosophers:\n${list}${seatNote}`,
       toolName: 'begin_reflection',
       toolDescription: 'Records the chosen thinkers and each one\'s opening take on the situation.',
       schema: {
@@ -108,7 +119,7 @@ ${styleBlock(language, depth)}`,
           philosopherIds: {
             type: 'array',
             items: { type: 'string', enum: PHILOSOPHER_IDS },
-            minItems: 2,
+            minItems: only ? withIds.length : 2,
             maxItems: 3,
           },
           openings: {
@@ -121,7 +132,7 @@ ${styleBlock(language, depth)}`,
               },
               required: ['philosopherId', 'take'],
             },
-            minItems: 2,
+            minItems: only ? withIds.length : 2,
             maxItems: 3,
           },
         },
@@ -130,7 +141,9 @@ ${styleBlock(language, depth)}`,
       maxTokens: 500,
     })
 
-    const ids = result.philosopherIds.filter((id) => philosopherById(id))
+    let ids = result.philosopherIds.filter((id) => philosopherById(id))
+    if (only) ids = withIds
+    else if (withIds.length) ids = [...withIds, ...ids.filter((id) => !withIds.includes(id))].slice(0, 3)
     const openings = result.openings.filter((o) => ids.includes(o.philosopherId))
     res.json({ philosopherIds: ids, openings })
   } catch (err) {

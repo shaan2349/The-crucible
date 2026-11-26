@@ -119,7 +119,7 @@ export function Landing() {
 
         <button
           type="button"
-          onClick={() => navigate('/app/archive')}
+          onClick={() => navigate('/app/hall')}
           className="mt-6 font-body text-sm text-parchment-600 underline decoration-parchment-400 underline-offset-4 hover:text-parchment-800"
           style={{ animation: 'revealUp 0.6s ease 1050ms both' }}
         >

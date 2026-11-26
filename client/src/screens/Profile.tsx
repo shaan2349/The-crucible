@@ -65,7 +65,7 @@ export function Profile() {
 
           <button
             type="button"
-            onClick={() => navigate('/app/archive')}
+            onClick={() => navigate('/app/hall')}
             className="flex w-full items-center gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left transition-transform duration-150 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
             style={{ boxShadow: 'var(--shadow-card)' }}
           >
