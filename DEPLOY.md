@@ -16,7 +16,7 @@ Takes about 10 minutes. You'll need a GitHub account signed into
    install/authorize its GitHub app the first time — approve it).
 4. Fill in:
    - **Name**: `crucible-server` (or anything)
-   - **Branch**: `claude/crucible-debate-app-d0vz15` (or `main`, once this is merged)
+   - **Branch**: `claude/wonderful-davinci-b6zazd` (or `main`, once this is merged)
    - **Root Directory**: `server`
    - **Runtime**: Node
    - **Build Command**: `npm install && npm run build`
@@ -24,7 +24,7 @@ Takes about 10 minutes. You'll need a GitHub account signed into
    - **Instance Type**: Free
 5. Under **Environment Variables**, add:
    - `ANTHROPIC_API_KEY` → your real key (starts `sk-ant-...`)
-   - `CLAUDE_MODEL` → `claude-sonnet-4-5` (optional — this is already the default)
+   - `CLAUDE_MODEL` → `claude-opus-5-5` (optional — this is already the default)
    - `CLIENT_ORIGIN` → leave blank for now, you'll fill this in at the end of Step C
 6. Click **Create Web Service**. Wait for the first deploy to finish (a few
    minutes), then copy its URL from the top of the page — it looks like
