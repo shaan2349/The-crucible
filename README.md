@@ -53,7 +53,7 @@ npm run dev            # http://localhost:5173, proxies /api to :8787
 | `CLAUDE_MODEL` | `claude-opus-5-5` | Model for everything a philosopher says. |
 | `CLAUDE_LIGHT_MODEL` | `claude-haiku-5-5` | Cheaper model for hidden jobs: choosing opponents, splitting premises, search. |
 | `DAILY_SESSION_LIMIT` | `12` | New debates, symposiums and Oracle answers per visitor per day. `0` turns it off. |
-| `CLIENT_ORIGIN` | `http://localhost:5173` | The website's address, for CORS. |
+| `CLIENT_ORIGIN` | none | Extra website addresses allowed to call the server (comma-separated). The live site and localhost are always allowed. |
 
 Every request is also rate limited to 20 per minute per visitor. Set a monthly
 spending cap in the Anthropic console as the final safeguard.

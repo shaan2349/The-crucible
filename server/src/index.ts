@@ -14,7 +14,15 @@ const port = process.env.PORT ?? 8787
 // visitor, not to the proxy itself.
 app.set('trust proxy', 1)
 
-app.use(cors({ origin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173' }))
+// Websites allowed to call this server. CLIENT_ORIGIN (comma-separated) adds
+// more; the live site and local development are always allowed.
+const allowedOrigins = [
+  'https://crucible-e53r.onrender.com',
+  'http://localhost:5173',
+  'http://localhost:4173',
+  ...(process.env.CLIENT_ORIGIN ?? '').split(',').map((o) => o.trim()).filter(Boolean),
+]
+app.use(cors({ origin: allowedOrigins }))
 app.use(express.json({ limit: '32kb' }))
 
 // The Claude API key lives only in this process's env. Every route below
