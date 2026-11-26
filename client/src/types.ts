@@ -1,9 +1,20 @@
-export type PremiseStatus = 'standing' | 'weakened' | 'conceded'
+/** standing = untouched · defended = answered well (sealed in gold) ·
+ * weakened = partly answered (cracked) · conceded = given up (falls) ·
+ * revised = rewritten by the user (a new column rises). */
+export type PremiseStatus = 'standing' | 'defended' | 'weakened' | 'conceded' | 'revised'
 
 export interface Premise {
   id: string
   text: string
   status: PremiseStatus
+  /** The user's rewritten version, set when status is 'revised'. */
+  revisedText?: string
+}
+
+/** The judge's one-line explanation after a reply. */
+export interface Judgement {
+  note: string
+  reasons: { id: string; status: PremiseStatus; reason: string }[]
 }
 
 export interface Attack {
@@ -21,6 +32,7 @@ export interface Round {
   round: number
   attacks: Attack[]
   userResponse: string | null
+  judgement?: Judgement
 }
 
 /** How much the user actually said during the Council, computed from real
@@ -48,6 +60,7 @@ export type DebatePhase =
   | 'attacking'
   | 'awaiting-response'
   | 'evaluating'
+  | 'judged'
   | 'verdict-loading'
   | 'verdict'
 
@@ -70,7 +83,11 @@ export interface Debate {
    * without recomputing from rounds (and without silently going stale if
    * rounds ever get trimmed/edited). */
   participationLevel?: ParticipationLevel
+  /** How the temple ended — derived from the final premise states. */
+  ending?: TempleEnding
 }
+
+export type TempleEnding = 'victory' | 'reshaped' | 'contested' | 'collapse' | 'untested'
 
 /* -------------------------------- Reflect -------------------------------- */
 // A deliberately separate shape from Debate/Round/Attack above — Reflect

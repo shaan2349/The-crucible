@@ -4,11 +4,15 @@ import type { Premise } from '../types'
 
 const STATUS_TEXT: Record<Premise['status'], string> = {
   standing: 'text-parchment-800',
+  defended: 'text-parchment-800',
+  revised: 'text-parchment-800',
   weakened: 'text-status-warning',
   conceded: 'text-parchment-400 line-through decoration-parchment-400/70',
 }
 const STATUS_LABEL: Record<Premise['status'], string> = {
   standing: '',
+  defended: 'Defended',
+  revised: 'Revised',
   weakened: 'Weakened',
   conceded: 'Conceded',
 }

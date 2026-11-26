@@ -8,7 +8,11 @@ import { AUTHENTICITY_RULES, NO_MANUFACTURED_DISAGREEMENT_RULE } from '../authen
 export const debateRouter = Router()
 
 const PHILOSOPHER_IDS = PHILOSOPHERS.map((p) => p.id)
-const PREMISE_STATUSES = ['standing', 'weakened', 'conceded'] as const
+// standing = not attacked yet or untouched · defended = attacked and answered
+// well (the temple seals it in gold) · weakened = only partly answered (left
+// cracked) · conceded = given up with nothing in its place (the column falls)
+// · revised = the user rewrote it into a better premise (a new column rises).
+const PREMISE_STATUSES = ['standing', 'defended', 'weakened', 'conceded', 'revised'] as const
 
 function badRequest(res: import('express').Response, message: string) {
   res.status(400).json({ error: message })
@@ -176,7 +180,7 @@ Rules for your response:
 - Somewhere in your response, work in the exact wording or a close paraphrase (2-6 words) of the specific premise you're challenging, so it's clear you engaged with their specific claim — but do NOT make this the first words of your response every time. Vary where it lands: sometimes open with a challenge or a question instead, and fold the quote in mid-response.
 - Name at least one specific concept, term, or text genuinely associated with you (e.g. Kant would say "categorical imperative", Rawls would say "veil of ignorance", Nietzsche would say "ressentiment"). A response with no specific terminology is a failure.
 - Do NOT write generic philosophical pushback that any philosopher could have said about any topic. Your objection must depend on the actual content of THIS premise.
-- Target exactly one premise, and be precise about which exact word or claim in it is the problem.
+- Target exactly one premise, and be precise about which exact word or claim in it is the problem. Never target a premise whose status is conceded. A premise marked revised is the user's new, rewritten version: test it fairly as written.
 - Speak in first person, in a register that fits your era and temperament (e.g. Nietzsche is provocative and cutting; Kant is precise and formal; Confucius is measured).
 - Match your depth to how the user has actually been engaging (see their prior responses below): if their answers have been short and simple, ask something equally direct and concrete rather than escalating complexity on them; if they've engaged substantively, you may go deeper. If their most recent response was "I don't know" or similar uncertainty, treat that as a real, meaningful answer worth building on — help them locate WHY it's unclear (missing evidence vs. an unclear principle), don't press harder as if they dodged the question.
 ${sameRoundText ? "- Another thinker has already spoken this round (see below). This is a live discussion between you, not parallel monologues — agree with a caveat, sharpen their point, or directly and specifically contest what THEY said, not just the user's original premise." : ''}
@@ -219,11 +223,12 @@ ${styleBlock(language, depth)}`,
 /* --------------------------------- evaluate -------------------------------- */
 
 interface EvaluateResult {
-  statuses: { id: string; status: string }[]
+  statuses: { id: string; status: string; reason?: string; revisedText?: string }[]
+  note: string
 }
 
 debateRouter.post('/evaluate', async (req, res) => {
-  const { claim, conclusion, premises, lastRoundAttacks, userResponse } = req.body ?? {}
+  const { claim, conclusion, premises, lastRoundAttacks, userResponse, language, depth } = req.body ?? {}
   if (typeof claim !== 'string' || !claim.trim()) return badRequest(res, 'claim is required')
   if (typeof conclusion !== 'string' || !conclusion.trim()) return badRequest(res, 'conclusion is required')
   if (!validPremises(premises)) return badRequest(res, 'premises is required')
@@ -241,16 +246,31 @@ debateRouter.post('/evaluate', async (req, res) => {
   try {
     const result = await structured<EvaluateResult>({
       system:
-        'You update the state of a philosophical argument tree after the user responded to challenges. ' +
-        'Judge based on the SPECIFIC substance of what the user actually wrote — not whether they responded ' +
-        'at all, and not the topic in general. For each premise, decide if it now stands (they defended it ' +
-        'well), is weakened (their defense was partial or shaky), or is conceded (they effectively agreed ' +
-        'or had no real answer).',
-      prompt: `Claim: "${claim}"\nConclusion: ${conclusion}\nPremises before response:\n${premises
+        'You are the strict, fair judge of a philosophical debate. The user defends a position whose premises are ' +
+        'drawn as columns of a temple; your judgement decides what happens to each column, so it must be earned.\n\n' +
+        'Judge ONLY the specific substance of what the user actually wrote, against the specific objections made. ' +
+        'Length, confidence and politeness earn nothing. An answer that changes the subject, restates the premise, ' +
+        'or answers a different objection than the one made does not defend it.\n\n' +
+        'For every premise give a status:\n' +
+        '- standing: not attacked this round and not addressed (keep its previous status if it was weakened or defended).\n' +
+        '- defended: attacked, and the user gave a real answer to that exact objection.\n' +
+        '- weakened: attacked, and the answer was partial, vague or missed the core of the objection.\n' +
+        '- conceded: the user gave it up or had no answer, and did not replace it.\n' +
+        '- revised: the user explicitly reformulated the premise into a different, more defensible claim. Put the new ' +
+        'premise, in one plain sentence in their spirit, in revisedText. Changing your mind for a good reason is good ' +
+        'philosophy, never a loss.\n\n' +
+        'A premise already conceded or revised stays that way unless the user explicitly reopens it.\n' +
+        'For each premise that was attacked or that the user addressed this round, give reason: one sentence, ' +
+        'addressed to the user as "you", saying exactly why it held, cracked, fell or changed, naming the objection. ' +
+        'Example: "You answered whether harm can be foreseen, but not Kant\'s point that deception wrongs regardless." ' +
+        'Leave reason empty for premises nobody touched.\n' +
+        'note: one short sentence to the user summing up this round, honest and specific, never flattering.' +
+        styleBlock(language, depth),
+      prompt: `Claim: "${claim}"\nConclusion: ${conclusion}\nPremises before this response:\n${premises
         .map((pr) => `${pr.id}: ${pr.text} [${pr.status ?? 'standing'}]`)
-        .join('\n')}\n\nLatest attacks:\n${attacksText}\n\nUser's response: "${userResponse}"`,
+        .join('\n')}\n\nLatest objections:\n${attacksText}\n\nUser's response: "${userResponse}"`,
       toolName: 'record_statuses',
-      toolDescription: 'Records the updated status of every premise.',
+      toolDescription: 'Records the judged status of every premise after the user\'s response.',
       schema: {
         type: 'object',
         properties: {
@@ -260,15 +280,29 @@ debateRouter.post('/evaluate', async (req, res) => {
               type: 'object',
               properties: {
                 id: { type: 'string', enum: premises.map((p) => p.id) },
-                status: { type: 'string', enum: PREMISE_STATUSES },
+                status: { type: 'string', enum: [...PREMISE_STATUSES] },
+                reason: { type: 'string', description: 'One sentence to the user; empty if the premise was not touched.' },
+                revisedText: { type: 'string', description: 'Only for status revised: the new premise in one sentence.' },
               },
               required: ['id', 'status'],
             },
           },
+          note: { type: 'string', description: 'One short, honest sentence summing up this round for the user.' },
         },
-        required: ['statuses'],
+        required: ['statuses', 'note'],
       },
-      maxTokens: 300,
+      maxTokens: 600,
+    })
+    // Never let a malformed judgement erase a premise: anything the model
+    // left out keeps its previous status.
+    const byId = new Map(result.statuses.map((st) => [st.id, st]))
+    result.statuses = premises.map((pr) => {
+      const st = byId.get(pr.id)
+      if (!st || !(PREMISE_STATUSES as readonly string[]).includes(st.status)) {
+        return { id: pr.id, status: pr.status ?? 'standing' }
+      }
+      if (st.status === 'revised' && !st.revisedText?.trim()) return { ...st, status: 'weakened' }
+      return st
     })
     res.json(result)
   } catch (err) {

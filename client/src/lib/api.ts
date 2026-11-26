@@ -76,7 +76,8 @@ export function attack(params: {
 }
 
 export interface EvaluateResponse {
-  statuses: { id: string; status: string }[]
+  statuses: { id: string; status: string; reason?: string; revisedText?: string }[]
+  note: string
 }
 export function evaluate(params: {
   claim: string
@@ -84,7 +85,7 @@ export function evaluate(params: {
   premises: { id: string; text: string; status: string }[]
   lastRoundAttacks: { philosopherId: string; targetPremiseId: string; text: string }[]
   userResponse: string
-}) {
+} & StyleParams) {
   return postJSON<EvaluateResponse>('/claude/debate/evaluate', params)
 }
 

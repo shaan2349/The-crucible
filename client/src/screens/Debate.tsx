@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ArrowRight, Mic } from 'lucide-react'
 import { Button } from '../components/Button'
 import { PortraitFrame } from '../components/PortraitFrame'
 import { RotatingBackdrop } from '../components/RotatingBackdrop'
-import { CouncilBackdrop, CouncilView } from './Council'
+// The 3D temple (and the 3D library behind it) loads only when a debate
+// starts, so the rest of the app stays quick to open.
+const TempleDebate = lazy(() => import('./TempleDebate').then((m) => ({ default: m.TempleDebate })))
 import { DEBATE_BACKDROP_PORTRAIT_SIZE } from '../components/DebateBackdrop'
 import { PHILOSOPHER_TAGS, SUGGESTED_TOPICS, philosopherById } from '../data/philosophers'
 import { loadDebateDraft, saveDebateDraft, clearDebateDraft, loadInterests } from '../lib/storage'
@@ -196,8 +198,9 @@ export function Debate() {
   if (debate) {
     return (
       <>
-        <CouncilBackdrop philosopherIds={debate.philosopherIds} />
-        <CouncilView debate={debate} setDebate={setDebate} onExit={() => setDebate(null)} />
+        <Suspense fallback={<div className="fixed inset-0 z-[60]" style={{ background: '#0B0D11' }} />}>
+          <TempleDebate debate={debate} setDebate={setDebate} onExit={() => setDebate(null)} />
+        </Suspense>
       </>
     )
   }
