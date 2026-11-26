@@ -72,6 +72,17 @@ every push to the tracked branch redeploys the app automatically.
 - **The 3D library loads only in the Temple**, so the rest of the app stays quick to open.
 - **Reduced motion is respected** everywhere: camera sway, particles and entrance animations switch off.
 
+## Next session: start here
+
+1. **The Symposium as a real discussion.** Philosophers should argue with each
+   other, interrupt, agree and disagree, react while others speak, and keep
+   the conversation moving, not just answer the question one by one.
+2. **A choice of how simple the English is** when you sit down at the table
+   (plain and simple, everyday, or full philosophical language).
+3. Then the agreed 3D order: the Sanctuary hill, the Hall of Minds (using
+   `client/src/marble/statue.ts` busts), the Oracle and the Landscape, and
+   replies that appear word by word.
+
 ## Still to do
 
 - Accounts and sign-in, so the daily allowance and saved history follow a person rather than a device.
