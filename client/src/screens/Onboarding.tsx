@@ -14,7 +14,7 @@ export function Onboarding() {
   function finish() {
     saveInterests(interests)
     markOnboarded()
-    navigate('/app/reflect')
+    navigate('/app')
   }
 
   function toggleInterest(name: string) {

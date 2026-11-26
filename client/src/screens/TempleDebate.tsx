@@ -401,12 +401,9 @@ export function TempleDebate({
         >
           <button
             type="button"
-            onClick={() => {
-              onExit()
-              navigate('/app/debate')
-            }}
+            onClick={() => navigate('/app')}
             className="temple-btn flex h-11 w-11 items-center justify-center rounded-full"
-            aria-label="Leave the temple"
+            aria-label="Back to the sanctuary (your debate stays in progress)"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>

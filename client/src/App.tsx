@@ -10,6 +10,7 @@ import { Train } from './screens/Train'
 import { MyThinking } from './screens/MyThinking'
 import { Profile } from './screens/Profile'
 import { Settings } from './screens/Settings'
+import { Sanctuary } from './screens/Sanctuary'
 import { DuotoneDefs } from './components/DuotoneDefs'
 import { DebateProvider } from './context/DebateContext'
 import { ReflectProvider } from './context/ReflectContext'
@@ -26,7 +27,7 @@ function App() {
               <Route path="/" element={<Landing />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/app" element={<AppShell />}>
-                <Route index element={<Navigate to="reflect" replace />} />
+                <Route index element={<Sanctuary />} />
                 <Route path="reflect" element={<Reflect />} />
                 <Route path="debate" element={<Debate />} />
                 <Route path="council" element={<Council />} />
