@@ -7,10 +7,14 @@ if (!apiKey) {
 
 export const anthropic = new Anthropic({ apiKey })
 
+/** The model for everything a user reads a philosopher say. */
 export const CLAUDE_MODEL = process.env.CLAUDE_MODEL ?? 'claude-opus-5-5'
+/** A cheaper model for behind-the-scenes jobs the user never reads directly
+ * (choosing opponents, splitting a belief into premises, search). */
+export const CLAUDE_LIGHT_MODEL = process.env.CLAUDE_LIGHT_MODEL ?? 'claude-haiku-5-5'
 
 /** Models that accept the server-side refusal fallback (`fallbacks: "default"`). */
-const SUPPORTS_FALLBACKS = /^claude-(opus-5-5|opus-5$|sonnet-5-5|fable-5)/.test(CLAUDE_MODEL)
+const supportsFallbacks = (model: string) => /^claude-(opus-5-5|opus-5$|sonnet-5-5|fable-5)/.test(model)
 
 /**
  * The model thinks before it answers on current Claude models, and that
@@ -35,19 +39,22 @@ export async function structured<T>(opts: {
   toolDescription: string
   schema: Anthropic.Tool.InputSchema
   maxTokens?: number
+  /** 'light' runs on the cheaper model; anything a philosopher says stays on the main one. */
+  tier?: 'main' | 'light'
 }): Promise<T> {
+  const model = opts.tier === 'light' ? CLAUDE_LIGHT_MODEL : CLAUDE_MODEL
   const system = `${opts.system}\n\nAlways respond by calling the ${opts.toolName} tool exactly once. Do not reply in plain text.`
   const tool = { name: opts.toolName, description: opts.toolDescription, input_schema: opts.schema }
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const response = await anthropic.beta.messages.create({
-      model: CLAUDE_MODEL,
+      model,
       max_tokens: Math.max(opts.maxTokens ?? 0, MIN_MAX_TOKENS),
       system,
       messages: [{ role: 'user', content: opts.prompt }],
       tools: [tool],
       tool_choice: { type: 'auto' },
-      ...(SUPPORTS_FALLBACKS ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } : {}),
+      ...(supportsFallbacks(model) ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } : {}),
     } as Anthropic.Beta.MessageCreateParamsNonStreaming)
 
     if (response.stop_reason === 'refusal') {

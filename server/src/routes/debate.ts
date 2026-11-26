@@ -54,6 +54,7 @@ debateRouter.post('/select-opponents', async (req, res) => {
         "inventing disagreement neither philosopher would really have. If a philosopher's real framework " +
         "would mostly agree with the user's position, do not select them just to manufacture a fight.",
       prompt: `Position: "${claim}"\n\nPhilosophers:\n${list}`,
+      tier: 'light',
       toolName: 'select_opponents',
       toolDescription: 'Records the two chosen philosopher ids.',
       schema: {
@@ -101,6 +102,7 @@ debateRouter.post('/decompose', async (req, res) => {
         "specific stance they're leaning toward from their own wording, but do not silently hand them the " +
         'strongest or most correct version of it.',
       prompt: `Position: "${claim}"`,
+      tier: 'light',
       toolName: 'record_breakdown',
       toolDescription: 'Records the formal conclusion and its supporting premises.',
       schema: {

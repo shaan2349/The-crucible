@@ -26,6 +26,10 @@ Takes about 10 minutes. You'll need a GitHub account signed into
    - `ANTHROPIC_API_KEY` → your real key (starts `sk-ant-...`)
    - `CLAUDE_MODEL` → `claude-opus-5-5` (optional — this is already the default)
    - `CLIENT_ORIGIN` → leave blank for now, you'll fill this in at the end of Step C
+   - `CLAUDE_LIGHT_MODEL` → `claude-haiku-5-5` (optional — the cheaper model for
+     behind-the-scenes jobs; this is already the default)
+   - `DAILY_SESSION_LIMIT` → `12` (optional — new debates, symposiums and Oracle
+     answers allowed per visitor per day; `0` turns the limit off)
 6. Click **Create Web Service**. Wait for the first deploy to finish (a few
    minutes), then copy its URL from the top of the page — it looks like
    `https://crucible-server-xxxx.onrender.com`. You'll need it in Step B.

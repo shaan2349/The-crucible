@@ -10,6 +10,9 @@ import { oracleRouter } from './routes/oracle.js'
 
 const app = express()
 const port = process.env.PORT ?? 8787
+// Behind Render's proxy: trust its X-Forwarded-For so limits apply per
+// visitor, not to the proxy itself.
+app.set('trust proxy', 1)
 
 app.use(cors({ origin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173' }))
 app.use(express.json({ limit: '32kb' }))
@@ -26,6 +29,34 @@ app.use(
     legacyHeaders: false,
   }),
 )
+
+// A daily allowance per visitor for the things that start real AI work:
+// a new debate, a new symposium, an Oracle answer. Without accounts this
+// is per IP address and resets when the server restarts; it is a floor
+// that keeps one visitor from spending the whole monthly budget.
+const DAILY_LIMIT = Number(process.env.DAILY_SESSION_LIMIT ?? 12)
+const usage = new Map<string, { day: string; count: number }>()
+const STARTS = new Set(['/api/claude/debate/select-opponents', '/api/claude/reflect/begin', '/api/claude/oracle/answer'])
+app.use((req, res, next) => {
+  if (req.method !== 'POST' || !STARTS.has(req.path) || !(DAILY_LIMIT > 0)) return next()
+  const day = new Date().toISOString().slice(0, 10)
+  const key = req.ip ?? 'unknown'
+  const u = usage.get(key)
+  const count = u && u.day === day ? u.count : 0
+  if (count >= DAILY_LIMIT) {
+    res.status(429).json({ error: `You have reached today's limit of ${DAILY_LIMIT} conversations. The sanctuary reopens tomorrow.` })
+    return
+  }
+  usage.set(key, { day, count: count + 1 })
+  if (usage.size > 50_000) usage.clear()
+  // A start that failed on our side shouldn't use up the visitor's allowance.
+  res.on('finish', () => {
+    if (res.statusCode < 500) return
+    const now = usage.get(key)
+    if (now && now.day === day && now.count > 0) usage.set(key, { day, count: now.count - 1 })
+  })
+  next()
+})
 
 app.use('/api/claude/debate', debateRouter)
 app.use('/api/claude/reflect', reflectRouter)

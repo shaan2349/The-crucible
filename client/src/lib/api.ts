@@ -33,11 +33,15 @@ async function postJSON<T>(path: string, body: unknown, attempts = 3): Promise<T
       }
       if (!res.ok) {
         const message = (data as { error?: string } | null)?.error ?? `Request failed (HTTP ${res.status})`
+        // A refusal like "today's limit reached" or a bad request won't
+        // change on retry; only server hiccups and network failures are retried.
+        if (res.status < 500) throw Object.assign(new Error(message), { final: true })
         throw new Error(message)
       }
       return data as T
     } catch (e) {
       lastErr = e
+      if ((e as { final?: boolean }).final) break
       if (i < attempts - 1) await new Promise((r) => setTimeout(r, 500 * (i + 1)))
     }
   }

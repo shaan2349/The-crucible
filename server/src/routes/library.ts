@@ -200,6 +200,7 @@ libraryRouter.post('/search', async (req, res) => {
         'invent a philosopher not in the roster, and never include a weak or generic match just to fill ' +
         'the list — an empty result is correct if nothing genuinely fits.',
       prompt: `Query: "${query}"\n\nRoster:\n${roster}`,
+      tier: 'light',
       toolName: 'record_search_matches',
       toolDescription: 'Records which philosophers match the query and why.',
       schema: {
