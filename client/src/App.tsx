@@ -6,11 +6,11 @@ import { Debate } from './screens/Debate'
 import { Council } from './screens/Council'
 import { Library } from './screens/Library'
 import { Train } from './screens/Train'
-import { MyThinking } from './screens/MyThinking'
 import { Profile } from './screens/Profile'
 import { Settings } from './screens/Settings'
 import { Sanctuary } from './screens/Sanctuary'
 import { Symposium } from './screens/Symposium'
+import { Landscape } from './screens/Landscape'
 import { DuotoneDefs } from './components/DuotoneDefs'
 import { DebateProvider } from './context/DebateContext'
 import { ReflectProvider } from './context/ReflectContext'
@@ -35,10 +35,12 @@ function App() {
                 <Route path="council" element={<Council />} />
                 <Route path="archive" element={<Library />} />
                 <Route path="train" element={<Train />} />
-                <Route path="mythinking" element={<MyThinking />} />
+                <Route path="landscape" element={<Landscape />} />
+                {/* My Thinking became Your Landscape. */}
+                <Route path="mythinking" element={<Navigate to="/app/landscape" replace />} />
                 {/* Old bookmarks/back-forward history to the pre-restructure
                     Journal route still land somewhere real. */}
-                <Route path="journal" element={<Navigate to="/app/mythinking" replace />} />
+                <Route path="journal" element={<Navigate to="/app/landscape" replace />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />
               </Route>

@@ -198,7 +198,7 @@ export function Symposium() {
     saveReflectSessions([...history, toSave])
     setSession(null)
     setTakeaway('')
-    navigate('/app/mythinking')
+    navigate('/app/landscape')
   }
 
   function leaveForNew() {
