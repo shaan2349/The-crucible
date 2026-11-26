@@ -16,6 +16,7 @@ const KEYS = {
   onboarded: 'crucible:onboarded',
   interests: 'crucible:interests',
   trainTopics: 'crucible:trainTopics',
+  oracle: 'crucible:oracle',
 } as const
 
 export type Language = 'simple' | 'standard' | 'scholarly'
@@ -198,4 +199,24 @@ export function deleteAllData(): void {
       // ignore
     }
   }
+}
+
+/* --------------------------------- oracle --------------------------------- */
+
+/** One day at the Oracle: the question, and the answer if one was given. */
+export interface OracleDay {
+  date: string // YYYY-MM-DD, the user's local day
+  question: string
+  context: string
+  answer?: string
+  reply?: string
+  perspectives?: { philosopherId: string; view: string }[]
+  followUp?: string
+}
+
+export function loadOracleDays(): OracleDay[] {
+  return load<OracleDay[]>(KEYS.oracle, [])
+}
+export function saveOracleDays(days: OracleDay[]): void {
+  save(KEYS.oracle, days.slice(-60))
 }

@@ -223,3 +223,23 @@ export function scoreChallenge(params: {
 }) {
   return postJSON<TrainScoreResponse>('/claude/train/score', params)
 }
+
+/* -------------------------------- oracle -------------------------------- */
+
+export interface OracleQuestion {
+  question: string
+  context: string
+  domain: string
+}
+export function fetchOracleQuestion(recentQuestions: string[]) {
+  return postJSON<OracleQuestion>('/claude/oracle/question', { recentQuestions })
+}
+
+export interface OracleReply {
+  reply: string
+  perspectives: { philosopherId: string; view: string }[]
+  followUp: string
+}
+export function answerOracle(question: string, answer: string, style?: StyleParams) {
+  return postJSON<OracleReply>('/claude/oracle/answer', { question, answer, ...style })
+}

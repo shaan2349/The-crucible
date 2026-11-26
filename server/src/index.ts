@@ -6,6 +6,7 @@ import { debateRouter } from './routes/debate.js'
 import { reflectRouter } from './routes/reflect.js'
 import { libraryRouter } from './routes/library.js'
 import { trainRouter } from './routes/train.js'
+import { oracleRouter } from './routes/oracle.js'
 
 const app = express()
 const port = process.env.PORT ?? 8787
@@ -30,6 +31,7 @@ app.use('/api/claude/debate', debateRouter)
 app.use('/api/claude/reflect', reflectRouter)
 app.use('/api/claude/library', libraryRouter)
 app.use('/api/claude/train', trainRouter)
+app.use('/api/claude/oracle', oracleRouter)
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true })

@@ -39,7 +39,7 @@ export function Symposium() {
   const location = useLocation()
   // Arriving from the Hall of Minds: a chosen thinker is saved a seat, or
   // sits with you alone.
-  const seatRequest = (location.state as { withIds?: string[]; only?: boolean } | null) ?? null
+  const seatRequest = (location.state as { withIds?: string[]; only?: boolean; prefill?: string } | null) ?? null
   const chosen = (seatRequest?.withIds ?? []).map((id) => philosopherById(id)?.name).filter(Boolean) as string[]
   const { session, setSession } = useReflectContext()
   const { preferences } = usePreferencesContext()
@@ -47,7 +47,7 @@ export function Symposium() {
   const stt = useSpeechToText()
   const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-  const [situation, setSituation] = useState('')
+  const [situation, setSituation] = useState(() => seatRequest?.prefill ?? '')
   const [message, setMessage] = useState('')
   const [addressee, setAddressee] = useState<string>('all')
   const [takeaway, setTakeaway] = useState('')
