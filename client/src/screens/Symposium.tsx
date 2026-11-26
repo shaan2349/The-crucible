@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Mic, Play, Square } from 'lucide-react'
@@ -12,14 +12,16 @@ import { useSpeechToText } from '../hooks/useSpeechToText'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
 import type { ReflectRound, ReflectSession, ReflectTurn } from '../types'
 
+// The 3D table loads with the Symposium itself, keeping the rest of the app light.
+const Symposium3D = lazy(() => import('../symposium/Symposium3D'))
+
 /**
  * The Symposium: the calm counterpart to the Temple. Philosophers sit
  * around a lamplit table and talk a real situation through with you;
- * whoever is speaking leans into the lamplight. No winning or losing.
+ * seated as marble statues; whoever is speaking is lit and turns to you. No winning or losing.
  */
 
 const SEAT_COLORS = [C.ember, C.iris, C.sage]
-const ROBES = ['#5a2a22', '#33305c', '#284d3e']
 
 const PROMPTS = [
   'A decision I keep putting off is…',
@@ -234,7 +236,7 @@ export function Symposium() {
 
   /* ----------------------------------- view ----------------------------------- */
 
-  const seats = ids.map((id, i) => ({ id, name: philosopherById(id)?.name ?? id, color: SEAT_COLORS[i], robe: ROBES[i] }))
+  const seats = ids.map((id, i) => ({ id, name: philosopherById(id)?.name ?? id, color: SEAT_COLORS[i] }))
   const thinkingIndex = thinkingId ? ids.indexOf(thinkingId) : null
 
   return createPortal(
@@ -272,7 +274,9 @@ export function Symposium() {
         </header>
 
         <div className="relative min-h-0 overflow-hidden">
-          <SymposiumScene seats={seats} speaking={speaking} thinking={thinkingIndex} />
+          <Suspense fallback={<div className="absolute inset-0" style={{ background: C.night }} />}>
+            <Symposium3D seats={seats} speaking={speaking} thinking={thinkingIndex} />
+          </Suspense>
         </div>
 
         <section
@@ -458,198 +462,6 @@ export function Symposium() {
     document.body,
   )
 }
-
-/* ---------------------------------- the scene --------------------------------- */
-
-interface Seat {
-  id: string
-  name: string
-  color: string
-  robe: string
-}
-
-/** Seat positions around the table, in scene units (1200×760). */
-const SEAT_POS = {
-  3: [
-    { x: 330, y: 560, lean: 6, k: 1 },
-    { x: 600, y: 452, lean: 0, k: 0.82 },
-    { x: 870, y: 560, lean: -6, k: 1 },
-  ],
-  2: [
-    { x: 380, y: 560, lean: 6, k: 1 },
-    { x: 820, y: 560, lean: -6, k: 1 },
-  ],
-  1: [{ x: 600, y: 452, lean: 0, k: 0.82 }],
-} as const
-
-function SymposiumScene({ seats, speaking, thinking }: { seats: Seat[]; speaking: number | null; thinking: number | null }) {
-  const n = Math.max(1, Math.min(3, seats.length)) as 1 | 2 | 3
-  // On a narrow screen the scene is cropped at the sides, so the whole
-  // table is drawn smaller around its centre until every seat fits.
-  const svgRef = useRef<SVGSVGElement>(null)
-  const [fit, setFit] = useState(1)
-  useEffect(() => {
-    const el = svgRef.current
-    if (!el) return
-    const ro = new ResizeObserver(() => {
-      const r = el.getBoundingClientRect()
-      if (!r.width || !r.height) return
-      const scale = Math.max(r.width / 1200, r.height / 760)
-      const visible = r.width / scale
-      setFit(Math.min(1, visible / 1020))
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-  const pos = SEAT_POS[n]
-  const focus = speaking !== null && seats[speaking] ? pos[speaking] : null
-  const back = seats.map((s, i) => ({ s, i, p: pos[i] })).filter((x) => x.p && x.p.k < 1)
-  const front = seats.map((s, i) => ({ s, i, p: pos[i] })).filter((x) => x.p && x.p.k >= 1)
-
-  return (
-    <svg ref={svgRef} className="absolute inset-0 h-full w-full" viewBox="0 0 1200 760" preserveAspectRatio="xMidYMid slice" role="img" aria-label={seats.length ? `A lamplit table. Seated: ${seats.map((s) => s.name).join(', ')}.${speaking !== null && seats[speaking] ? ` ${seats[speaking].name} is speaking.` : ''}` : 'An empty lamplit table, waiting for guests.'}>
-      <style>{`
-        .sym-flicker { animation: symFlicker 3.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-        @keyframes symFlicker { 0%,100% { opacity: .9; transform: scale(1) } 30% { opacity: 1; transform: scale(1.03) } 55% { opacity: .82; transform: scale(.98) } 80% { opacity: .96 } }
-        .sym-flame { transform-box: fill-box; transform-origin: 50% 100%; animation: symFlame .8s ease-in-out infinite; }
-        @keyframes symFlame { 0%,100% { transform: scale(1,1) } 50% { transform: scale(.88,1.16) } }
-        .sym-figure { transition: transform 1s cubic-bezier(.16,1,.3,1), opacity 1.2s ease; }
-        .sym-light { transition: opacity 1s ease; }
-        .sym-spot { transition: transform 1.2s cubic-bezier(.16,1,.3,1), opacity 1s ease; }
-        .sym-star { animation: symTwinkle 3.6s ease-in-out infinite; }
-        @keyframes symTwinkle { 0%,100% { opacity: .25 } 50% { opacity: .9 } }
-        .sym-think { animation: symThink 1.4s ease-in-out infinite; }
-        @keyframes symThink { 0%,100% { opacity: .35 } 50% { opacity: 1 } }
-        @media (prefers-reduced-motion: reduce) { .sym-flicker, .sym-flame, .sym-star, .sym-think { animation: none } .sym-figure, .sym-spot { transition: none } }
-      `}</style>
-      <defs>
-        <linearGradient id="symWall" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#0a0b0f" />
-          <stop offset="1" stopColor="#17110d" />
-        </linearGradient>
-        <linearGradient id="symSky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#05070b" />
-          <stop offset="1" stopColor="#1d2638" />
-        </linearGradient>
-        <radialGradient id="symLamp">
-          <stop offset="0" stopColor="#FFC27A" stopOpacity=".75" />
-          <stop offset=".35" stopColor="#F09A50" stopOpacity=".28" />
-          <stop offset="1" stopColor="#F09A50" stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id="symSpot">
-          <stop offset="0" stopColor="#FFD9A0" stopOpacity=".45" />
-          <stop offset="1" stopColor="#FFD9A0" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="symColumn" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#2a241f" />
-          <stop offset=".45" stopColor="#4a4038" />
-          <stop offset="1" stopColor="#1d1915" />
-        </linearGradient>
-        <linearGradient id="symTable" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#5b4330" />
-          <stop offset="1" stopColor="#2e2118" />
-        </linearGradient>
-      </defs>
-
-      {/* the room: an open colonnade onto the night */}
-      <rect x="-600" y="-200" width="2400" height="1160" fill="#0a0b0f" />
-      <rect x="-600" y="470" width="2400" height="490" fill="#120e0b" />
-      <g transform={`translate(600 470) scale(${fit}) translate(-600 -470)`}>
-      <rect width="1200" height="760" fill="url(#symWall)" />
-      {[0, 1, 2, 3, 4].map((i) => {
-        const x = 130 + i * 230
-        return (
-          <g key={i}>
-            <rect x={x + 30} y="90" width="170" height="320" fill="url(#symSky)" />
-            {Array.from({ length: 6 }, (_, k) => (
-              <circle key={k} className="sym-star" cx={x + 45 + ((k * 53 + i * 31) % 140)} cy={110 + ((k * 71 + i * 17) % 150)} r={0.8 + (k % 3) * 0.4} fill="#EDE6D6" style={{ animationDelay: `-${(k + i) * 0.7}s` }} />
-            ))}
-          </g>
-        )
-      })}
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <g key={i}>
-          <rect x={100 + i * 230} y="80" width="60" height="340" fill="url(#symColumn)" />
-          <rect x={92 + i * 230} y="70" width="76" height="16" fill="#3a322b" />
-        </g>
-      ))}
-      <rect x="0" y="40" width="1200" height="36" fill="#241e19" />
-      <rect x="0" y="410" width="1200" height="350" fill="#120e0b" />
-      <ellipse className="sym-flicker" cx="600" cy="470" rx="560" ry="300" fill="url(#symLamp)" />
-
-      {/* light that follows whoever is speaking */}
-      <g className="sym-spot" style={{ transform: focus ? `translate(${focus.x - 600}px, ${focus.y - 560}px)` : 'translate(0px, -60px)', opacity: focus ? 1 : 0 }}>
-        <ellipse cx="600" cy="440" rx="190" ry="210" fill="url(#symSpot)" />
-      </g>
-
-      {back.map(({ s, i, p }) => (
-        <Figure key={s.id} seat={s} x={p.x} y={p.y} k={p.k} lean={p.lean} speaking={speaking === i} dim={speaking !== null && speaking !== i} thinking={thinking === i} plate={Math.min(1.7, 1 / fit)} />
-      ))}
-
-      {/* the table, the lamp, cups and a scroll */}
-      <ellipse cx="600" cy="612" rx="330" ry="40" fill="#0a0806" opacity=".6" />
-      <path d="M270 560 L270 590 Q600 650 930 590 L930 560 Z" fill="#24190f" />
-      <ellipse cx="600" cy="560" rx="330" ry="66" fill="url(#symTable)" />
-      <ellipse cx="600" cy="556" rx="318" ry="58" fill="none" stroke="#7a5c40" strokeOpacity=".5" />
-      {[[430, 560], [770, 560], [600, 520]].slice(0, Math.max(2, n)).map(([x, y], i) => (
-        <g key={i} transform={`translate(${x} ${y})`}>
-          <ellipse cx="0" cy="0" rx="18" ry="5" fill="#2b1d12" />
-          <path d="M-16 -8 Q0 6 16 -8 Z" fill="#8a4a2a" />
-          <ellipse cx="0" cy="-8" rx="16" ry="4" fill="#a35a33" />
-        </g>
-      ))}
-      <rect x="660" y="572" width="70" height="10" rx="5" fill="#d9c9a6" transform="rotate(-8 695 577)" opacity=".85" />
-      <g transform="translate(600 548)">
-        <ellipse cx="0" cy="6" rx="34" ry="8" fill="#3a2a1a" />
-        <path d="M-30 0 Q0 22 30 0 Q24 -10 0 -10 Q-24 -10 -30 0 Z" fill="#8a6a3c" />
-        <path d="M28 -2 Q46 -8 44 -16" stroke="#8a6a3c" strokeWidth="5" fill="none" strokeLinecap="round" />
-        <circle cx="0" cy="-34" r="40" fill="url(#symSpot)" className="sym-flicker" />
-        <path className="sym-flame" d="M0 -10 C -8 -20, -4 -34, 0 -44 C 4 -34, 8 -20, 0 -10 Z" fill="#FFB066" />
-        <path className="sym-flame" d="M0 -12 C -4 -19, -2 -26, 0 -32 C 2 -26, 4 -19, 0 -12 Z" fill="#FFF0C8" style={{ animationDelay: '-.3s' }} />
-      </g>
-
-      {front.map(({ s, i, p }) => (
-        <Figure key={s.id} seat={s} x={p.x} y={p.y} k={p.k} lean={p.lean} speaking={speaking === i} dim={speaking !== null && speaking !== i} thinking={thinking === i} plate={Math.min(1.7, 1 / fit)} />
-      ))}
-      </g>
-    </svg>
-  )
-}
-
-/** A seated, draped figure. Whoever speaks leans in and catches the light. */
-function Figure({ seat, x, y, k, lean, speaking, dim, thinking, plate = 1 }: { seat: Seat; x: number; y: number; k: number; lean: number; speaking: boolean; dim: boolean; thinking: boolean; plate?: number }) {
-  const tilt = speaking ? lean : 0
-  const scale = speaking ? k * 1.04 : k
-  return (
-    <g className="sym-figure" style={{ transform: `translate(${x}px, ${y}px) rotate(${tilt}deg) scale(${scale})`, opacity: dim ? 0.62 : 1 }}>
-      {/* stool */}
-      <rect x="-74" y="-18" width="148" height="34" rx="6" fill="#1b140f" />
-      {/* robe */}
-      <path d="M-64 0 C -70 -64, -52 -124, -30 -144 L 30 -144 C 52 -124, 70 -64, 64 0 Z" fill={seat.robe} />
-      <path d="M-30 -144 C 4 -104, 24 -60, 62 -8" stroke="#000" strokeOpacity=".28" strokeWidth="10" fill="none" />
-      <path d="M-50 -70 C -30 -60, -10 -40, -4 0" stroke="#000" strokeOpacity=".18" strokeWidth="6" fill="none" />
-      {/* head */}
-      <rect x="-9" y="-158" width="18" height="18" fill="#3b2b21" />
-      <circle cx="0" cy="-176" r="27" fill="#3b2b21" />
-      <path d="M-24 -170 Q0 -138 24 -170 Q20 -146 0 -142 Q-20 -146 -24 -170 Z" fill="#2a1f19" opacity=".9" />
-      {/* lamplight on the figure */}
-      <g className="sym-light" style={{ opacity: speaking ? 0.55 : 0.14 }}>
-        <path d="M-64 0 C -70 -64, -52 -124, -30 -144 L 30 -144 C 52 -124, 70 -64, 64 0 Z" fill="#FFB066" style={{ mixBlendMode: 'soft-light' }} />
-        <circle cx="0" cy="-176" r="27" fill="#FFC27A" style={{ mixBlendMode: 'soft-light' }} />
-      </g>
-      {/* name plate */}
-      <g transform={`translate(0 ${-236 - (plate - 1) * 20}) scale(${plate})`}>
-        <rect x={-(seat.name.length * 7 + 24)} y="-18" width={seat.name.length * 14 + 48} height="30" rx="3" fill="rgba(11,13,17,.82)" stroke={seat.color} strokeOpacity={speaking ? 0.9 : 0.4} />
-        <text x="0" y="3" textAnchor="middle" fill="#EDE6D6" style={{ fontFamily: "'Gloock', Georgia, serif", fontSize: 18 }}>
-          {seat.name}
-        </text>
-        {thinking && <circle className="sym-think" cx={seat.name.length * 7 + 14} cy="-3" r="4" fill={seat.color} />}
-      </g>
-    </g>
-  )
-}
-
-/* ---------------------------------- pieces ---------------------------------- */
 
 function Eyebrow({ children, color = C.gilt }: { children: ReactNode; color?: string }) {
   return <span style={{ fontFamily: F.inscr, fontSize: 10.5, fontWeight: 600, letterSpacing: '.24em', color }}>{children}</span>

@@ -1,0 +1,98 @@
+import { useEffect, useRef } from 'react'
+import { SymposiumScene } from './SymposiumScene'
+import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
+
+export interface SceneSeat {
+  id: string
+  name: string
+  color: string
+}
+
+/** The 3D table, with each guest's name plate floating above their statue. */
+export default function Symposium3D({ seats, speaking, thinking }: { seats: SceneSeat[]; speaking: number | null; thinking: number | null }) {
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const sceneRef = useRef<SymposiumScene | null>(null)
+  const plateRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const wrap = wrapRef.current
+    if (!canvas || !wrap) return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const scene = new SymposiumScene(canvas, { reducedMotion: reduced })
+    sceneRef.current = scene
+    const ro = new ResizeObserver(() => {
+      const r = wrap.getBoundingClientRect()
+      scene.resize(r.width, r.height)
+    })
+    ro.observe(wrap)
+    // name plates follow the statues every frame, without re-rendering React
+    let raf = 0
+    const follow = () => {
+      const pts = scene.anchors()
+      plateRefs.current.forEach((el, i) => {
+        if (!el) return
+        const p = pts[i]
+        if (!p) {
+          el.style.opacity = '0'
+          return
+        }
+        el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -100%)`
+        el.style.opacity = '1'
+      })
+      raf = requestAnimationFrame(follow)
+    }
+    raf = requestAnimationFrame(follow)
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+      scene.dispose()
+      sceneRef.current = null
+    }
+  }, [])
+
+  const key = seats.map((s) => s.id).join()
+  useEffect(() => {
+    sceneRef.current?.setSeats(seats.map((s) => s.id))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key])
+  useEffect(() => {
+    sceneRef.current?.setSpeaker(speaking)
+  }, [speaking])
+  useEffect(() => {
+    sceneRef.current?.setThinking(thinking)
+  }, [thinking])
+
+  const label = seats.length
+    ? `A lamplit table under the stars. Seated: ${seats.map((s) => s.name).join(', ')}.${speaking !== null && seats[speaking] ? ` ${seats[speaking].name} is speaking.` : ''}`
+    : 'An empty lamplit table under the stars, waiting for guests.'
+
+  return (
+    <div ref={wrapRef} className="absolute inset-0 overflow-hidden" role="img" aria-label={label}>
+      <canvas ref={canvasRef} className="block h-full w-full touch-pan-y" />
+      {seats.map((s, i) => (
+        <div
+          key={s.id}
+          ref={(el) => {
+            plateRefs.current[i] = el
+          }}
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded-sm px-3 py-1 transition-opacity duration-500"
+          style={{
+            opacity: 0,
+            background: 'rgba(11,13,17,.78)',
+            border: `1px solid ${speaking === i ? s.color : 'rgba(194,161,94,.35)'}`,
+            fontFamily: F.display,
+            fontSize: speaking === i ? 17 : 15,
+            color: speaking === i ? C.ivory : C.body,
+            boxShadow: speaking === i ? `0 0 18px ${s.color}55` : 'none',
+          }}
+        >
+          {s.name}
+          {thinking === i && <span style={{ fontFamily: F.read, fontStyle: 'italic', fontSize: 12, color: C.muted }}> · thinking</span>}
+        </div>
+      ))}
+    </div>
+  )
+}
