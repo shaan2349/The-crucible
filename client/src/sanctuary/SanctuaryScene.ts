@@ -1,5 +1,11 @@
 import * as THREE from 'three'
 import { marbleTexture, statueMaterials } from '../marble/statue'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
+import { buildGalley, buildHearthSmoke, buildHillside, buildMist, buildSea, buildShootingStars, type Update, type World } from './atmosphere'
 
 /**
  * The Sanctuary in 3D: a moonlit hill above the sea. A lamplit path winds up
@@ -61,12 +67,12 @@ export class SanctuaryScene {
   private smoke: THREE.Sprite[] = []
   private lamps: THREE.Sprite[] = []
   private clouds: THREE.Sprite[] = []
-  private sea!: THREE.Mesh
-  private glitter!: THREE.Points
+  private composer: EffectComposer
+  private bloom: UnrealBloomPass
+  private updates: Update[] = []
+  private houses: { x: number; z: number; y: number; h: number }[] = []
   private stars!: THREE.Points
   private windowGlow: THREE.Points | null = null
-  private beam: THREE.Group | null = null
-  private beamFlash: THREE.Sprite | null = null
   private boats: THREE.Group[] = []
 
   private orbit = { yaw: 0, targetYaw: 0, pitch: 0 }
@@ -126,6 +132,42 @@ export class SanctuaryScene {
     this.buildVillage()
     this.buildDistance()
     this.buildPlaces(opts.temples)
+
+    const world: World = {
+      scene: this.scene,
+      heightAt,
+      pathX,
+      keepClear: [
+        ...(Object.keys(SPOTS) as PlaceId[]).map((id) => ({ x: SPOTS[id].x, z: SPOTS[id].z, r: id === 'temple' ? 4.7 : id === 'hall' ? 3.0 : 2.6 })),
+        ...this.houses.map((h) => ({ x: h.x, z: h.z, r: 0.55 })),
+      ],
+      glowTex: this.glowTex,
+      small,
+    }
+    this.updates.push(buildSea(world, new THREE.Vector3(30, 34, -150), -0.35))
+    buildHillside(world, { x: 0, z: -6 })
+    this.updates.push(buildMist(world), buildGalley(world), buildShootingStars(world))
+    this.updates.push(
+      buildHearthSmoke(
+        world,
+        this.houses.filter((_, i) => i % 9 === 3).map((h) => new THREE.Vector3(h.x, h.y + h.h + 0.08, h.z)),
+      ),
+    )
+
+    // lamps, windows and the moon bloom softly; a gentle vignette draws the eye to the hill
+    this.composer = new EffectComposer(this.renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: small ? 2 : 4 }))
+    this.composer.addPass(new RenderPass(this.scene, this.camera))
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.55, 0.5, 0.78)
+    this.composer.addPass(this.bloom)
+    this.composer.addPass(
+      new ShaderPass({
+        uniforms: { tDiffuse: { value: null } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+        fragmentShader:
+          'uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c = texture2D(tDiffuse, vUv); vec2 d = vUv - 0.5; float v = smoothstep(0.85, 0.25, length(d * vec2(1.0, 1.15))); c.rgb *= mix(0.55, 1.0, v); c.rgb = mix(c.rgb, c.rgb * vec3(0.96, 0.99, 1.06), 0.5); gl_FragColor = c; }',
+      }),
+    )
+    this.composer.addPass(new OutputPass())
 
     this.onDown = (e) => {
       this.dragging = true
@@ -202,6 +244,8 @@ export class SanctuaryScene {
     this.W = Math.max(1, w)
     this.H = Math.max(1, h)
     this.renderer.setSize(this.W, this.H, false)
+    this.composer.setPixelRatio(this.renderer.getPixelRatio())
+    this.composer.setSize(this.W, this.H)
     this.camera.aspect = this.W / this.H
     this.fit = clamp(1.35 / this.camera.aspect, 0.85, 2.4)
     this.camera.fov = this.camera.aspect < 1 ? 50 : 38
@@ -218,6 +262,7 @@ export class SanctuaryScene {
       const m = o as THREE.Mesh
       if (m.geometry) m.geometry.dispose()
     })
+    this.composer.dispose()
     this.renderer.dispose()
   }
 
@@ -303,8 +348,8 @@ export class SanctuaryScene {
       new THREE.SpriteMaterial({
         map: this.sprite((g, s) => {
           const gr = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2)
-          gr.addColorStop(0, 'rgba(241,232,210,.55)')
-          gr.addColorStop(0.22, 'rgba(241,232,210,.14)')
+          gr.addColorStop(0, 'rgba(241,232,210,.32)')
+          gr.addColorStop(0.22, 'rgba(241,232,210,.07)')
           gr.addColorStop(1, 'rgba(241,232,210,0)')
           g.fillStyle = gr
           g.fillRect(0, 0, s, s)
@@ -347,18 +392,25 @@ export class SanctuaryScene {
     geo.rotateX(-Math.PI / 2)
     const p = geo.attributes.position as THREE.BufferAttribute
     const colors = new Float32Array(p.count * 3)
-    const grass = new THREE.Color(0x2a3426)
-    const rock = new THREE.Color(0x3c3b3a)
-    const shore = new THREE.Color(0x2b2820)
+    const grass = new THREE.Color(0x2c3828)
+    const dry = new THREE.Color(0x4a4532)
+    const scrub = new THREE.Color(0x1b2318)
+    const rock = new THREE.Color(0x45433f)
+    const shore = new THREE.Color(0x3a3527)
     const tmp = new THREE.Color()
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i)
       const z = p.getZ(i)
       const h = heightAt(x, z)
       p.setY(i, h)
-      const n = 0.5 + 0.5 * Math.sin(x * 1.7) * Math.cos(z * 1.3)
-      tmp.copy(grass).lerp(rock, clamp((h - 4) / 4, 0, 0.7) * 0.6 + n * 0.15)
-      if (h < 0.1) tmp.lerp(shore, 0.6)
+      // patches at two scales, and bare rock where the slope is steep
+      const big = fbm(x * 0.18, z * 0.18)
+      const fine = fbm(x * 0.9 + 7, z * 0.9 - 3)
+      const slope = Math.hypot(heightAt(x + 0.3, z) - h, heightAt(x, z + 0.3) - h) / 0.3
+      tmp.copy(grass).lerp(dry, clamp((big - 0.45) * 2.4, 0, 1) * 0.8)
+      tmp.lerp(scrub, clamp((fine - 0.55) * 3, 0, 1) * 0.7)
+      tmp.lerp(rock, clamp((slope - 0.55) * 1.6, 0, 1) * 0.75 + clamp((h - 5.5) / 3, 0, 0.4))
+      if (h < 0.15) tmp.lerp(shore, clamp((0.15 - h) * 5, 0, 1) * 0.8)
       colors[i * 3] = tmp.r
       colors[i * 3 + 1] = tmp.g
       colors[i * 3 + 2] = tmp.b
@@ -368,24 +420,6 @@ export class SanctuaryScene {
     const land = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }))
     land.receiveShadow = true
     scene.add(land)
-
-    // the sea, with the moon's path on it
-    this.sea = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshStandardMaterial({ color: 0x0c1422, roughness: 0.35, metalness: 0.4 }))
-    this.sea.rotation.x = -Math.PI / 2
-    this.sea.position.y = -0.35
-    scene.add(this.sea)
-    const G = 500
-    const gp = new Float32Array(G * 3)
-    for (let i = 0; i < G; i++) {
-      const t = Math.pow(Math.random(), 1.4)
-      gp[i * 3] = 30 * t * 0.2 + rand(-1, 1) * (1 + t * 9) + 18 * t
-      gp[i * 3 + 1] = -0.3
-      gp[i * 3 + 2] = -40 - t * 100
-    }
-    const gg = new THREE.BufferGeometry()
-    gg.setAttribute('position', new THREE.BufferAttribute(gp, 3))
-    this.glitter = new THREE.Points(gg, new THREE.PointsMaterial({ color: 0xf1e8d2, size: 0.45, transparent: true, opacity: 0.6, depthWrite: false }))
-    scene.add(this.glitter)
 
     // distant headlands
     const far = new THREE.MeshStandardMaterial({ color: 0x121a28, roughness: 1 })
@@ -423,8 +457,7 @@ export class SanctuaryScene {
   /**
    * What lies beyond the hill: the Milky Way across the sky, islands in the
    * bay (the nearest with its own small lit village, another with a ruined
-   * temple on its cliff, echoing the one on this hill), and a lighthouse on
-   * a rocky point whose beam sweeps the water.
+   * temple on its cliff, echoing the one on this hill) and mountains beyond.
    */
   private buildDistance() {
     const scene = this.scene
@@ -528,7 +561,7 @@ export class SanctuaryScene {
     scene.add(houses)
     const lg = new THREE.BufferGeometry()
     lg.setAttribute('position', new THREE.Float32BufferAttribute(lights, 3))
-    scene.add(new THREE.Points(lg, new THREE.PointsMaterial({ map: this.glowTex, size: 0.9, transparent: true, opacity: 0.9, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, color: 0xffb35a })))
+    scene.add(new THREE.Points(lg, new THREE.PointsMaterial({ map: this.glowTex, size: 0.6, transparent: true, opacity: 0.75, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, color: 0xffc27a })))
 
     // the far island with a ruined temple on its cliff, against the moon's path on the water
     const tx = 36
@@ -593,50 +626,6 @@ export class SanctuaryScene {
       scene.add(mtn)
     })
 
-    // the lighthouse on a rocky point, its beam sweeping the bay
-    const lx = -18
-    const lz = -26
-    const lth = island(lx, lz, 4, 2.6)
-    const ly = lth(0, 0)
-    const white = new THREE.MeshStandardMaterial({ color: 0xe8e3d8, roughness: 0.8 })
-    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.62, 3.6, 20), white)
-    tower.position.set(lx, ly + 1.8, lz)
-    const gallery = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.12, 20), new THREE.MeshStandardMaterial({ color: 0x2b2b30 }))
-    gallery.position.set(lx, ly + 3.65, lz)
-    const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.6, 16), new THREE.MeshBasicMaterial({ color: 0xffe6b0 }))
-    lamp.position.set(lx, ly + 4.0, lz)
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.5, 16), new THREE.MeshStandardMaterial({ color: 0x3a2f2a }))
-    roof.position.set(lx, ly + 4.55, lz)
-    const house = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.8, 0.9), white)
-    house.position.set(lx + 1.1, ly + 0.4, lz + 0.4)
-    scene.add(tower, gallery, lamp, roof, house)
-    const beamMat = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-      uniforms: {},
-      vertexShader: 'varying float vY; void main(){ vY = position.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-      fragmentShader: 'varying float vY; void main(){ float t = clamp((vY + 20.0) / 40.0, 0.0, 1.0); gl_FragColor = vec4(1.0, 0.92, 0.72, 0.22 * t * t); }',
-    })
-    const beam = new THREE.Group()
-    ;[0, Math.PI].forEach((rot) => {
-      const cone = new THREE.Mesh(new THREE.ConeGeometry(4.5, 40, 24, 1, true), beamMat)
-      cone.position.x = 20
-      cone.rotation.z = Math.PI / 2
-      const arm = new THREE.Group()
-      arm.rotation.y = rot
-      arm.add(cone)
-      beam.add(arm)
-    })
-    beam.position.set(lx, ly + 4.0, lz)
-    beam.rotation.z = -0.04
-    scene.add(beam)
-    this.beam = beam
-    this.beamFlash = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, color: 0xffe2a8 }))
-    this.beamFlash.position.set(lx, ly + 4.0, lz)
-    this.beamFlash.scale.set(3, 3, 1)
-    scene.add(this.beamFlash)
   }
 
   /**
@@ -678,6 +667,7 @@ export class SanctuaryScene {
         houses.push({ x, z, w, d: dd, h: 0.34 + r() * 0.3 + (hi - lo), rot: (r() - 0.5) * 0.5, y: lo })
       }
     }
+    this.houses = houses.map((h) => ({ x: h.x, z: h.z, y: h.y, h: h.h }))
     // the church: the biggest house in the western cluster gets a dome and a bell tower
     const church = houses.reduce((best, h, i) => (h.x < 0 && h.w * h.d > houses[best].w * houses[best].d ? i : best), 0)
     houses[church].w = 0.85
@@ -850,7 +840,35 @@ export class SanctuaryScene {
     g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3))
     g.setIndex(idx)
     g.computeVertexNormals()
-    const path = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x6a6252, roughness: 0.95, side: THREE.DoubleSide }))
+    const paving = document.createElement('canvas')
+    paving.width = 64
+    paving.height = 256
+    const pg = paving.getContext('2d')!
+    pg.fillStyle = '#5e574a'
+    pg.fillRect(0, 0, 64, 256)
+    // irregular flagstones laid in rows, with dark joints
+    for (let row = 0; row < 16; row++) {
+      let x = -((row * 13) % 20)
+      while (x < 64) {
+        const w = 14 + ((row * 7 + x * 3) % 12)
+        const shade = 82 + ((row * 31 + x * 17) % 28)
+        pg.fillStyle = `rgb(${shade},${shade - 6},${shade - 16})`
+        pg.fillRect(x + 1, row * 16 + 1, w - 2, 14)
+        x += w
+      }
+    }
+    const pt = new THREE.CanvasTexture(paving)
+    pt.colorSpace = THREE.SRGBColorSpace
+    pt.wrapS = pt.wrapT = THREE.RepeatWrapping
+    // texture coordinates along the path
+    const uv: number[] = []
+    let along = 0
+    pts.forEach((pp, i) => {
+      if (i > 0) along += pp.distanceTo(pts[i - 1])
+      uv.push(0, along / 4, 1, along / 4)
+    })
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2))
+    const path = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: pt, roughness: 0.95, side: THREE.DoubleSide }))
     path.receiveShadow = true
     this.scene.add(path)
     // little lamps along it
@@ -883,9 +901,16 @@ export class SanctuaryScene {
       const s = SPOTS[id]
       const y = heightAt(s.x, s.z)
       // a level stone base so the building sits on the slope
-      const pad = new THREE.Mesh(new THREE.CylinderGeometry(padR, padR + 0.2, 1.2, 40), new THREE.MeshStandardMaterial({ color: 0x4a463f, roughness: 1 }))
+      const padMat = new THREE.MeshStandardMaterial({ map: tex, color: 0x8a8274, roughness: 0.9 })
+      // a stepped stone platform, sunk into the slope
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(padR, padR + 0.08, 1.2, 48), padMat)
       pad.position.y = -0.62
-      group.add(pad)
+      const step = new THREE.Mesh(new THREE.CylinderGeometry(padR + 0.35, padR + 0.45, 1.0, 48), padMat)
+      step.position.y = -0.78
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(padR + 0.02, 0.05, 6, 64), padMat)
+      rim.rotation.x = Math.PI / 2
+      rim.position.y = -0.03
+      group.add(pad, step, rim)
       group.position.set(s.x, y, s.z)
       group.rotation.y = Math.atan2(-s.x * 0.4, 14 - s.z) * 0.6
       group.userData.place = id
@@ -1163,17 +1188,7 @@ export class SanctuaryScene {
         c.position.x += dt * (0.6 + i * 0.12)
         if (c.position.x > 110) c.position.x = -110
       })
-      ;(this.glitter.material as THREE.PointsMaterial).opacity = 0.45 + 0.2 * Math.sin(t * 1.7)
       this.stars.rotation.y = t * 0.0015
-      if (this.beam && this.beamFlash) {
-        this.beam.rotation.y = t * 0.45
-        // the lamp flares as a beam swings toward you
-        const toCam = Math.atan2(this.camera.position.x - this.beam.position.x, this.camera.position.z - this.beam.position.z)
-        const face = Math.max(Math.cos(this.beam.rotation.y - toCam + Math.PI / 2), Math.cos(this.beam.rotation.y - toCam - Math.PI / 2))
-        const k = Math.pow(Math.max(0, face), 12)
-        this.beamFlash.scale.setScalar(2.5 + 9 * k)
-        ;(this.beamFlash.material as THREE.SpriteMaterial).opacity = 0.5 + 0.5 * k
-      }
       this.boats.forEach((b, i) => {
         b.position.y = -0.3 + 0.03 * Math.sin(t * 1.2 + i * 1.7)
         b.rotation.z = 0.05 * Math.sin(t * 0.9 + i)
@@ -1181,9 +1196,33 @@ export class SanctuaryScene {
       if (this.windowGlow) (this.windowGlow.material as THREE.PointsMaterial).opacity = (0.75 + 0.1 * Math.sin(t * 2.3)) * arrive
     }
 
-    this.renderer.render(this.scene, this.camera)
+    if (!still) for (const u of this.updates) u(t, dt)
+    else if (this.clock === dt) for (const u of this.updates) u(0, 0)
+    this.composer.render()
     this.raf = requestAnimationFrame(this.frame)
   }
+}
+
+/** Smooth value noise in two dimensions, 0..1, a few octaves. */
+function fbm(x: number, y: number) {
+  const hash = (a: number, b: number) => {
+    const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453
+    return s - Math.floor(s)
+  }
+  const noise = (px: number, py: number) => {
+    const xi = Math.floor(px)
+    const yi = Math.floor(py)
+    const xf = px - xi
+    const yf = py - yi
+    const u = xf * xf * (3 - 2 * xf)
+    const v = yf * yf * (3 - 2 * yf)
+    const a = hash(xi, yi)
+    const b = hash(xi + 1, yi)
+    const c = hash(xi, yi + 1)
+    const d = hash(xi + 1, yi + 1)
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v
+  }
+  return 0.5 * noise(x, y) + 0.3 * noise(x * 2.1, y * 2.1) + 0.2 * noise(x * 4.3, y * 4.3)
 }
 
 /** The path's line up the hill: it winds past each place on its way to the Temple. */
