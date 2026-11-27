@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight } from '../night/icons'
-import { loadDebates, loadExperiments, loadInterests, loadReflectSessions } from '../lib/storage'
+import { loadDebates, loadExperiments, loadJourney, loadInterests, loadReflectSessions } from '../lib/storage'
 import { endingOf, ENDING_COPY } from '../temple/ending'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
 import { NightPage, Panel } from '../night/NightPage'
@@ -17,19 +17,21 @@ export function Profile() {
       temples: debates.length,
       lamps: loadReflectSessions().length,
       oracle: Object.keys(loadExperiments()).length,
+      met: Object.keys(loadJourney()).length,
       counts,
       interests: loadInterests(),
     }
   })
-  const nothing = stats.temples + stats.lamps + stats.oracle === 0
+  const nothing = stats.temples + stats.lamps + stats.oracle + stats.met === 0
 
   return (
     <NightPage title="Your seat" eyebrow="WHAT YOU HAVE DONE HERE">
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         {[
           ['Temples', stats.temples, '/app/landscape'],
           ['Lamps', stats.lamps, '/app/landscape'],
           ['Experiments played', stats.oracle, '/app/experiments'],
+          ['Thinkers met', stats.met, '/app/journey'],
         ].map(([label, n, to]) => (
           <button key={label as string} type="button" onClick={() => navigate(to as string)} className="panel-stone night-btn flex flex-col items-center gap-1 rounded px-2 py-4" style={{ background: 'rgba(17,20,26,.85)', border: `1px solid ${C.line}` }}>
             <span style={{ fontFamily: F.display, fontSize: 32, lineHeight: 1, color: C.ivory }}>{n as number}</span>

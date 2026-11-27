@@ -8,6 +8,7 @@ import { libraryRouter } from './routes/library.js'
 import { trainRouter } from './routes/train.js'
 import { oracleRouter } from './routes/oracle.js'
 import { experimentsRouter } from './routes/experiments.js'
+import { journeyRouter } from './routes/journey.js'
 
 const app = express()
 const port = process.env.PORT ?? 8787
@@ -45,7 +46,7 @@ app.use(
 // that keeps one visitor from spending the whole monthly budget.
 const DAILY_LIMIT = Number(process.env.DAILY_SESSION_LIMIT ?? 12)
 const usage = new Map<string, { day: string; count: number }>()
-const STARTS = new Set(['/api/claude/debate/select-opponents', '/api/claude/reflect/begin', '/api/claude/oracle/answer', '/api/claude/experiments/react'])
+const STARTS = new Set(['/api/claude/debate/select-opponents', '/api/claude/reflect/begin', '/api/claude/oracle/answer', '/api/claude/experiments/react', '/api/claude/journey/reply'])
 app.use((req, res, next) => {
   if (req.method !== 'POST' || !STARTS.has(req.path) || !(DAILY_LIMIT > 0)) return next()
   const day = new Date().toISOString().slice(0, 10)
@@ -73,6 +74,7 @@ app.use('/api/claude/library', libraryRouter)
 app.use('/api/claude/train', trainRouter)
 app.use('/api/claude/oracle', oracleRouter)
 app.use('/api/claude/experiments', experimentsRouter)
+app.use('/api/claude/journey', journeyRouter)
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true })

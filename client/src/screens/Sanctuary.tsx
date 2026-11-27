@@ -51,7 +51,7 @@ const PLACES: Place[] = [
   { id: 'symposium', to: '/app/symposium', name: 'The Symposium', sub: 'TALK IT THROUGH', lx: 466, ly: 478, px: 470, py: 520, delay: 0.7, description: 'Talk something real through with philosophers' },
   { id: 'hall', to: '/app/hall', name: 'Hall of Minds', sub: '47 THINKERS', lx: 742, ly: 498, px: 736, py: 540, delay: 0.95, description: 'Meet the forty-seven thinkers' },
   { id: 'oracle', to: '/app/experiments', name: 'Thought Experiments', sub: 'PLAY THE GREAT PUZZLES', lx: 448, ly: 636, px: 448, py: 672, delay: 1.2, description: 'Play the great thought experiments of philosophy' },
-  { id: 'landscape', to: '/app/landscape', name: 'Your Landscape', sub: 'WHAT YOU HAVE TESTED', lx: 738, ly: 666, px: 760, py: 700, delay: 1.45, description: 'Every belief you have tested' },
+  { id: 'landscape', to: '/app/journey', name: 'The Journey', sub: 'MEET THEM ONE BY ONE', lx: 738, ly: 666, px: 760, py: 700, delay: 1.45, description: 'Journey through history, meeting each thinker in turn' },
 ]
 
 const QUOTES = quotesForToday()

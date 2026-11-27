@@ -8,6 +8,7 @@ import * as api from '../lib/api'
 import { loadBios, saveBios } from '../lib/storage'
 import { usePreferencesContext } from '../context/PreferencesContext'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
+import { WINGS } from '../data/wings'
 import { useAmbience } from '../night/useAmbience'
 
 // The 3D gallery loads with the Hall itself, keeping the rest of the app light.
@@ -22,15 +23,6 @@ const Hall3D = lazy(() => import('../hall/Hall3D'))
  * Symposium.
  */
 
-const WINGS: { name: string; sub: string; ids: string[] }[] = [
-  { name: 'Ancient Greece & Rome', sub: 'WHERE THE QUESTIONS BEGAN', ids: ['socrates', 'plato', 'aristotle', 'epicurus', 'marcus'] },
-  { name: 'Eastern Traditions', sub: 'THE WAY, THE MIDDLE PATH, THE RITES', ids: ['confucius', 'mencius', 'laozi', 'buddha'] },
-  { name: 'The Medieval Wing', sub: 'FAITH AND REASON', ids: ['augustine', 'ibnrushd', 'aquinas'] },
-  { name: 'The Enlightenment', sub: 'REASON, RIGHTS AND THE SOCIAL CONTRACT', ids: ['machiavelli', 'descartes', 'hobbes', 'locke', 'hume', 'smith', 'rousseau', 'kant', 'burke', 'wollstonecraft'] },
-  { name: 'The Nineteenth Century', sub: 'HISTORY, UTILITY AND THE SELF', ids: ['bentham', 'hegel', 'mill', 'kierkegaard', 'marx', 'nietzsche'] },
-  { name: 'The Twentieth Century', sub: 'FREEDOM, JUSTICE AND MEANING', ids: ['keynes', 'wittgenstein', 'hayek', 'popper', 'arendt', 'sartre', 'beauvoir', 'berlin', 'camus', 'fanon', 'rawls', 'foucault', 'nozick'] },
-  { name: 'Living Thinkers', sub: 'THE CONVERSATION CONTINUES', ids: ['anscombe', 'thomson', 'sen', 'parfit', 'singer', 'nussbaum'] },
-]
 
 
 export function Hall() {

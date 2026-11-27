@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from '../night/icons'
 import { HallScene, type HallWing } from './HallScene'
 import { PHILOSOPHER_TAGS, philosopherById } from '../data/philosophers'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
+import { loadJourney } from '../lib/storage'
 
 /**
  * The 3D gallery, with a name plate under each bust (also the keyboard way
@@ -98,6 +99,7 @@ export default function Hall3D({
   }, [matches])
 
   const ids = wings.flatMap((w) => w.ids)
+  const [met] = useState(() => new Set(Object.keys(loadJourney())))
 
   return (
     <div className="absolute inset-0 flex flex-col">
@@ -136,7 +138,7 @@ export default function Hall3D({
               style={{ opacity: 0, visibility: 'hidden', background: on ? 'rgba(194,161,94,.2)' : 'rgba(11,13,17,.72)', border: `1px solid ${on ? C.gilt : 'rgba(194,161,94,.3)'}` }}
             >
               <span style={{ fontFamily: F.display, fontSize: 15, lineHeight: 1.15, color: on ? C.gold : C.ivory, whiteSpace: 'nowrap' }}>{p.name}</span>
-              <span style={{ fontFamily: F.inscr, fontSize: 8, fontWeight: 600, letterSpacing: '.16em', color: C.gilt, whiteSpace: 'nowrap' }}>{(PHILOSOPHER_TAGS[id] ?? '').toUpperCase()}</span>
+              <span style={{ fontFamily: F.inscr, fontSize: 8, fontWeight: 600, letterSpacing: '.16em', color: C.gilt, whiteSpace: 'nowrap' }}>{(PHILOSOPHER_TAGS[id] ?? '').toUpperCase()}{met.has(id) && <span style={{ color: C.gold }}> · MET</span>}</span>
             </button>
           )
         })}

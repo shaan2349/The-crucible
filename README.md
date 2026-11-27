@@ -14,7 +14,7 @@ The app opens on **the Sanctuary**, a moonlit 3D hill above the sea with five pl
 | The Symposium | Talk something real through with philosophers seated as marble statues around a lamplit table. Speak to one or to everyone; only those with something to say reply, and they argue with each other. Choose how simple the English is. | `/app/symposium` |
 | Hall of Minds | A moonlit 3D gallery of 47 marble busts in lit niches, wing by wing through history. Walk along it, tap a bust to read its plaque, talk to them alone, or seat them at the Symposium. | `/app/hall` |
 | Thought Experiments | 23 of philosophy's great puzzles, played: a scene and a choice, a twist that tests it, a second choice, then two philosophers respond to what you chose and the famous thinkers' own answers are revealed. One is today's dilemma. | `/app/experiments` |
-| Your Landscape | A 3D hill you can turn all the way round. Every belief you have tested stands as its own small temple, built from how the debate went (gold veins, new marble, cracks, fallen drums, ruins); conversations leave lamps. | `/app/landscape` |
+| The Journey | A road through history in seven chapters (the Hall's wings): meet the 47 thinkers in turn. Each asks you a question about your own life and answers what you say, or invites you to play the thought experiment they devised. Meeting one opens the next and marks them in the Hall. Your temples and lamps are still reached from Your seat. | `/app/journey` |
 
 Older routes (`/app/reflect`, `/app/archive`, `/app/train`, `/app/mythinking`)
 redirect to their new places. The product vision and build plan live in the

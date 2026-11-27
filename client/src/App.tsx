@@ -13,6 +13,7 @@ import { Symposium } from './screens/Symposium'
 import { Landscape } from './screens/Landscape'
 import { Hall } from './screens/Hall'
 import { Experiments } from './screens/Experiments'
+import { Journey } from './screens/Journey'
 import { DuotoneDefs } from './components/DuotoneDefs'
 import { DebateProvider } from './context/DebateContext'
 import { ReflectProvider } from './context/ReflectContext'
@@ -52,6 +53,8 @@ function App() {
                 {/* The Library became the Hall of Minds. */}
                 <Route path="archive" element={<Navigate to="/app/hall" replace />} />
                 <Route path="experiments" element={<Experiments />} />
+                <Route path="journey" element={<Journey />} />
+                <Route path="journey/:id" element={<Journey />} />
                 <Route path="experiments/:id" element={<Experiments />} />
                 {/* The Oracle became the Thought Experiments. */}
                 <Route path="oracle" element={<Navigate to="/app/experiments" replace />} />

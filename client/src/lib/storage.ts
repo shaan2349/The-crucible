@@ -18,6 +18,7 @@ const KEYS = {
   trainTopics: 'crucible:trainTopics',
   oracle: 'crucible:oracle',
   experiments: 'crucible:experiments',
+  journey: 'crucible:journey',
 } as const
 
 export type Language = 'simple' | 'standard' | 'scholarly'
@@ -239,4 +240,22 @@ export function loadExperiments(): Record<string, ExperimentResult> {
 
 export function saveExperiment(id: string, r: ExperimentResult): void {
   save(KEYS.experiments, { ...loadExperiments(), [id]: r })
+}
+
+/** A stop on the Journey once met. */
+export interface JourneyStop {
+  question?: string
+  answer?: string
+  reply?: string
+  takeaway?: string
+  experiment?: string
+  at: number
+}
+
+export function loadJourney(): Record<string, JourneyStop> {
+  return load<Record<string, JourneyStop>>(KEYS.journey, {})
+}
+
+export function saveJourneyStop(id: string, stop: JourneyStop): void {
+  save(KEYS.journey, { ...loadJourney(), [id]: stop })
 }

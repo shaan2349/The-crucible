@@ -283,3 +283,17 @@ export function reactToExperiment(params: {
 } & StyleParams) {
   return postJSON<ExperimentReply>('/claude/experiments/react', params)
 }
+
+export interface JourneyOpening {
+  setting: string
+  greeting: string
+  question: string
+}
+/** How a thinker greets you on the Journey, and the question they ask. */
+export function openJourneyStop(philosopherId: string, style?: StyleParams) {
+  return postJSON<JourneyOpening>('/claude/journey/open', { philosopherId, ...style })
+}
+/** The thinker's reply to your answer, and one idea to carry on. */
+export function replyJourneyStop(params: { philosopherId: string; question: string; answer: string } & StyleParams) {
+  return postJSON<{ reply: string; takeaway: string }>('/claude/journey/reply', params)
+}
