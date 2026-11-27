@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight } from '../night/icons'
 import { loadDebates, loadInterests, loadOracleDays, loadReflectSessions } from '../lib/storage'
 import { endingOf, ENDING_COPY } from '../temple/ending'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'

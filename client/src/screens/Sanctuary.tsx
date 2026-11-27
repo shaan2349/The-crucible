@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { User, Volume2, VolumeX } from 'lucide-react'
+import { User, Volume2, VolumeX } from '../night/icons'
 import { createAmbience, loadMuted, type Ambience } from '../sanctuary/ambience'
 import { useDebateContext } from '../context/DebateContext'
 import { loadDebates } from '../lib/storage'

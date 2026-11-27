@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Mic } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Mic } from '../night/icons'
 import { NIGHT, NIGHT_FONT } from '../night/theme'
 import { NightSky } from '../night/NightSky'
 import { Thinking } from '../night/Thinking'

@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Mic } from 'lucide-react'
+import { ArrowLeft, Mic } from '../night/icons'
 import * as api from '../lib/api'
 import { loadOracleDays, saveOracleDays, type OracleDay } from '../lib/storage'
 import { philosopherById } from '../data/philosophers'

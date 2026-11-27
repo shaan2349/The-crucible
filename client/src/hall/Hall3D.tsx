@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { liftVeilSoon } from '../night/veil'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from '../night/icons'
 import { HallScene, type HallWing } from './HallScene'
 import { PHILOSOPHER_TAGS, philosopherById } from '../data/philosophers'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'

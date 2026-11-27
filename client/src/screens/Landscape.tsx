@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, X } from 'lucide-react'
+import { ArrowLeft, X } from '../night/icons'
 import { loadDebates, loadReflectSessions } from '../lib/storage'
 import { philosopherById } from '../data/philosophers'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'

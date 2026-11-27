@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from './icons'
 import { NIGHT as C, NIGHT_FONT as F } from './theme'
 import { NightSky } from './NightSky'
 

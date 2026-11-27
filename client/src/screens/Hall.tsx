@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Search, X } from 'lucide-react'
+import { ArrowLeft, Search, X } from '../night/icons'
 import { PHILOSOPHERS, PHILOSOPHER_TAGS, philosopherById, type Philosopher } from '../data/philosophers'
 import { relationshipsFor } from '../data/relationships'
 import * as api from '../lib/api'

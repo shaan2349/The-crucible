@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Mic, Volume2, VolumeX, Square, Play } from 'lucide-react'
+import { ArrowLeft, Mic, Volume2, VolumeX, Square, Play } from '../night/icons'
 import { TempleScene, type ColumnStatus } from '../temple/TempleScene'
 import { philosopherById } from '../data/philosophers'
 import * as api from '../lib/api'

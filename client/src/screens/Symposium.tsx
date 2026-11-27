@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Mic, Play, Square } from 'lucide-react'
+import { ArrowLeft, Mic, Play, Square } from '../night/icons'
 import { philosopherById } from '../data/philosophers'
 import * as api from '../lib/api'
 import { loadReflectSessions, saveReflectSessions } from '../lib/storage'
