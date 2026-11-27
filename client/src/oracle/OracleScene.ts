@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { surface } from '../world/textures'
 import { arrival } from '../night/veil'
 import { addMilkyWay, addMist, addSea, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
+import { addHorizon } from '../world/nightKit'
 import { marbleTexture, statueMaterials } from '../marble/statue'
 
 /**
@@ -115,6 +116,7 @@ export class OracleScene {
     }
     window.addEventListener('pointermove', this.onMove)
     // the shared night: a moving sea far below, the Milky Way over the shrine, mist on the water
+    this.ticks.push(addHorizon(this.scene, { level: -6, distance: 80 }))
     this.ticks.push(addSea(this.scene, { level: -6, moon: new THREE.Vector3(-26, 28, -80), size: 400 }))
     addMilkyWay(this.scene, { radius: 100, a: new THREE.Vector3(-0.85, 0.15, -0.5), b: new THREE.Vector3(0.55, 0.6, -0.6) })
     this.ticks.push(addShootingStars(this.scene, { distance: 90 }))

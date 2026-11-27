@@ -288,3 +288,173 @@ export function addDust(scene: THREE.Scene, box: THREE.Box3, glow: THREE.Texture
     g.attributes.position.needsUpdate = true
   }
 }
+
+/* ------------------------------ the view beyond ------------------------------ */
+
+/**
+ * What every place looks out on: layered mountain ridges fading into the
+ * night, islands in the bay with the lit windows of their villages, boat
+ * lanterns on the water, and the Sanctuary hill itself across the bay, its
+ * temple's door glowing and lamps along its path. Drawn without fog in
+ * colours that already carry the haze, so it reads at any distance.
+ * `towards` is the direction the place looks; `arc` how wide the view is
+ * (use Math.PI * 2 for a place you can turn all the way round).
+ */
+export function addHorizon(
+  scene: THREE.Scene,
+  opts: { level: number; distance: number; towards?: THREE.Vector3; arc?: number; sanctuary?: boolean },
+): Tick {
+  const fog = scene.fog as THREE.FogExp2 | THREE.Fog | null
+  const haze = fog ? fog.color.clone() : new THREE.Color(0x182131)
+  const night = new THREE.Color(0x070a10)
+  const dir = (opts.towards ?? new THREE.Vector3(0, 0, -1)).clone().setY(0).normalize()
+  const centre = Math.atan2(dir.x, dir.z)
+  const arc = opts.arc ?? 2.4
+  const D = opts.distance
+  const L = opts.level
+  const at = (ang: number, d: number) => new THREE.Vector3(Math.sin(ang) * d, L, Math.cos(ang) * d)
+  const group = new THREE.Group()
+  group.renderOrder = -1
+
+  // mountain ridges: three layers, the furthest palest
+  const ridges = [
+    { d: D * 1.6, h: D * 0.17, mix: 0.75, f: 0.9 },
+    { d: D * 1.3, h: D * 0.12, mix: 0.5, f: 1.7 },
+    { d: D * 1.05, h: D * 0.07, mix: 0.25, f: 3.1 },
+  ]
+  ridges.forEach((rg, ri) => {
+    const segs = Math.max(60, Math.round(arc * 60))
+    const verts: number[] = []
+    const idx: number[] = []
+    for (let i = 0; i <= segs; i++) {
+      const a = centre - arc / 2 + (i / segs) * arc
+      const k = a * rg.f
+      const n = 0.45 + 0.3 * Math.sin(k * 3.1 + ri) + 0.15 * Math.sin(k * 7.3 + 2 * ri) + 0.1 * Math.sin(k * 15.7 + ri * 3)
+      const edge = arc < 6 ? Math.min(1, (i / segs) * 6, ((segs - i) / segs) * 6) : 1
+      const h = rg.h * Math.max(0.12, n) * (0.4 + 0.6 * edge)
+      const p = at(a, rg.d)
+      verts.push(p.x, L - 2, p.z, p.x, L + h, p.z)
+      if (i < segs) idx.push(i * 2, i * 2 + 2, i * 2 + 1, i * 2 + 1, i * 2 + 2, i * 2 + 3)
+    }
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3))
+    g.setIndex(idx)
+    const col = night.clone().lerp(haze, rg.mix)
+    group.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, fog: false })))
+  })
+
+  // islands, each a low hump with a village of lit windows
+  const glow = canvasTexture(64, (g, s) => {
+    const gr = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2)
+    gr.addColorStop(0, 'rgba(255,236,190,1)')
+    gr.addColorStop(0.3, 'rgba(255,175,90,.55)')
+    gr.addColorStop(1, 'rgba(255,130,50,0)')
+    g.fillStyle = gr
+    g.fillRect(0, 0, s, s)
+  })
+  const lights: number[] = []
+  const islandCol = night.clone().lerp(haze, 0.15)
+  const islands = arc < 6 ? [-0.34, 0.12, 0.38] : [0, 0.9, 1.9, 3.1, 4.2, 5.3]
+  islands.forEach((off, i) => {
+    const a = centre + off * (arc < 6 ? arc : 1)
+    const d = D * (0.75 + 0.12 * (i % 3))
+    const w = D * (0.12 + 0.05 * ((i * 7) % 3))
+    const hgt = D * (0.035 + 0.015 * (i % 2))
+    const shape = new THREE.Shape()
+    shape.moveTo(-w / 2, -1)
+    for (let k = 0; k <= 24; k++) {
+      const x = -w / 2 + (k / 24) * w
+      const t = 1 - Math.pow((2 * k) / 24 - 1, 2)
+      shape.lineTo(x, Math.pow(t, 0.7) * hgt * (0.85 + 0.15 * Math.sin(k * 1.7 + i)))
+    }
+    shape.lineTo(w / 2, -1)
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial({ color: islandCol, fog: false, side: THREE.DoubleSide }))
+    const p = at(a, d)
+    m.position.copy(p)
+    m.lookAt(0, L, 0)
+    group.add(m)
+    // windows clustered on the slope facing us
+    const side = new THREE.Vector3(Math.cos(a), 0, -Math.sin(a))
+    const n = 10 + ((i * 5) % 9)
+    for (let k = 0; k < n; k++) {
+      const x = (r() - 0.5) * w * 0.55
+      const t = 1 - Math.pow((2 * (x + w / 2)) / w - 1, 2)
+      const y = r() * Math.pow(Math.max(0, t), 0.7) * hgt * 0.8
+      const q = p.clone().addScaledVector(side, x).add(new THREE.Vector3(0, y + 0.2, 0)).addScaledVector(p.clone().normalize(), -0.5)
+      lights.push(q.x, q.y, q.z)
+    }
+  })
+
+  // the Sanctuary across the bay: its hill, the temple on top with a glowing door, lamps on the path
+  if (opts.sanctuary !== false) {
+    const a = centre + (arc < 6 ? arc * 0.24 : 0.5)
+    const d = D * 0.62
+    const w = D * 0.3
+    const hgt = D * 0.085
+    const shape = new THREE.Shape()
+    shape.moveTo(-w / 2, -1)
+    for (let k = 0; k <= 30; k++) {
+      const x = -w / 2 + (k / 30) * w
+      const t = Math.exp(-Math.pow(((k / 30) * 2 - 1) * 1.7, 2))
+      shape.lineTo(x, t * hgt)
+    }
+    shape.lineTo(w / 2, -1)
+    const hill = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial({ color: night.clone().lerp(haze, 0.1), fog: false, side: THREE.DoubleSide }))
+    const p = at(a, d)
+    hill.position.copy(p)
+    hill.lookAt(0, L, 0)
+    group.add(hill)
+    const tw = w * 0.07
+    const th = tw * 0.42
+    const temple = new THREE.Group()
+    const stone = new THREE.MeshBasicMaterial({ color: night.clone().lerp(new THREE.Color(0x8d8a86), 0.45), fog: false, side: THREE.DoubleSide })
+    const body = new THREE.Mesh(new THREE.PlaneGeometry(tw, th), stone)
+    body.position.y = hgt + th / 2 - 0.05
+    const ped = new THREE.Shape()
+    ped.moveTo(-tw * 0.55, 0)
+    ped.lineTo(tw * 0.55, 0)
+    ped.lineTo(0, th * 0.45)
+    ped.lineTo(-tw * 0.55, 0)
+    const roof = new THREE.Mesh(new THREE.ShapeGeometry(ped), stone)
+    roof.position.y = hgt + th - 0.05
+    const door = new THREE.Mesh(new THREE.PlaneGeometry(tw * 0.16, th * 0.55), new THREE.MeshBasicMaterial({ color: 0xd99a50, fog: false }))
+    door.position.set(0, hgt + th * 0.3, 0.02)
+    temple.add(body, roof, door)
+    temple.position.copy(p)
+    temple.lookAt(0, L, 0)
+    group.add(temple)
+    const toUs = p.clone().normalize().multiplyScalar(-1)
+    const side = new THREE.Vector3(Math.cos(a), 0, -Math.sin(a))
+    lights.push(...p.clone().add(new THREE.Vector3(0, hgt + th * 0.3, 0)).addScaledVector(toUs, 0.5).toArray())
+    for (let k = 1; k <= 7; k++) {
+      const t = k / 8
+      const x = Math.sin(t * 9) * w * 0.06
+      const q = p.clone().addScaledVector(side, x).add(new THREE.Vector3(0, hgt * (1 - t) * 0.95 + 0.2, 0)).addScaledVector(toUs, 0.5)
+      lights.push(q.x, q.y, q.z)
+    }
+  }
+
+  // boats on the water
+  const boats: number[] = []
+  for (let k = 0; k < (arc < 6 ? 5 : 9); k++) {
+    const a = centre + (r() - 0.5) * arc * 0.9
+    const p = at(a, D * (0.5 + r() * 0.3))
+    boats.push(p.x, L + 0.4, p.z)
+  }
+
+  const size = D * 0.008
+  const lg = new THREE.BufferGeometry()
+  lg.setAttribute('position', new THREE.Float32BufferAttribute(lights, 3))
+  const lightMat = new THREE.PointsMaterial({ map: glow, size, transparent: true, opacity: 0.9, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, color: 0xffbf72 })
+  group.add(new THREE.Points(lg, lightMat))
+  const bg = new THREE.BufferGeometry()
+  bg.setAttribute('position', new THREE.Float32BufferAttribute(boats, 3))
+  const boatMat = new THREE.PointsMaterial({ map: glow, size: size * 1.3, transparent: true, opacity: 0.85, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, color: 0xffb060 })
+  group.add(new THREE.Points(bg, boatMat))
+  scene.add(group)
+
+  return (t) => {
+    lightMat.opacity = 0.82 + 0.08 * Math.sin(t * 2.3)
+    boatMat.opacity = 0.7 + 0.2 * Math.sin(t * 5.1) * Math.sin(t * 1.3)
+  }
+}

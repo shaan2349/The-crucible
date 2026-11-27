@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { surface } from '../world/textures'
 import { addMilkyWay, addMist, addSea, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
+import { addHorizon } from '../world/nightKit'
 import { createTempleSound, type TempleSound } from './sound'
 
 /**
@@ -275,6 +276,7 @@ export class TempleScene {
     canvas.addEventListener('pointercancel', this.onPointerUp)
 
     // the shared night: a moving sea below the hill, the Milky Way, mist on the water, shooting stars
+    this.ticks.push(addHorizon(this.scene, { level: -7.2, distance: 120 }))
     this.ticks.push(addSea(this.scene, { level: -7.2, moon: new THREE.Vector3(30, 29, -128), size: 500 }))
     addMilkyWay(this.scene, { radius: 140, a: new THREE.Vector3(-0.9, 0.1, -0.42), b: new THREE.Vector3(0.45, 0.5, -0.75) })
     this.ticks.push(addShootingStars(this.scene, { distance: 120 }))

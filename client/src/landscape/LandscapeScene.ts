@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { surface } from '../world/textures'
 import { arrival } from '../night/veil'
 import { addMilkyWay, addMist, addSea, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
+import { addHorizon } from '../world/nightKit'
 import { marbleTexture, statueMaterials } from '../marble/statue'
 import type { PremiseStatus, TempleEnding } from '../types'
 
@@ -383,6 +384,7 @@ export class LandscapeScene {
     this.scene.add(hill)
     // the hill stands as an island in a moving sea, mist lying on the water around it
     const level = -R * 0.36 - 0.2
+    this.ticks.push(addHorizon(this.scene, { level, distance: 75, arc: Math.PI * 2, sanctuary: false }))
     this.ticks.push(addSea(this.scene, { level, moon: new THREE.Vector3(-40, 40, -90), size: 400 }))
     const banks: [number, number, number, number][] = []
     for (let i = 0; i < 10; i++) {

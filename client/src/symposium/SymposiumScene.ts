@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import { surface } from '../world/textures'
 import { arrival } from '../night/veil'
-import { addMilkyWay, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
+import { addMilkyWay, addSea, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
+import { addHorizon } from '../world/nightKit'
 import { buildSeated, statueMaterials, marbleTexture, type Statue } from '../marble/statue'
 
 /**
@@ -147,6 +148,9 @@ export class SymposiumScene {
     canvas.addEventListener('pointercancel', this.onUp)
 
     // the shared night: the Milky Way over the colonnade, shooting stars, dust in the lamplight
+    // the hilltop looks out over the sea to the islands, the mountains and the Sanctuary
+    this.ticks.push(addHorizon(this.scene, { level: -0.6, distance: 70 }))
+    this.ticks.push(addSea(this.scene, { level: -0.6, moon: new THREE.Vector3(-24, 30, -90), size: 400 }))
     addMilkyWay(this.scene, { radius: 100, a: new THREE.Vector3(-0.85, 0.2, -0.5), b: new THREE.Vector3(0.5, 0.65, -0.6) })
     this.ticks.push(addShootingStars(this.scene, { distance: 90 }))
 
