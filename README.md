@@ -80,8 +80,9 @@ every push to the tracked branch redeploys the app automatically.
    turns to whoever they address and listeners nod or shake their heads. The
    English level (Simple, Everyday, Philosophical) is chosen at the table.
    Check how it reads and how long a reply takes; tune the prompt from there.
-2. The opening is still one short take from each of the three; consider
-   making that conversational too.
+2. The opening is conversational too: only the one or two philosophers most
+   provoked by what you said speak first; the others join when they have
+   something to add.
 3. Then the agreed 3D order: the Sanctuary hill, the Hall of Minds (using
    `client/src/marble/statue.ts` busts), the Oracle and the Landscape, and
    replies that appear word by word.

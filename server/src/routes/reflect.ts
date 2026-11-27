@@ -107,7 +107,9 @@ reflectRouter.post('/begin', async (req, res) => {
 
 Choose exactly 2-3 philosophers from the list whose frameworks would lead them to notice DIFFERENT things about this specific situation — not philosophers who'd agree with each other, but who'd genuinely point the user's attention somewhere different (one toward character/habit, one toward authenticity/choice, one toward what's actually controllable, etc. — whatever fits THIS situation, don't force a formula).
 
-For each chosen philosopher, write a short opening take (aim for 15-30 words) that names the specific angle they'd bring to THIS situation — not a debate position, a way of SEEING it. Stay philosophically authentic to their actual framework; do not write generic life-coach language. Example register: "Question whether the safe option reflects genuine choice or fear of choosing yourself" (Kierkegaard) — specific, philosophically grounded, not therapeutic filler.
+Then open the conversation the way it would really start at a table: NOT everyone speaks. Only the one philosopher most provoked by what the user said speaks first, and at most one other joins in, usually reacting to the first as much as to the user. The rest stay quiet for now and will come in later. ${only && withIds.length === 1 ? '' : 'Usually one opener is enough; add a second only when they genuinely see it differently.'}
+
+Each opening is spoken to the user, 20-45 words, in that philosopher's own voice: the specific thing they notice about THIS situation, said the way they would say it, often ending with a question back to the user. Stay philosophically authentic to their actual framework; do not write generic life-coach language. Example register (Kierkegaard): "You call one option safe. Safe from what, exactly? I suspect it's safe mostly from the anxiety of choosing yourself. Which of the two would you be choosing, and which would be choosing you?"
 ${AUTHENTICITY_RULES}
 ${styleBlock(language, depth)}`,
       prompt: `The user's situation: "${situation}"\n\nPhilosophers:\n${list}${seatNote}`,
@@ -128,12 +130,12 @@ ${styleBlock(language, depth)}`,
               type: 'object',
               properties: {
                 philosopherId: { type: 'string', enum: PHILOSOPHER_IDS },
-                take: { type: 'string', description: 'Their specific angle on this situation, 15-30 words.' },
+                take: { type: 'string', description: 'What they say first, to the user, 20-45 words.' },
               },
               required: ['philosopherId', 'take'],
             },
-            minItems: only ? withIds.length : 2,
-            maxItems: 3,
+            minItems: 1,
+            maxItems: 2,
           },
         },
         required: ['philosopherIds', 'openings'],
@@ -144,7 +146,8 @@ ${styleBlock(language, depth)}`,
     let ids = result.philosopherIds.filter((id) => philosopherById(id))
     if (only) ids = withIds
     else if (withIds.length) ids = [...withIds, ...ids.filter((id) => !withIds.includes(id))].slice(0, 3)
-    const openings = result.openings.filter((o) => ids.includes(o.philosopherId))
+    const openings = result.openings.filter((o, i, all) => ids.includes(o.philosopherId) && all.findIndex((x) => x.philosopherId === o.philosopherId) === i).slice(0, 2)
+    if (!openings.length) throw new Error('no opening')
     res.json({ philosopherIds: ids, openings })
   } catch (err) {
     console.error('reflect/begin failed', err)

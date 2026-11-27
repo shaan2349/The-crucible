@@ -74,6 +74,8 @@ export function Symposium() {
   const revealFor = useRef<number | null>(null)
 
   const ids = session?.philosopherIds.slice(0, 3) ?? []
+  // only those who spoke first, in the order they spoke
+  const openers = session ? Object.keys(session.openings).filter((id) => ids.includes(id)) : []
 
   // Arriving from the Hall with a chosen thinker starts a fresh table. An
   // unfinished conversation already in progress is kept as a lamp first.
@@ -135,9 +137,10 @@ export function Symposium() {
     let cancelled = false
     ;(async () => {
       await wait(reduced ? 100 : 1400)
-      for (let i = 0; i < Math.min(3, session.philosopherIds.length); i++) {
+      const openers = Object.keys(session.openings).filter((id) => session.philosopherIds.includes(id))
+      for (let i = 0; i < openers.length; i++) {
         if (cancelled) return
-        setSpeaking(i)
+        setSpeaking(session.philosopherIds.indexOf(openers[i]))
         setRevealedOpenings(i + 1)
         scrollPanelToEnd()
         await wait(reduced ? 300 : 2600)
@@ -387,11 +390,11 @@ export function Symposium() {
             {session && session.phase !== 'ended' && (
               <>
                 <Turn who="YOU" color={C.gilt} text={session.situation} />
-                {ids.slice(0, revealedOpenings).map((id, i) => (
+                {openers.slice(0, revealedOpenings).map((id) => (
                   <Turn
                     key={`o-${id}`}
                     who={(philosopherById(id)?.name ?? id).toUpperCase()}
-                    color={SEAT_COLORS[i]}
+                    color={SEAT_COLORS[ids.indexOf(id)] ?? C.gilt}
                     text={session.openings[id]}
                     onSpeak={tts.supported && preferences.voiceEnabled ? () => tts.speak(`o-${id}`, session.openings[id], id) : undefined}
                     speaking={tts.speakingId === `o-${id}`}
@@ -422,7 +425,7 @@ export function Symposium() {
                 {session.phase === 'ending-loading' && <Waiting text="The table is gathering what it saw…" />}
                 {session.error && <p style={{ fontFamily: F.read, color: C.ember }}>{session.error}</p>}
 
-                {session.phase === 'awaiting-response' && revealedOpenings >= Math.min(3, ids.length) && (
+                {session.phase === 'awaiting-response' && revealedOpenings >= openers.length && (
                   <div className="sym-enter flex flex-col gap-2.5 pt-1">
                     {ids.length > 1 && <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Who you are speaking to">
                       <Eyebrow>SPEAK TO</Eyebrow>
