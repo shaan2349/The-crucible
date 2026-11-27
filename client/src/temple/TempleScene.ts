@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { surface } from '../world/textures'
 import { addMilkyWay, addMist, addSea, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
 import { createTempleSound, type TempleSound } from './sound'
 
@@ -1177,7 +1178,8 @@ export class TempleScene {
       tp.setY(i, y)
     }
     tg.computeVertexNormals()
-    const terrain = new THREE.Mesh(tg, new THREE.MeshStandardMaterial({ color: 0x1b1f26, roughness: 1, flatShading: true }))
+    const terrainMat = surface('aerial_grass_rock', { repeat: [48, 48], color: 0x3a4048, normal: 1.2 })
+    const terrain = new THREE.Mesh(tg, terrainMat)
     terrain.receiveShadow = true
     scene.add(terrain)
 
@@ -1197,7 +1199,7 @@ export class TempleScene {
     const slabTex = this.canvasTexture(slab)
     slabTex.wrapS = slabTex.wrapT = THREE.RepeatWrapping
     slabTex.repeat.set(5, 5)
-    const terrace = new THREE.Mesh(new THREE.CircleGeometry(11.5, 72), new THREE.MeshStandardMaterial({ map: slabTex, roughness: 0.9, color: 0xb8b2a6 }))
+    const terrace = new THREE.Mesh(new THREE.CircleGeometry(11.5, 72), surface('marble_01', { repeat: [7, 7], color: 0xa8a092, normal: 1.1 }))
     terrace.rotation.x = -Math.PI / 2
     terrace.position.y = 0.02
     terrace.receiveShadow = true

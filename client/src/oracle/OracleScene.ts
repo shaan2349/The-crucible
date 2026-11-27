@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { surface } from '../world/textures'
 import { arrival } from '../night/veil'
 import { addMilkyWay, addMist, addSea, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
 import { marbleTexture, statueMaterials } from '../marble/statue'
@@ -211,11 +212,13 @@ export class OracleScene {
       p.setY(i, fall + 0.08 * Math.sin(x * 2.1) * Math.cos(z * 1.7) + 0.04 * Math.sin(x * 7 + z * 5))
     }
     geo.computeVertexNormals()
-    const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x2f2b27, roughness: 1, flatShading: true }))
+    const groundMat = surface('rock_04', { repeat: [7, 7], color: 0x7a7266, normal: 1.6 })
+    groundMat.flatShading = true
+    const ground = new THREE.Mesh(geo, groundMat)
     ground.receiveShadow = true
     scene.add(ground)
     // scattered stones
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x45403a, roughness: 1, flatShading: true })
+    const stoneMat = surface('rock_04', { color: 0x6a6258, normal: 1.5 })
     for (let i = 0; i < 22; i++) {
       const a = rand(0, Math.PI * 2)
       const r = rand(1.2, 4.2)
@@ -306,7 +309,7 @@ export class OracleScene {
     const { bronze, gilt } = statueMaterials()
     const g = new THREE.Group()
     // a round stone altar step
-    const step = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.85, 0.2, 40), new THREE.MeshStandardMaterial({ map: marbleTexture('#BFB6A3', '#6E6555'), roughness: 0.7 }))
+    const step = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.85, 0.2, 40), surface('marble_01', { repeat: [3, 0.4], color: 0xc4bba9 }))
     step.position.y = 0.1
     g.add(step)
     for (let k = 0; k < 3; k++) {

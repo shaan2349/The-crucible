@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { marbleTexture, statueMaterials } from '../marble/statue'
+import { surface } from '../world/textures'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
@@ -398,6 +399,8 @@ export class SanctuaryScene {
     const rock = new THREE.Color(0x45433f)
     const shore = new THREE.Color(0x3a3527)
     const tmp = new THREE.Color()
+    const tintScale = 0.42 / ((grass.r + grass.g + grass.b) / 3)
+    const moonlit = new THREE.Color(0x3a4560)
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i)
       const z = p.getZ(i)
@@ -411,13 +414,15 @@ export class SanctuaryScene {
       tmp.lerp(scrub, clamp((fine - 0.55) * 3, 0, 1) * 0.7)
       tmp.lerp(rock, clamp((slope - 0.55) * 1.6, 0, 1) * 0.75 + clamp((h - 5.5) / 3, 0, 0.4))
       if (h < 0.15) tmp.lerp(shore, clamp((0.15 - h) * 5, 0, 1) * 0.8)
+      // the scanned ground supplies the detail; these colours only tint it (dry patches, bare rock, shore)
+      tmp.lerp(moonlit, 0.3).multiplyScalar(tintScale)
       colors[i * 3] = tmp.r
       colors[i * 3 + 1] = tmp.g
       colors[i * 3 + 2] = tmp.b
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
     geo.computeVertexNormals()
-    const land = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }))
+    const land = new THREE.Mesh(geo, surface('aerial_grass_rock', { repeat: [20, 20], vertexColors: true, normal: 1.2 }))
     land.receiveShadow = true
     scene.add(land)
 
@@ -675,8 +680,8 @@ export class SanctuaryScene {
     houses[church].h += 0.15
 
     const n = houses.length
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0xe4dfd3, roughness: 0.9 })
-    const roofMat = new THREE.MeshStandardMaterial({ color: 0xcfc9bb, roughness: 0.95 })
+    const wallMat = surface('painted_plaster_wall', { color: 0xf2ede2, normal: 1.5 })
+    const roofMat = surface('painted_plaster_wall', { color: 0xd8d1c3, normal: 1.5 })
     const domeMat = new THREE.MeshStandardMaterial({ color: 0x2f5592, roughness: 0.5, metalness: 0.1 })
     const winMat = new THREE.MeshBasicMaterial({ color: 0xffb45e })
     const darkMat = new THREE.MeshBasicMaterial({ color: 0x1a1b22 })
@@ -865,10 +870,11 @@ export class SanctuaryScene {
     let along = 0
     pts.forEach((pp, i) => {
       if (i > 0) along += pp.distanceTo(pts[i - 1])
-      uv.push(0, along / 4, 1, along / 4)
+      uv.push(0, along / 0.9, 1, along / 0.9)
     })
     g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2))
-    const path = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: pt, roughness: 0.95, side: THREE.DoubleSide }))
+    void pt
+    const path = new THREE.Mesh(g, surface('grey_stone_path', { color: 0xd8d0c0, side: THREE.DoubleSide, normal: 1.4 }))
     path.receiveShadow = true
     this.scene.add(path)
     // little lamps along it
@@ -901,7 +907,7 @@ export class SanctuaryScene {
       const s = SPOTS[id]
       const y = heightAt(s.x, s.z)
       // a level stone base so the building sits on the slope
-      const padMat = new THREE.MeshStandardMaterial({ map: tex, color: 0x8a8274, roughness: 0.9 })
+      const padMat = surface('marble_01', { repeat: [3, 1], color: 0xc9c0b0, normal: 1.2 })
       // a stepped stone platform, sunk into the slope
       const pad = new THREE.Mesh(new THREE.CylinderGeometry(padR, padR + 0.08, 1.2, 48), padMat)
       pad.position.y = -0.62

@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { surface } from '../world/textures'
 import { arrival } from '../night/veil'
 import { addMilkyWay, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
 import { buildSeated, statueMaterials, marbleTexture, type Statue } from '../marble/statue'
@@ -327,7 +328,7 @@ export class SymposiumScene {
     scene.add(halo)
 
     // the hilltop and distant hills
-    const ground = new THREE.Mesh(new THREE.CircleGeometry(60, 64), new THREE.MeshStandardMaterial({ color: 0x141a16, roughness: 1 }))
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(60, 64), surface('aerial_grass_rock', { repeat: [26, 26], color: 0x3b4248, normal: 1.2 }))
     ground.rotation.x = -Math.PI / 2
     ground.position.y = -0.36
     ground.receiveShadow = true
@@ -353,8 +354,9 @@ export class SymposiumScene {
     // the platform: two marble steps and a floor
     const tex = marbleTexture('#D9D1BF', '#776D5C')
     tex.repeat.set(3, 3)
-    const floorMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7, color: 0x8f887b })
-    const stepMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6, color: 0x9a9283 })
+    void tex
+    const floorMat = surface('marble_01', { repeat: [5, 5], color: 0xa39a8a, normal: 1.1 })
+    const stepMat = surface('marble_01', { repeat: [14, 0.3], color: 0x8f877a, normal: 1.1 })
     const step1 = new THREE.Mesh(new THREE.CylinderGeometry(5.4, 5.6, 0.18, 96), stepMat)
     step1.position.y = -0.27
     const step2 = new THREE.Mesh(new THREE.CylinderGeometry(5.0, 5.2, 0.18, 96), floorMat)

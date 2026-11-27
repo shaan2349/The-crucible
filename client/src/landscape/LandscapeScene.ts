@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { surface } from '../world/textures'
 import { arrival } from '../night/veil'
 import { addMilkyWay, addMist, addSea, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
 import { marbleTexture, statueMaterials } from '../marble/statue'
@@ -355,26 +356,29 @@ export class LandscapeScene {
 
   private buildHill() {
     const R = this.R
-    const geo = new THREE.CircleGeometry(R * 1.6, 96, 0, Math.PI * 2)
+    // rings as well as spokes, so the hill can curve
+    const geo = new THREE.RingGeometry(0.001, R * 1.6, 96, 48)
     geo.rotateX(-Math.PI / 2)
     const p = geo.attributes.position as THREE.BufferAttribute
     const colors = new Float32Array(p.count * 3)
     const grass = new THREE.Color(0x2b3726)
     const dry = new THREE.Color(0x3d3a2b)
     const tmp = new THREE.Color()
+    const tintScale = 0.42 / ((grass.r + grass.g + grass.b) / 3)
+    const moonlit = new THREE.Color(0x3a4560)
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i)
       const z = p.getZ(i)
       const r = Math.hypot(x, z)
       p.setY(i, this.heightAt(r) - (r > R ? (r - R) * 0.6 : 0) + 0.05 * Math.sin(x * 1.3) * Math.cos(z * 1.1))
-      tmp.copy(grass).lerp(dry, 0.3 + 0.3 * Math.sin(x * 0.8 + z * 0.6))
+      tmp.copy(grass).lerp(dry, 0.3 + 0.3 * Math.sin(x * 0.8 + z * 0.6)).lerp(moonlit, 0.42).multiplyScalar(tintScale * 0.72)
       colors[i * 3] = tmp.r
       colors[i * 3 + 1] = tmp.g
       colors[i * 3 + 2] = tmp.b
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
     geo.computeVertexNormals()
-    const hill = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }))
+    const hill = new THREE.Mesh(geo, surface('aerial_grass_rock', { repeat: [R * 0.5, R * 0.5], vertexColors: true, normal: 1.2 }))
     hill.receiveShadow = true
     this.scene.add(hill)
     // the hill stands as an island in a moving sea, mist lying on the water around it

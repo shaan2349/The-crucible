@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { surface } from '../world/textures'
 
 /**
  * Everything that makes the Sanctuary feel alive rather than built: a sea
@@ -233,8 +234,8 @@ export function buildGalley(w: World): Update {
  * up, and scrub scattered between.
  */
 export function buildHillside(w: World, centre: { x: number; z: number }) {
-  const stone = new THREE.MeshStandardMaterial({ color: 0x45413a, roughness: 1, flatShading: true })
-  const rockMat = new THREE.MeshStandardMaterial({ color: 0x35332f, roughness: 1, flatShading: true })
+  const stone = surface('stone_wall_04', { repeat: [2, 1], color: 0xb8b0a2, normal: 1.6 })
+  const rockMat = surface('rock_04', { color: 0x9a9080, normal: 1.5 })
   const leaf = new THREE.MeshStandardMaterial({ color: 0x3c4a33, roughness: 1, flatShading: true })
   const bark = new THREE.MeshStandardMaterial({ color: 0x2c241a, roughness: 1 })
   const scrubMat = new THREE.MeshStandardMaterial({ color: 0x26301f, roughness: 1, flatShading: true })

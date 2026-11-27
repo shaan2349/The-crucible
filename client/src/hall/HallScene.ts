@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { surface } from '../world/textures'
 import { arrival } from '../night/veil'
 import { addDust, createPost, type Post, type Tick } from '../world/nightKit'
 import { buildBust, marbleTexture, statueMaterials, setStatueDetail, type Statue } from '../marble/statue'
@@ -335,16 +336,16 @@ export class HallScene {
 
     const floorTex = marbleTexture('#CFC6B3', '#6E6555')
     floorTex.repeat.set(len / 2.5, 2)
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(len, 6), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.4, metalness: 0.05, color: 0x8a8274 }))
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(len, 6), surface('marble_01', { repeat: [len / 2.4, 2.5], color: 0xb2a998, roughness: 0.55, normal: 0.8 }))
     floor.rotation.x = -Math.PI / 2
     floor.position.set(mid, 0, 1.4)
     this.hall.add(floor)
 
     const stoneTex = marbleTexture('#BDB3A0', '#6B6252')
     stoneTex.repeat.set(len / 3, 1)
-    const wallMat = new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.85, color: 0x5d574f })
+    const wallMat = surface('seaworn_stone_tiles', { repeat: [len / 2.2, 1.6], color: 0x8a8174, normal: 1.4 })
     const nicheMat = new THREE.MeshStandardMaterial({ color: 0x241d17, roughness: 0.95 })
-    const trimMat = new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.6, color: 0xa79e8c })
+    const trimMat = surface('marble_01', { repeat: [len / 3, 0.5], color: 0xb8ae9c, normal: 1 })
     const wall = new THREE.Mesh(new THREE.BoxGeometry(len, ROOF_Y, 0.3), wallMat)
     wall.position.set(mid, ROOF_Y / 2, WALL_Z - 0.15)
     this.hall.add(wall)
