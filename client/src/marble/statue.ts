@@ -217,38 +217,143 @@ function sculpt(segW: number, segH: number, shape: (d: THREE.Vector3, out: THREE
 const HEAD = 0.115
 
 /** Where the face skin sits for a direction (before the head's overall scale). */
-function faceShape(d: THREE.Vector3, fem: boolean, out: THREE.Vector3) {
-  const { x, y, z } = d
-  let a = 0
-  const front = smooth(0.2, 0.7, z)
-  // eye sockets and the brow above them
-  for (const s of [-1, 1]) {
-    a -= 0.085 * gauss(x - s * 0.34, y - 0.1, z - 0.92, 0.15, 0.1, 0.3) * front
-    a += 0.025 * gauss(x - s * 0.34, y - 0.08, z - 0.94, 0.1, 0.045, 0.3) * front // the eyeball
-    a += 0.035 * gauss(x - s * 0.47, y + 0.12, z - 0.8, 0.17, 0.12, 0.3) * front // cheekbones
-    a += (fem ? 0.06 : 0.09) * gauss(Math.abs(x) - 0.98, y - 0.04, z + 0.02, 0.1, 0.2, 0.14) // ears
+/** Each thinker's own proportions, so faces differ as well as hair. */
+interface Face {
+  fem: boolean
+  nose: number // length and projection
+  noseW: number
+  hook: number // a bump on the bridge
+  jaw: number // 0 narrow, 1 broad
+  brow: number // heaviness of the brow ridge
+  lips: number
+  long: number // face length
+  age: number // 0 smooth, 1 lined
+  pupils: boolean // carved pupils, as on Roman and later portraits
+}
+
+const OLD = new Set(['socrates', 'plato', 'laozi', 'confucius', 'kant', 'marx', 'hobbes', 'augustine', 'aquinas', 'bentham', 'hegel', 'popper', 'berlin', 'anscombe', 'epicurus', 'smith', 'locke', 'burke', 'mencius'])
+const NO_PUPILS = new Set(['socrates', 'plato', 'aristotle', 'epicurus', 'confucius', 'mencius', 'laozi', 'buddha'])
+const NOSES: Record<string, Partial<Face>> = {
+  socrates: { nose: 0.75, noseW: 1.45, jaw: 0.9, brow: 1.2, long: 0.92, lips: 1.25 },
+  descartes: { nose: 1.2, hook: 0.6 },
+  machiavelli: { nose: 1.15, hook: 0.5, lips: 0.7, long: 1.06 },
+  kant: { nose: 1.2, hook: 0.4, jaw: 0.2, long: 1.05 },
+  rousseau: { nose: 1.1, hook: 0.3 },
+  nietzsche: { brow: 1.4, jaw: 0.7 },
+  marx: { brow: 1.2, nose: 1.05, noseW: 1.2 },
+  wittgenstein: { nose: 1.1, long: 1.08, jaw: 0.4 },
+  sartre: { nose: 0.95, noseW: 1.2, lips: 1.2, jaw: 0.6 },
+  beauvoir: { nose: 1.0, long: 1.04 },
+  buddha: { nose: 0.95, lips: 1.2, brow: 0.5, long: 1.04 },
+  confucius: { brow: 1.1 },
+  hobbes: { long: 1.08, jaw: 0.3 },
+  hume: { jaw: 1, long: 0.96, lips: 1.15 },
+  aquinas: { jaw: 1, long: 0.95 },
+  augustine: { long: 1.08, jaw: 0.3 },
+}
+
+function faceFor(id: string, look: Look): Face {
+  // stable variation from the name, so every visit shows the same face
+  let h = 2166136261
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619)
+  const r = (n: number) => {
+    const x = Math.sin((h >>> 0) * 0.0001 + n * 12.9898) * 43758.5453
+    return x - Math.floor(x)
   }
-  a += (fem ? 0.03 : 0.05) * gauss(x, y - 0.27, z - 0.94, 0.5, 0.07, 0.3) * front
-  // nose: a ridge growing toward the tip
-  const ridge = Math.exp(-((x / (0.075 + 0.05 * smooth(0.12, -0.2, y))) ** 2))
-  const along = smooth(0.2, 0.05, y) * smooth(-0.3, -0.18, y)
-  a += 0.24 * ridge * along * (0.45 + 0.55 * smooth(0.15, -0.18, y)) * front
-  // lips, the line between them, the chin
-  a += 0.04 * gauss(x, y + 0.41, z - 0.9, 0.2, 0.06, 0.3) * front
-  a -= 0.018 * gauss(x, y + 0.445, z - 0.9, 0.17, 0.012, 0.3) * front
-  a += (fem ? 0.035 : 0.06) * gauss(x, y + 0.68, z - 0.72, 0.17, 0.12, 0.3)
-  let px = x * (1 + a)
-  let py = y * (1 + a)
-  let pz = z * (1 + a)
-  // a narrower jaw, the chin forward, the back of the skull fuller
-  const jaw = y < 0 ? 1 - (fem ? 0.3 : 0.22) * Math.min(1, -y) : 1
-  px *= 0.82 * jaw
-  py *= 1.08
-  pz *= 0.95
-  if (y < -0.3 && z > 0) pz += 0.06 * smooth(-0.3, -0.8, y) * z
-  if (z < 0) pz *= 1.06
+  const fem = !!look.female
+  return {
+    fem,
+    nose: 0.88 + r(1) * 0.3,
+    noseW: 0.9 + r(2) * 0.25,
+    hook: r(3) < 0.3 ? r(4) * 0.5 : 0,
+    jaw: fem ? r(5) * 0.35 : 0.3 + r(5) * 0.6,
+    brow: fem ? 0.4 + r(6) * 0.3 : 0.8 + r(6) * 0.4,
+    lips: (fem ? 1.1 : 0.85) + r(7) * 0.3,
+    long: 0.96 + r(8) * 0.08,
+    age: OLD.has(id) ? 0.7 + r(9) * 0.3 : r(9) * 0.35,
+    pupils: !NO_PUPILS.has(id),
+    ...NOSES[id],
+  }
+}
+
+let currentFace: Face = { fem: false, nose: 1, noseW: 1, hook: 0, jaw: 0.5, brow: 1, lips: 1, long: 1, age: 0.3, pupils: false }
+
+/**
+ * Where the face's skin sits for a direction on the unit sphere. The skull
+ * is shaped first, then the features are carved forward from the face's
+ * plane, so the profile reads (brow, nose, lips, chin) in side light.
+ */
+function faceShape(d: THREE.Vector3, _fem: boolean, out: THREE.Vector3) {
+  const f = currentFace
+  const { x, y, z } = d
+  const ax = Math.abs(x)
+  // the skull: narrower than deep, the back fuller, the jaw tapering to the chin
+  const jawT = y < 0 ? Math.min(1, -y) : 0
+  const jawW = 1 - (f.fem ? 0.34 : 0.3 - 0.14 * f.jaw) * jawT * jawT - 0.06 * jawT
+  let px = x * 0.8 * jawW
+  let py = y * 1.08 * f.long
+  let pz = z * (z < 0 ? 1.02 : 0.92)
+  // temples a little hollow, cheekbones and ears out to the side
+  let side = 0
+  side -= 0.035 * gauss(ax - 0.75, y - 0.3, z - 0.45, 0.14, 0.16, 0.3)
+  side += 0.05 * gauss(ax - 0.6, y + 0.08, z - 0.62, 0.16, 0.1, 0.2)
+  side += (f.fem ? 0.06 : 0.085) * gauss(ax - 0.98, y - 0.04, z + 0.02, 0.1, 0.2, 0.14)
+  px *= 1 + side
+  pz *= 1 + side * 0.5
+
+  // features carved forward from the face plane
+  const face = smooth(0.25, 0.75, z)
+  let fwd = 0
+  // brow ridge, a softer glabella between the brows
+  fwd += 0.07 * f.brow * gauss(ax - 0.28, y - 0.22, 0, 0.2, 0.06, 1) + 0.035 * f.brow * gauss(x, y - 0.2, 0, 0.08, 0.06, 1)
+  // forehead rounding forward
+  fwd += 0.04 * gauss(x, y - 0.5, 0, 0.45, 0.25, 1)
+  // eye sockets, the eyeballs within them, the lid crease above, a line beneath
+  const ex = ax - 0.29
+  const ey = y - 0.08
+  fwd -= 0.15 * gauss(ex, ey, 0, 0.17, 0.11, 1)
+  fwd += 0.1 * gauss(ex, ey + 0.005, 0, 0.11, 0.05, 1) // the eye
+  fwd += 0.022 * gauss(ex, ey - 0.045, 0, 0.12, 0.018, 1) // upper lid edge
+  fwd -= 0.018 * gauss(ex, ey - 0.075, 0, 0.12, 0.014, 1) // crease
+  fwd += 0.012 * gauss(ex, ey + 0.05, 0, 0.1, 0.014, 1) // lower lid
+  if (f.pupils) fwd -= 0.016 * gauss(ex, ey, 0, 0.022, 0.022, 1)
+  // the nose: a bridge rising from between the eyes to a tip, wings either side, nostrils beneath
+  const ny = y // 0.14 at the bridge, -0.24 at the tip
+  const along = smooth(0.16, 0.02, ny) * smooth(-0.32, -0.22, ny)
+  const toTip = clamp01((0.16 - ny) / 0.4)
+  const nw = (0.055 + 0.05 * toTip) * f.noseW
+  const bridge = Math.exp(-((x / nw) ** 2))
+  fwd += f.nose * (0.06 + 0.17 * toTip) * bridge * along
+  fwd += f.hook * 0.05 * gauss(x, ny - 0.0, 0, 0.05, 0.06, 1)
+  fwd += 0.05 * f.nose * gauss(x, ny + 0.23, 0, 0.065 * f.noseW, 0.05, 1) // the tip
+  fwd += 0.055 * gauss(ax - 0.1 * f.noseW, ny + 0.24, 0, 0.055, 0.045, 1) // the wings
+  fwd -= 0.04 * gauss(ax - 0.06 * f.noseW, ny + 0.285, 0, 0.03, 0.018, 1) // nostrils
+  fwd -= 0.03 * gauss(x, ny + 0.29, 0, 0.18, 0.025, 1) // under the nose
+  // the mouth: philtrum, a bowed upper lip, the line between, a fuller lower lip, shadowed corners
+  fwd -= 0.012 * gauss(x, y + 0.33, 0, 0.025, 0.03, 1)
+  const bow = 0.008 * Math.cos(x * 22) * gauss(x, 0, 0, 0.08, 1, 1)
+  fwd += 0.05 * f.lips * gauss(x, y + 0.385 + bow, 0, 0.17, 0.032, 1)
+  fwd -= 0.04 * gauss(x, y + 0.418, 0, 0.18, 0.009, 1)
+  fwd += 0.048 * f.lips * gauss(x, y + 0.455, 0, 0.14, 0.035, 1)
+  fwd -= 0.02 * gauss(ax - 0.19, y + 0.42, 0, 0.03, 0.035, 1)
+  // under the lip, then the chin
+  fwd -= 0.025 * gauss(x, y + 0.54, 0, 0.14, 0.03, 1)
+  fwd += (f.fem ? 0.05 : 0.08) * gauss(x, y + 0.66, 0, 0.17, 0.09, 1)
+  if (!f.fem) fwd -= 0.012 * f.jaw * gauss(x, y + 0.68, 0, 0.015, 0.05, 1) // a cleft on broad jaws
+  // age: folds from nose to mouth, lines on the forehead, hollows under the eyes
+  if (f.age > 0.1) {
+    const foldX = 0.17 + 0.14 * clamp01(-(y + 0.24) / 0.22)
+    fwd -= 0.03 * f.age * gauss(ax - foldX, y + 0.33, 0, 0.022, 0.12, 1) * smooth(-0.15, -0.25, y)
+    fwd -= 0.012 * f.age * Math.max(0, Math.sin(y * 48)) * gauss(x, y - 0.5, 0, 0.35, 0.12, 1)
+    fwd -= 0.015 * f.age * gauss(ex, ey + 0.11, 0, 0.12, 0.025, 1)
+  }
+  pz += fwd * face
+  // a strong chin carries the jaw line forward
+  if (y < -0.35 && z > 0) pz += 0.05 * smooth(-0.35, -0.8, y) * z
   out.set(px, py, pz)
 }
+
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
 
 /** How much hair covers a direction (0 bare, 1 hair), per style. */
 function hairMask(hair: Hair, d: THREE.Vector3) {
@@ -321,19 +426,21 @@ function beardMask(beard: Beard, d: THREE.Vector3) {
   const { x, y, z } = d
   const ax = Math.abs(x)
   const sides = smooth(-0.15, 0.25, z) // only the front and sides of the face
-  const lips = gauss(x, y + 0.43, z - 0.9, 0.22, 0.05, 0.3) // keep the mouth carved
-  if (beard === 'goatee') return smooth(-0.5, -0.6, y) * smooth(0.3, 0.18, ax) * sides
-  const top = beard === 'short' ? -0.1 : -0.02
-  return smooth(top + 0.06, top - 0.06, y) * sides * (1 - lips * 0.85) * (1 - gauss(ax - 0.95, y, z, 0.12, 0.2, 0.2))
+  if (beard === 'goatee') return smooth(-0.5, -0.58, y) * smooth(0.22, 0.12, ax) * sides
+  // the beard line: below the lower lip at the centre, rising along the cheeks to the sideburns
+  const lim = -0.52 + 0.28 * smooth(0.14, 0.42, ax) + (beard === 'short' ? 0.06 : 0.13) * smooth(0.5, 0.9, ax)
+  return smooth(lim + 0.03, lim - 0.12, y) * sides * (1 - gauss(ax - 0.95, y, z, 0.12, 0.2, 0.2))
 }
 
 function beardShape(look: Look, d: THREE.Vector3, out: THREE.Vector3) {
   faceShape(d, false, out)
   const m = beardMask(look.beard, d)
   const { x, y, z } = d
-  const big = look.beard === 'huge' ? 0.2 : look.beard === 'full' || look.beard === 'long' ? 0.12 : look.beard === 'goatee' ? 0.06 : 0.07
-  const r = big + 0.06 * curlField(x, y, z, 8)
-  out.multiplyScalar(1 + r * m - (1 - m) * 0.06)
+  const big = look.beard === 'huge' ? 0.15 : look.beard === 'full' || look.beard === 'long' ? 0.085 : look.beard === 'goatee' ? 0.05 : 0.05
+  const r = big + 0.045 * curlField(x, y, z, 9)
+  // thin at the cheeks, full over the chin, so it grows out of the face rather than sitting on it
+  const fullness = 0.35 + 0.65 * smooth(-0.25, -0.6, y)
+  out.multiplyScalar(1 + r * m * fullness - (1 - m) * 0.03)
   if (m > 0.3 && y < -0.4) {
     const len = look.beard === 'long' ? 0.9 : look.beard === 'huge' ? 0.55 : look.beard === 'full' ? 0.25 : look.beard === 'goatee' ? 0.15 : 0.08
     out.y -= len * smooth(-0.4, -1, y) * m
@@ -347,13 +454,14 @@ export function buildHead(id: string, mats = statueMaterials()): THREE.Group {
   const { marble, carved, gilt, bronze } = mats
   const g = new THREE.Group()
   const fem = !!look.female
+  currentFace = faceFor(id, look)
   const head = new THREE.Group()
   head.position.set(0, 0.19, 0)
   head.scale.setScalar(HEAD)
   g.add(head)
 
   g.add(mesh(new THREE.CylinderGeometry(0.046 * (fem ? 0.88 : 1), 0.058, 0.15, 24), marble, 0, 0.05, -0.008))
-  head.add(mesh(sculpt(96, 72, (d, o) => faceShape(d, fem, o)), marble))
+  head.add(mesh(sculpt(176, 132, (d, o) => faceShape(d, fem, o)), marble))
   head.add(mesh(sculpt(96, 72, (d, o) => hairShape(look, d, o)), carved))
   if (look.beard !== 'none') head.add(mesh(sculpt(80, 60, (d, o) => beardShape(look, d, o)), carved))
   if (look.moustache) {
@@ -361,8 +469,8 @@ export function buildHead(id: string, mats = statueMaterials()): THREE.Group {
       mesh(
         sculpt(80, 60, (d, o) => {
           faceShape(d, false, o)
-          const droop = 0.06 * Math.abs(d.x) * 4
-          const m = gauss(d.x, d.y + 0.33 + droop * 0.4, d.z - 0.92, 0.3, 0.06, 0.3) * smooth(0.5, 0.8, d.z)
+          const droop = 0.3 * Math.abs(d.x)
+          const m = gauss(d.x, d.y + 0.34 + droop, d.z - 0.92, 0.24, 0.035, 0.3) * smooth(0.5, 0.8, d.z)
           o.multiplyScalar(1 + (0.07 + 0.03 * curlField(d.x, d.y, d.z, 14)) * smooth(0.25, 0.6, m) - (1 - smooth(0.2, 0.5, m)) * 0.06)
         }),
         carved,
@@ -435,8 +543,14 @@ export function buildHead(id: string, mats = statueMaterials()): THREE.Group {
   }
 
   if (look.glasses) {
-    ;[-1, 1].forEach((s) => head.add(mesh(new THREE.TorusGeometry(0.2, 0.03, 8, 28), bronze, s * 0.34, 0.08, 1.02)))
-    head.add(mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.28, 6), bronze, 0, 0.12, 1.05).rotateZ(Math.PI / 2))
+    ;[-1, 1].forEach((s) => {
+      head.add(mesh(new THREE.TorusGeometry(0.135, 0.022, 8, 28), bronze, s * 0.235, 0.085, 0.99))
+      const arm = mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.62, 6), bronze, s * 0.38, 0.1, 0.68)
+      arm.rotation.x = Math.PI / 2
+      arm.rotation.z = s * 0.12
+      head.add(arm)
+    })
+    head.add(mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.1, 6), bronze, 0, 0.1, 1.0).rotateZ(Math.PI / 2))
   }
   return g
 }
