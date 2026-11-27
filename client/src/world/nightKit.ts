@@ -149,7 +149,7 @@ export function addSea(scene: THREE.Scene, opts: { level: number; moon: THREE.Ve
  * `b` are two directions the band passes through, so it can be laid across
  * whatever part of the sky a place looks at.
  */
-export function addMilkyWay(scene: THREE.Scene, opts: { radius: number; a: THREE.Vector3; b: THREE.Vector3; minY?: number }) {
+export function addMilkyWay(scene: THREE.Scene, opts: { radius: number; a: THREE.Vector3; b: THREE.Vector3; minY?: number; glow?: number }) {
   const n = new THREE.Vector3().crossVectors(opts.a.clone().normalize(), opts.b.clone().normalize()).normalize()
   const u = opts.a.clone().normalize()
   const v = new THREE.Vector3().crossVectors(n, u).normalize()
@@ -188,7 +188,7 @@ export function addMilkyWay(scene: THREE.Scene, opts: { radius: number; a: THREE
     const ang = (i / 22) * Math.PI * 2
     p.copy(u).multiplyScalar(Math.cos(ang)).addScaledVector(v, Math.sin(ang)).normalize().multiplyScalar(R * 0.97)
     if (p.y < minY) continue
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: haze, transparent: true, opacity: 0.55, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, rotation: r() * 6 }))
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: haze, transparent: true, opacity: 0.55 * (opts.glow ?? 1), depthWrite: false, fog: false, blending: THREE.AdditiveBlending, rotation: r() * 6 }))
     sp.position.copy(p)
     sp.scale.set(R * 0.27, R * 0.27, 1)
     scene.add(sp)

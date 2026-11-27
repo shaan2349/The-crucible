@@ -242,7 +242,7 @@ export function Sanctuary() {
         )}
         {three === 'loading' && (
           <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-10" aria-live="polite">
-            <NightSky />
+            <NightSky three={false} />
             <p className="relative m-0" style={{ fontFamily: "'Libre Caslon Text', Georgia, serif", fontStyle: 'italic', fontSize: 14, color: C.muted, animation: 'sRise 1.2s 1.2s both' }}>
               The lamps are being lit…
             </p>

@@ -1,7 +1,11 @@
+import { Suspense, lazy } from 'react'
 import { NIGHT as C } from './theme'
 
+// the 3D bay loads behind the drawn sky and fades in over it
+const Backdrop3D = lazy(() => import('../world/Backdrop3D'))
+
 /** A full-bleed night sky: gradient, twinkling stars and a moon. Purely decorative. */
-export function NightSky() {
+export function NightSky({ three = true }: { three?: boolean } = {}) {
   const stars = Array.from({ length: 110 }, (_, i) => {
     const r = (n: number) => {
       const x = Math.sin(i * 12.9898 + n * 78.233) * 43758.5453
@@ -39,6 +43,14 @@ export function NightSky() {
         <circle cx="78" cy="20" r="3.4" fill="#F1E8D2" />
         <path d="M0 92 C 25 84, 45 82, 60 86 C 75 90, 88 84, 100 86 L100 100 L0 100 Z" fill="#0f131b" />
       </svg>
+      {three && (
+        <Suspense fallback={null}>
+          <Backdrop3D />
+        </Suspense>
+      )}
+      {three && (
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true" style={{ background: 'linear-gradient(180deg, rgba(8,10,14,.72) 0%, rgba(8,10,14,.45) 45%, rgba(8,10,14,.25) 100%)' }} />
+      )}
     </>
   )
 }
