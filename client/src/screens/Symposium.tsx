@@ -10,6 +10,7 @@ import { usePreferencesContext } from '../context/PreferencesContext'
 import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
+import { useAmbience } from '../night/useAmbience'
 import { Thinking } from '../night/Thinking'
 import type { ReflectRound, ReflectSession, ReflectTurn, TableLevel } from '../types'
 
@@ -47,6 +48,7 @@ function wait(ms: number) {
 }
 
 export function Symposium() {
+  useAmbience('symposium')
   const navigate = useNavigate()
   const location = useLocation()
   // Arriving from the Hall of Minds: a chosen thinker is saved a seat, or

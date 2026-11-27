@@ -8,6 +8,7 @@ import { philosopherById } from '../data/philosophers'
 import { usePreferencesContext } from '../context/PreferencesContext'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
+import { useAmbience } from '../night/useAmbience'
 import { Thinking } from '../night/Thinking'
 import type { OracleMood } from '../oracle/OracleScene'
 
@@ -35,6 +36,7 @@ function prettyDate(iso: string) {
 }
 
 export function Oracle() {
+  useAmbience('oracle')
   const navigate = useNavigate()
   const { preferences } = usePreferencesContext()
   const stt = useSpeechToText()

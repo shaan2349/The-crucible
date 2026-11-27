@@ -8,6 +8,7 @@ import * as api from '../lib/api'
 import { loadBios, saveBios } from '../lib/storage'
 import { usePreferencesContext } from '../context/PreferencesContext'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
+import { useAmbience } from '../night/useAmbience'
 
 // The 3D gallery loads with the Hall itself, keeping the rest of the app light.
 const Hall3D = lazy(() => import('../hall/Hall3D'))
@@ -33,6 +34,7 @@ const WINGS: { name: string; sub: string; ids: string[] }[] = [
 
 
 export function Hall() {
+  useAmbience('hall')
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [awake, setAwake] = useState<string | null>(null)

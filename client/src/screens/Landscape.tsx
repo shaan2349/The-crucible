@@ -5,6 +5,7 @@ import { ArrowLeft, X } from '../night/icons'
 import { loadDebates, loadReflectSessions } from '../lib/storage'
 import { philosopherById } from '../data/philosophers'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
+import { useAmbience } from '../night/useAmbience'
 import { ENDING_COPY, STATUS_WORD, endingOf, numeral, premiseText } from '../temple/ending'
 import type { Debate, PremiseStatus, ReflectSession, TempleEnding } from '../types'
 
@@ -36,6 +37,7 @@ function clip(text: string, n: number) {
 }
 
 export function Landscape() {
+  useAmbience('landscape')
   const navigate = useNavigate()
   const [debates] = useState<Debate[]>(() => loadDebates().filter((d) => d.premises?.length).reverse())
   const [sessions] = useState<ReflectSession[]>(() => loadReflectSessions().slice().reverse())

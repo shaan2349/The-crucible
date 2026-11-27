@@ -10,6 +10,7 @@ import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import { usePreferencesContext } from '../context/PreferencesContext'
 import { NIGHT, NIGHT_FONT } from '../night/theme'
+import { useAmbience } from '../night/useAmbience'
 import { Thinking } from '../night/Thinking'
 import { liftVeilSoon } from '../night/veil'
 import type { Debate as DebateState, Premise, PremiseStatus, Round } from '../types'
@@ -32,6 +33,7 @@ export function TempleDebate({
   setDebate: Dispatch<SetStateAction<DebateState | null>>
   onExit: () => void
 }) {
+  useAmbience('temple')
   const navigate = useNavigate()
   const { preferences } = usePreferencesContext()
   const tts = useTextToSpeech()

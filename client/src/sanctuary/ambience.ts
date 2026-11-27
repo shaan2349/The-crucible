@@ -32,7 +32,19 @@ export function saveMuted(m: boolean) {
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a)
 
-export function createAmbience(): Ambience {
+/** Each place's mix: how much sea (and how far away), how many crickets, fire, wind, and an echo for stone rooms. */
+export type AmbiencePreset = 'sanctuary' | 'oracle' | 'symposium' | 'hall' | 'temple' | 'landscape'
+const MIX: Record<AmbiencePreset, { waves: number; seaFar: number; crickets: number; fire: number; wind: number; echo: boolean }> = {
+  sanctuary: { waves: 1, seaFar: 20000, crickets: 3, fire: 0, wind: 0, echo: false },
+  oracle: { waves: 0.45, seaFar: 700, crickets: 1, fire: 1, wind: 0.55, echo: false },
+  symposium: { waves: 0.5, seaFar: 1100, crickets: 2, fire: 0.3, wind: 0.15, echo: false },
+  hall: { waves: 0.25, seaFar: 600, crickets: 0, fire: 0.35, wind: 0.6, echo: true },
+  temple: { waves: 0.4, seaFar: 800, crickets: 2, fire: 0.55, wind: 0.4, echo: false },
+  landscape: { waves: 0.75, seaFar: 1400, crickets: 3, fire: 0, wind: 0.3, echo: false },
+}
+
+export function createAmbience(preset: AmbiencePreset = 'sanctuary'): Ambience {
+  const mix = MIX[preset]
   let ctx: AudioContext | null = null
   let master: GainNode | null = null
   let timer = 0
@@ -61,6 +73,12 @@ export function createAmbience(): Ambience {
     master = c.createGain()
     master.gain.value = 0
     master.connect(c.destination)
+    const seaOut = c.createGain()
+    seaOut.gain.value = mix.waves
+    const seaDistance = c.createBiquadFilter()
+    seaDistance.type = 'lowpass'
+    seaDistance.frequency.value = mix.seaFar
+    seaOut.connect(seaDistance).connect(master)
 
     // the sea: a deep rolling body of brown noise, and a lighter hiss of foam as each wave draws back
     const body = c.createBufferSource()
@@ -71,7 +89,7 @@ export function createAmbience(): Ambience {
     bodyFilter.frequency.value = 380
     const bodyGain = c.createGain()
     bodyGain.gain.value = 0.15
-    body.connect(bodyFilter).connect(bodyGain).connect(master)
+    body.connect(bodyFilter).connect(bodyGain).connect(seaOut)
     body.start()
 
     const foam = c.createBufferSource()
@@ -83,11 +101,11 @@ export function createAmbience(): Ambience {
     foamFilter.Q.value = 0.6
     const foamGain = c.createGain()
     foamGain.gain.value = 0
-    foam.connect(foamFilter).connect(foamGain).connect(master)
+    foam.connect(foamFilter).connect(foamGain).connect(seaOut)
     foam.start()
 
     // crickets: a high sine each, pulsed into short chirps
-    const crickets = [0, 1, 2].map((i) => {
+    const crickets = [0, 1, 2].slice(0, mix.crickets).map((i) => {
       const osc = c.createOscillator()
       osc.type = 'sine'
       osc.frequency.value = [4350, 4780, 5120][i] + rand(-60, 60)
@@ -102,12 +120,88 @@ export function createAmbience(): Ambience {
 
     let nextWave = c.currentTime + 0.5
 
+    // fire: a low breathing roar and sharp crackles, echoing in stone rooms
+    let fireCrack: GainNode | null = null
+    let crackFilter: BiquadFilterNode | null = null
+    let nextCrack = c.currentTime + 0.3
+    if (mix.fire > 0) {
+      const roar = c.createBufferSource()
+      roar.buffer = noiseBuffer(c, 5, true)
+      roar.loop = true
+      const rf = c.createBiquadFilter()
+      rf.type = 'lowpass'
+      rf.frequency.value = 260
+      const rg = c.createGain()
+      rg.gain.value = 0.18 * mix.fire
+      roar.connect(rf).connect(rg).connect(master)
+      roar.start()
+      const crackle = c.createBufferSource()
+      crackle.buffer = noiseBuffer(c, 3, false)
+      crackle.loop = true
+      crackFilter = c.createBiquadFilter()
+      crackFilter.type = 'bandpass'
+      crackFilter.frequency.value = 2500
+      crackFilter.Q.value = 1.2
+      fireCrack = c.createGain()
+      fireCrack.gain.value = 0
+      crackle.connect(crackFilter).connect(fireCrack).connect(master)
+      if (mix.echo) {
+        const d = c.createDelay(1)
+        d.delayTime.value = 0.13
+        const fb = c.createGain()
+        fb.gain.value = 0.38
+        const wet = c.createGain()
+        wet.gain.value = 0.5
+        fireCrack.connect(d).connect(fb).connect(d)
+        d.connect(wet).connect(master)
+      }
+      crackle.start()
+    }
+
+    // wind: breathy noise whose pitch and strength wander
+    let windFilter: BiquadFilterNode | null = null
+    let windGain: GainNode | null = null
+    let nextGust = c.currentTime
+    if (mix.wind > 0) {
+      const w = c.createBufferSource()
+      w.buffer = noiseBuffer(c, 5, false)
+      w.loop = true
+      windFilter = c.createBiquadFilter()
+      windFilter.type = 'bandpass'
+      windFilter.frequency.value = 500
+      windFilter.Q.value = 0.9
+      windGain = c.createGain()
+      windGain.gain.value = 0.01
+      w.connect(windFilter).connect(windGain).connect(master)
+      w.start()
+    }
+
     // schedule a little ahead, every quarter second
     const schedule = () => {
       if (!ctx) return
       const now = c.currentTime
       const horizon = now + 1.2
-      while (nextWave < horizon) {
+      if (fireCrack && crackFilter) {
+        while (nextCrack < horizon) {
+          const t = nextCrack
+          const pop = rand(0.05, 0.35) * mix.fire
+          crackFilter.frequency.setValueAtTime(rand(1400, 4200), t)
+          fireCrack.gain.setValueAtTime(pop, t)
+          fireCrack.gain.setTargetAtTime(0, t + 0.002, rand(0.005, 0.02))
+          // crackles come in little clusters
+          nextCrack = t + (Math.random() < 0.35 ? rand(0.03, 0.09) : rand(0.08, 0.5) / Math.max(0.3, mix.fire))
+        }
+      }
+      if (windFilter && windGain) {
+        while (nextGust < horizon) {
+          const t = nextGust
+          const len = rand(2.5, 5)
+          windFilter.frequency.setTargetAtTime(rand(280, 900), t, len / 3)
+          windGain.gain.setTargetAtTime(rand(0.015, 0.06) * mix.wind, t, len / 3)
+          nextGust = t + len
+        }
+      }
+      while (mix.waves > 0 && nextWave < horizon) {
         const t = nextWave
         const rise = rand(2.2, 3.4)
         const fall = rand(3.5, 5)
