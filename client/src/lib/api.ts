@@ -138,6 +138,22 @@ export function respondReflection(params: {
   return postJSON<RespondReflectionResponse>('/claude/reflect/respond', params)
 }
 
+export interface DiscussResponse {
+  turns: Required<Pick<import('../types').ReflectTurn, 'philosopherId' | 'text' | 'spokenText' | 'to' | 'mood' | 'reactions'>>[]
+}
+/** The next stretch of conversation at the table, written in one go: only those with something to say speak. */
+export function discussReflection(params: {
+  situation: string
+  openings: Record<string, string>
+  rounds: { round: number; turns: { philosopherId: string; text: string }[]; userMessage: string | null }[]
+  philosopherIds: string[]
+  userMessage: string
+  addressedTo: string
+  level: import('../types').TableLevel
+}) {
+  return postJSON<DiscussResponse>('/claude/reflect/discuss', params)
+}
+
 export interface EndReflectionResponse {
   tension: string
   whatMatters: string

@@ -11,7 +11,7 @@ The app opens on **the Sanctuary**, a moonlit hill with five places:
 | Place | What you do there | Route |
 | --- | --- | --- |
 | The Temple | Defend a belief against two philosophers. Your thesis is the roof, each premise a column; objections crack columns, and your replies seal them in gold, rebuild them, or let them fall. Ends in Victory, Stands reshaped, Still contested or Collapse. | `/app/debate` |
-| The Symposium | Talk something real through with philosophers seated around a lamplit table. Speak to one or to everyone; they answer each other. | `/app/symposium` |
+| The Symposium | Talk something real through with philosophers seated as marble statues around a lamplit table. Speak to one or to everyone; only those with something to say reply, and they argue with each other. Choose how simple the English is. | `/app/symposium` |
 | Hall of Minds | 47 thinkers as marble busts, wing by wing. Wake one to read their plaque, talk to them alone, or seat them at the Symposium. | `/app/hall` |
 | The Oracle | One everyday question a day. Answer in a sentence; hear what your answer rests on and how two thinkers would see it. | `/app/oracle` |
 | Your Landscape | Every belief you have tested stands as its own temple, drawn from how the debate went; conversations leave lamps. | `/app/landscape` |
@@ -74,11 +74,14 @@ every push to the tracked branch redeploys the app automatically.
 
 ## Next session: start here
 
-1. **The Symposium as a real discussion.** Philosophers should argue with each
-   other, interrupt, agree and disagree, react while others speak, and keep
-   the conversation moving, not just answer the question one by one.
-2. **A choice of how simple the English is** when you sit down at the table
-   (plain and simple, everyday, or full philosophical language).
+1. **Try the new Symposium with the real AI.** It now runs as a conversation:
+   one call to `/reflect/discuss` writes the next 1 to 4 turns, only those
+   with something to say speak, they answer each other by name, the speaker
+   turns to whoever they address and listeners nod or shake their heads. The
+   English level (Simple, Everyday, Philosophical) is chosen at the table.
+   Check how it reads and how long a reply takes; tune the prompt from there.
+2. The opening is still one short take from each of the three; consider
+   making that conversational too.
 3. Then the agreed 3D order: the Sanctuary hill, the Hall of Minds (using
    `client/src/marble/statue.ts` busts), the Oracle and the Landscape, and
    replies that appear word by word.

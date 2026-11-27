@@ -96,11 +96,22 @@ export type TempleEnding = 'victory' | 'reshaped' | 'contested' | 'collapse' | '
 // argument-testing vocabulary into what's supposed to be a genuinely
 // different kind of conversation.
 
+export type TurnMood = 'answers' | 'agrees' | 'disagrees' | 'builds' | 'questions' | 'challenges'
+export type TurnReaction = 'nods' | 'shakes' | 'thinks'
+
 export interface ReflectTurn {
   philosopherId: string
   text: string
   spokenText?: string
+  /** Who this turn is said to: 'user' or another philosopher's id. */
+  to?: string
+  mood?: TurnMood
+  /** How others at the table visibly respond while it is said. */
+  reactions?: { philosopherId: string; reaction: TurnReaction }[]
 }
+
+/** How plain the table's English is, chosen when the user sits down. */
+export type TableLevel = 'simple' | 'standard' | 'scholarly'
 
 export interface ReflectRound {
   round: number
@@ -138,6 +149,7 @@ export interface ReflectSession {
   ending: ReflectEnding | null
   error?: string | null
   userReflection?: string
+  level?: TableLevel
 }
 
 export interface Bio {

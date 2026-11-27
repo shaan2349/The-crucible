@@ -217,6 +217,129 @@ ${styleBlock(language, depth)}`,
   }
 })
 
+/* ------------------------------- discuss ------------------------------- */
+
+const MOODS = ['answers', 'agrees', 'disagrees', 'builds', 'questions', 'challenges'] as const
+const REACTIONS = ['nods', 'shakes', 'thinks'] as const
+
+interface DiscussResult {
+  turns: {
+    philosopherId: string
+    to: string
+    mood: (typeof MOODS)[number]
+    text: string
+    spokenText: string
+    reactions?: { philosopherId: string; reaction: (typeof REACTIONS)[number] }[]
+  }[]
+}
+
+/** How plain the table's English is, chosen as the user sits down. */
+function levelBlock(level: unknown): string {
+  if (level === 'simple')
+    return '\n\nLANGUAGE: Very plain English, as if talking to a curious 12-year-old. Short sentences, everyday words, no jargon at all. Explain any idea with a quick everyday example instead of a term. Still say something real and true to your philosophy.'
+  if (level === 'scholarly')
+    return '\n\nLANGUAGE: Full philosophical register. Use the real terms of your tradition where they fit and name your own works or concepts when relevant, as you would with a student of philosophy.'
+  return '\n\nLANGUAGE: Everyday conversational English. A technical term only if you explain it in the same breath.'
+}
+
+/**
+ * The next stretch of a live conversation at the table, written in one go:
+ * whoever genuinely has something to say speaks, in turn, answering the user
+ * and each other. Not everyone has to speak.
+ */
+reflectRouter.post('/discuss', async (req, res) => {
+  const { situation, openings, rounds, userMessage, addressedTo, philosopherIds, level } = req.body ?? {}
+  if (typeof situation !== 'string' || !situation.trim()) return badRequest(res, 'situation is required')
+  if (!openings || typeof openings !== 'object') return badRequest(res, 'openings is required')
+  if (!validRounds(rounds)) return badRequest(res, 'rounds is required')
+  if (typeof userMessage !== 'string' || !userMessage.trim()) return badRequest(res, 'userMessage is required')
+  if (userMessage.length > 2000) return badRequest(res, 'userMessage is too long')
+  const seated = (Array.isArray(philosopherIds) ? philosopherIds : []).map((id: unknown) => (typeof id === 'string' ? philosopherById(id) : undefined)).filter(Boolean) as NonNullable<ReturnType<typeof philosopherById>>[]
+  if (!seated.length || seated.length > 3) return badRequest(res, 'philosopherIds is invalid')
+  const target = typeof addressedTo === 'string' && addressedTo !== 'all' ? seated.find((p) => p.id === addressedTo) : undefined
+
+  const cast = seated
+    .map((p) => {
+      const v = philosopherVoice(p.id)
+      return `### ${p.name} (id "${p.id}", ${p.era}). Framework: ${p.framework}.${v ? `\nVoice: ${v.style}\nSignature move: ${v.signature}` : ''}${constitutionBlock(p.id)}`
+    })
+    .join('\n\n')
+
+  try {
+    const result = await structured<DiscussResult>({
+      system: `You write the next few moments of a real conversation at a symposium table. Seated with the user:
+
+${cast}
+
+This is a conversation, not a panel of answers. Write what would actually happen next at the table:
+- Only those who have something worth saying speak. Often that is one or two people, not everyone. Never give everyone a turn just to be fair.
+- ${target ? `The user spoke to ${target.name} by name, so ${target.name} answers first. Others join only if they genuinely want to add, object or ask.` : 'The user spoke to the whole table. Whoever is most provoked by what they said goes first.'}
+- They talk to each other as well as to the user: by name, picking up a phrase someone just used, agreeing and sharpening it, or disagreeing precisely. Real friction is good; politeness that hides disagreement is not.
+- Each turn is short and spoken: 20 to 70 words, a few sentences, the way people actually talk at a table. No speeches, no lists, no summaries.
+- 1 to 4 turns in total. The last turn usually hands the conversation back to the user, often with a pointed question about their actual situation.
+- Stay specific to what the user said. Every philosopher stays true to their real views and their own manner of speaking; never put words in someone's mouth that they would not hold.
+- Not therapy, not a life coach. Warm but intellectually useful.
+- For each turn, "to" is who it is addressed to: "user" or the id of the philosopher being answered. "mood" is what the turn does. "reactions" are how the others at the table visibly respond while it is said (a nod, a shake of the head, or thinking), only where it is clear.
+- spokenText is the same turn as it would be said aloud: contractions, natural rhythm.
+${AUTHENTICITY_RULES}${levelBlock(level)}`,
+      prompt: `Situation the user brought: "${situation}"\n\n${formatHistory(openings, rounds)}\n\nUser just said${target ? ` (to ${target.name})` : ' (to everyone)'}: "${userMessage}"`,
+      toolName: 'record_conversation',
+      toolDescription: 'Records the next turns of the conversation at the table.',
+      schema: {
+        type: 'object',
+        properties: {
+          turns: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 4,
+            items: {
+              type: 'object',
+              properties: {
+                philosopherId: { type: 'string', enum: seated.map((p) => p.id) },
+                to: { type: 'string', enum: ['user', ...seated.map((p) => p.id)] },
+                mood: { type: 'string', enum: [...MOODS] },
+                text: { type: 'string' },
+                spokenText: { type: 'string' },
+                reactions: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      philosopherId: { type: 'string', enum: seated.map((p) => p.id) },
+                      reaction: { type: 'string', enum: [...REACTIONS] },
+                    },
+                    required: ['philosopherId', 'reaction'],
+                  },
+                },
+              },
+              required: ['philosopherId', 'to', 'mood', 'text', 'spokenText'],
+            },
+          },
+        },
+        required: ['turns'],
+      },
+      maxTokens: 900,
+    })
+    const ids = new Set(seated.map((p) => p.id))
+    const turns = (result.turns ?? [])
+      .filter((t) => t && ids.has(t.philosopherId) && typeof t.text === 'string' && t.text.trim())
+      .slice(0, 4)
+      .map((t) => ({
+        philosopherId: t.philosopherId,
+        to: t.to === 'user' || (ids.has(t.to) && t.to !== t.philosopherId) ? t.to : 'user',
+        mood: MOODS.includes(t.mood) ? t.mood : 'answers',
+        text: t.text.trim(),
+        spokenText: (t.spokenText || t.text).trim(),
+        reactions: (t.reactions ?? []).filter((r) => r && ids.has(r.philosopherId) && r.philosopherId !== t.philosopherId && REACTIONS.includes(r.reaction)),
+      }))
+    if (!turns.length) throw new Error('no turns')
+    res.json({ turns })
+  } catch (err) {
+    console.error('reflect/discuss failed', err)
+    res.status(502).json({ error: 'Claude request failed' })
+  }
+})
+
 /* ------------------------------- ending -------------------------------- */
 
 interface EndingResult {

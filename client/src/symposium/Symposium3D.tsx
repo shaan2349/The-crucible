@@ -9,7 +9,20 @@ export interface SceneSeat {
 }
 
 /** The 3D table, with each guest's name plate floating above their statue. */
-export default function Symposium3D({ seats, speaking, thinking }: { seats: SceneSeat[]; speaking: number | null; thinking: number | null }) {
+export default function Symposium3D({
+  seats,
+  speaking,
+  thinking,
+  lookAt = 'you',
+  reactions = {},
+}: {
+  seats: SceneSeat[]
+  speaking: number | null
+  thinking: number | null
+  /** Who the speaker is talking to: you, or another seat. */
+  lookAt?: number | 'you'
+  reactions?: Record<number, 'nods' | 'shakes' | 'thinks'>
+}) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const sceneRef = useRef<SymposiumScene | null>(null)
@@ -63,6 +76,14 @@ export default function Symposium3D({ seats, speaking, thinking }: { seats: Scen
   useEffect(() => {
     sceneRef.current?.setThinking(thinking)
   }, [thinking])
+  useEffect(() => {
+    sceneRef.current?.setLookAt(lookAt)
+  }, [lookAt])
+  const reactionKey = JSON.stringify(reactions)
+  useEffect(() => {
+    sceneRef.current?.setReactions(reactions)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reactionKey])
 
   const label = seats.length
     ? `A lamplit table under the stars. Seated: ${seats.map((s) => s.name).join(', ')}.${speaking !== null && seats[speaking] ? ` ${seats[speaking].name} is speaking.` : ''}`

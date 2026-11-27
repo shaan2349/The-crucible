@@ -10,7 +10,7 @@ import { usePreferencesContext } from '../context/PreferencesContext'
 import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
-import type { ReflectRound, ReflectSession, ReflectTurn } from '../types'
+import type { ReflectRound, ReflectSession, ReflectTurn, TableLevel } from '../types'
 
 // The 3D table loads with the Symposium itself, keeping the rest of the app light.
 const Symposium3D = lazy(() => import('../symposium/Symposium3D'))
@@ -22,6 +22,15 @@ const Symposium3D = lazy(() => import('../symposium/Symposium3D'))
  */
 
 const SEAT_COLORS = [C.ember, C.iris, C.sage]
+
+const LEVELS: { id: TableLevel; name: string; hint: string }[] = [
+  { id: 'simple', name: 'Simple', hint: 'Plain words, short sentences' },
+  { id: 'standard', name: 'Everyday', hint: 'Like a good conversation' },
+  { id: 'scholarly', name: 'Philosophical', hint: 'Their real terms and texts' },
+]
+
+/** How long a turn stays on stage before the next speaker, roughly reading speed. */
+const readTime = (text: string) => Math.min(7000, Math.max(2200, text.length * 38))
 
 const PROMPTS = [
   'A decision I keep putting off is…',
@@ -50,6 +59,9 @@ export function Symposium() {
   const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   const [situation, setSituation] = useState(() => seatRequest?.prefill ?? '')
+  const [level, setLevel] = useState<TableLevel>(() => (preferences.language === 'simple' || preferences.language === 'scholarly' ? preferences.language : 'standard'))
+  const [lookAt, setLookAt] = useState<number | 'you'>('you')
+  const [reactions, setReactions] = useState<Record<number, 'nods' | 'shakes' | 'thinks'>>({})
   const [message, setMessage] = useState('')
   const [addressee, setAddressee] = useState<string>('all')
   const [takeaway, setTakeaway] = useState('')
@@ -93,7 +105,7 @@ export function Symposium() {
     setStarting(true)
     setStartError(null)
     try {
-      const result = await api.beginReflection(text, { language: preferences.language, depth: preferences.depth }, seatRequest?.withIds?.length ? { withIds: seatRequest.withIds, only: !!seatRequest.only } : undefined)
+      const result = await api.beginReflection(text, { language: level, depth: preferences.depth }, seatRequest?.withIds?.length ? { withIds: seatRequest.withIds, only: !!seatRequest.only } : undefined)
       const next: ReflectSession = {
         id: Date.now(),
         situation: text,
@@ -103,6 +115,7 @@ export function Symposium() {
         phase: 'awaiting-response',
         ending: null,
         error: null,
+        level,
       }
       setRevealedOpenings(0)
       setSession(next)
@@ -149,44 +162,57 @@ export function Symposium() {
     if (!text || session.phase === 'responding') return
     if (stt.listening) stt.stop()
     setMessage('')
-    const priorRounds = roundsForApi(session)
-    const speakers = addressee === 'all' ? ids : ids.filter((id) => id === addressee)
     const round: ReflectRound = { round: session.rounds.length + 1, turns: [], userMessage: text }
     update((s) => ({ ...s, rounds: [...s.rounds, round], phase: 'responding', error: null }))
     scrollPanelToEnd()
-    const turns: ReflectTurn[] = []
+    // whoever was addressed (or the whole table) leans in while the reply is written
+    setThinkingId(addressee === 'all' ? null : addressee)
+    setSpeaking(null)
+    let shown = 0
     try {
-      for (const philosopherId of speakers) {
-        setThinkingId(philosopherId)
-        const result = await api.respondReflection({
-          situation: session.situation,
-          openings: session.openings,
-          rounds: priorRounds,
-          philosopherId,
-          userMessage: text,
-          sameRoundTurns: turns.map((t) => ({ philosopherId: t.philosopherId, text: t.text })),
-          addressedTo: addressee,
-          language: preferences.language,
-          depth: preferences.depth,
-        })
-        turns.push({ philosopherId, text: result.text, spokenText: result.spokenText })
-        setThinkingId(null)
-        setSpeaking(ids.indexOf(philosopherId))
+      const { turns } = await api.discussReflection({
+        situation: session.situation,
+        openings: session.openings,
+        rounds: roundsForApi(session),
+        philosopherIds: ids,
+        userMessage: text,
+        addressedTo: addressee,
+        level: session.level ?? 'standard',
+      })
+      setThinkingId(null)
+      // play the conversation out: each speaker turns to whoever they are talking to, the others react
+      const played: ReflectTurn[] = []
+      for (const t of turns) {
+        const who = ids.indexOf(t.philosopherId)
+        const to = t.to === 'user' ? 'you' : ids.indexOf(t.to)
+        if (shown > 0) {
+          setThinkingId(t.philosopherId)
+          setSpeaking(null)
+          await wait(reduced ? 100 : 700)
+          setThinkingId(null)
+        }
+        played.push(t)
+        shown++
+        setSpeaking(who)
+        setLookAt(to === -1 ? 'you' : to)
+        setReactions(Object.fromEntries((t.reactions ?? []).map((r) => [ids.indexOf(r.philosopherId), r.reaction])))
         update((s) => {
           const rounds = [...s.rounds]
-          rounds[rounds.length - 1] = { ...rounds[rounds.length - 1], turns: [...turns] }
+          rounds[rounds.length - 1] = { ...rounds[rounds.length - 1], turns: [...played] }
           return { ...s, rounds }
         })
         scrollPanelToEnd()
-        if (speakers.length > 1) await wait(reduced ? 200 : 1600)
+        if (played.length < turns.length) await wait(reduced ? 200 : readTime(t.text))
       }
+      setReactions({})
       update((s) => ({ ...s, phase: 'awaiting-response' }))
-      setTimeout(() => setSpeaking(null), reduced ? 0 : 2400)
+      setTimeout(() => setSpeaking(null), reduced ? 0 : 2600)
     } catch (e) {
       setThinkingId(null)
+      setReactions({})
       setMessage(text)
       update((s) => {
-        const rounds = turns.length ? s.rounds : s.rounds.slice(0, -1)
+        const rounds = shown ? s.rounds : s.rounds.slice(0, -1)
         return { ...s, rounds, phase: 'awaiting-response', error: (e as Error)?.message || 'The philosophers could not be reached.' }
       })
     }
@@ -201,7 +227,7 @@ export function Symposium() {
         situation: session.situation,
         openings: session.openings,
         rounds: roundsForApi(session),
-        language: preferences.language,
+        language: session.level ?? preferences.language,
         depth: preferences.depth,
       })
       update((s) => ({ ...s, ending: result, phase: 'ended' }))
@@ -275,7 +301,7 @@ export function Symposium() {
 
         <div className="relative min-h-0 overflow-hidden">
           <Suspense fallback={<div className="absolute inset-0" style={{ background: C.night }} />}>
-            <Symposium3D seats={seats} speaking={speaking} thinking={thinkingIndex} />
+            <Symposium3D seats={seats} speaking={speaking} thinking={thinkingIndex} lookAt={lookAt} reactions={reactions} />
           </Suspense>
         </div>
 
@@ -329,6 +355,28 @@ export function Symposium() {
                     ))}
                   </div>
                 )}
+                <div className="flex flex-col gap-2" role="radiogroup" aria-label="How the philosophers should speak">
+                  <Eyebrow>HOW SHOULD THEY SPEAK?</Eyebrow>
+                  <div className="grid grid-cols-3 gap-2">
+                    {LEVELS.map((l) => {
+                      const on = level === l.id
+                      return (
+                        <button
+                          key={l.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={on}
+                          onClick={() => setLevel(l.id)}
+                          className="sym-btn flex min-h-[64px] flex-col items-start justify-center gap-0.5 rounded border px-3 py-2 text-left"
+                          style={on ? { borderColor: C.gilt, background: 'rgba(194,161,94,.14)' } : { borderColor: C.line }}
+                        >
+                          <span style={{ fontFamily: F.display, fontSize: 16, color: on ? C.gold : C.ivory }}>{l.name}</span>
+                          <span style={{ fontSize: 12, lineHeight: 1.3, color: C.muted }}>{l.hint}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
                 {startError && <p style={{ fontFamily: F.read, color: C.ember }}>{startError}</p>}
                 <PrimaryButton onClick={begin} disabled={!situation.trim() || starting}>
                   {starting ? 'The philosophers are taking their seats…' : 'Take your seat'}
@@ -361,6 +409,7 @@ export function Symposium() {
                           who={(philosopherById(t.philosopherId)?.name ?? t.philosopherId).toUpperCase()}
                           color={SEAT_COLORS[i] ?? C.gilt}
                           text={t.text}
+                          to={t.to && t.to !== 'user' ? philosopherById(t.to)?.name : undefined}
                           onSpeak={tts.supported && preferences.voiceEnabled ? () => tts.speak(key, t.spokenText || t.text, t.philosopherId) : undefined}
                           speaking={tts.speakingId === key}
                         />
@@ -369,6 +418,7 @@ export function Symposium() {
                   </div>
                 ))}
                 {thinkingId && <Waiting text={`${philosopherById(thinkingId)?.name ?? 'A philosopher'} is thinking…`} />}
+                {session.phase === 'responding' && !thinkingId && speaking === null && <Waiting text="The table is thinking…" />}
                 {session.phase === 'ending-loading' && <Waiting text="The table is gathering what it saw…" />}
                 {session.error && <p style={{ fontFamily: F.read, color: C.ember }}>{session.error}</p>}
 
@@ -476,11 +526,14 @@ function Waiting({ text }: { text: string }) {
   )
 }
 
-function Turn({ who, color, text, onSpeak, speaking }: { who: string; color: string; text: string; onSpeak?: () => void; speaking?: boolean }) {
+function Turn({ who, color, text, onSpeak, speaking, to }: { who: string; color: string; text: string; onSpeak?: () => void; speaking?: boolean; to?: string }) {
   return (
     <article className="sym-enter flex flex-col gap-1.5 rounded p-3.5" style={{ background: C.raised, borderLeft: `2px solid ${color}` }}>
       <div className="flex items-start justify-between gap-2">
-        <Eyebrow color={color}>{who}</Eyebrow>
+        <span>
+          <Eyebrow color={color}>{who}</Eyebrow>
+          {to && <span style={{ fontFamily: F.read, fontStyle: 'italic', fontSize: 13, color: C.muted }}> to {to}</span>}
+        </span>
         {onSpeak && (
           <button type="button" onClick={onSpeak} aria-label={speaking ? 'Stop' : `Hear ${who.toLowerCase()}`} className="sym-btn -m-2 flex h-10 w-10 items-center justify-center rounded-full" style={{ color: C.muted }}>
             {speaking ? <Square className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}

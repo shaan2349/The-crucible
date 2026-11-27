@@ -51,6 +51,8 @@ export class SymposiumScene {
   private seats: Seat[] = []
   private speaking: number | null = null
   private thinking: number | null = null
+  private lookAt: number | 'you' = 'you'
+  private reactions: Record<number, 'nods' | 'shakes' | 'thinks'> = {}
   private lamp: THREE.PointLight
   private flame: THREE.Sprite
   private flameGlow: THREE.Sprite
@@ -179,6 +181,16 @@ export class SymposiumScene {
 
   setThinking(index: number | null) {
     this.thinking = index
+  }
+
+  /** Who the speaker turns to: you (the camera) or another seat. */
+  setLookAt(target: number | 'you') {
+    this.lookAt = target
+  }
+
+  /** Listeners' visible responses while someone speaks. */
+  setReactions(r: Record<number, 'nods' | 'shakes' | 'thinks'>) {
+    this.reactions = r
   }
 
   /** Where each seated philosopher's name plate goes, in canvas pixels. */
@@ -488,16 +500,25 @@ export class SymposiumScene {
       } else if (isSpeaker) {
         const here = s.statue.root.position
         const facing = s.statue.root.rotation.y
-        yawTarget = Math.atan2(this.camera.position.x - here.x, this.camera.position.z - here.z) - facing
-        yawTarget = clamp(Math.atan2(Math.sin(yawTarget), Math.cos(yawTarget)), -0.8, 0.8)
+        const other = typeof this.lookAt === 'number' && this.lookAt !== i ? this.seats[this.lookAt] : null
+        const tx = other ? other.statue.root.position.x : this.camera.position.x
+        const tz = other ? other.statue.root.position.z : this.camera.position.z
+        yawTarget = Math.atan2(tx - here.x, tz - here.z) - facing
+        yawTarget = clamp(Math.atan2(Math.sin(yawTarget), Math.cos(yawTarget)), -0.9, 0.9)
       } else if (!still) {
         yawTarget = 0.25 * Math.sin(t * 0.21 + i * 2.1)
       }
+      const reaction = isSpeaker ? undefined : this.reactions[i]
       s.yaw = damp(s.yaw, yawTarget, 2.2, dt)
-      s.lean = damp(s.lean, isSpeaker ? 0.12 : isThinking ? -0.04 : 0, 2.5, dt)
-      s.nod = damp(s.nod, isSpeaker && !still ? 0.05 * Math.sin(t * 2.4) : isThinking ? -0.12 : 0.04, 3, dt)
-      s.statue.head.rotation.y = s.yaw
-      s.statue.head.rotation.x = s.nod
+      s.lean = damp(s.lean, isSpeaker ? 0.12 : isThinking || reaction === 'thinks' ? -0.05 : reaction ? 0.05 : 0, 2.5, dt)
+      const nodTarget = isSpeaker && !still ? 0.05 * Math.sin(t * 2.4) : isThinking || reaction === 'thinks' ? -0.14 : 0.04
+      s.nod = damp(s.nod, nodTarget, 3, dt)
+      // a visible nod or shake of the head while someone else speaks
+      const beat = still ? 0 : Math.max(0, Math.sin(t * 1.1 + i)) ** 2
+      const nodExtra = reaction === 'nods' ? 0.13 * Math.sin(t * 6) * beat : 0
+      const shakeExtra = reaction === 'shakes' ? 0.16 * Math.sin(t * 7) * beat : 0
+      s.statue.head.rotation.y = s.yaw + shakeExtra
+      s.statue.head.rotation.x = s.nod + nodExtra
       s.statue.torso.rotation.x = s.lean
       s.statue.torso.rotation.y = s.yaw * 0.25
       if (!still) s.statue.torso.scale.y = 1 + 0.006 * Math.sin(t * 1.3 + i)
