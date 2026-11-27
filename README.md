@@ -12,7 +12,7 @@ The app opens on **the Sanctuary**, a moonlit hill with five places:
 | --- | --- | --- |
 | The Temple | Defend a belief against two philosophers. Your thesis is the roof, each premise a column; objections crack columns, and your replies seal them in gold, rebuild them, or let them fall. Ends in Victory, Stands reshaped, Still contested or Collapse. | `/app/debate` |
 | The Symposium | Talk something real through with philosophers seated as marble statues around a lamplit table. Speak to one or to everyone; only those with something to say reply, and they argue with each other. Choose how simple the English is. | `/app/symposium` |
-| Hall of Minds | 47 thinkers as marble busts, wing by wing. Wake one to read their plaque, talk to them alone, or seat them at the Symposium. | `/app/hall` |
+| Hall of Minds | A moonlit 3D gallery of 47 marble busts in lit niches, wing by wing through history. Walk along it, tap a bust to read its plaque, talk to them alone, or seat them at the Symposium. | `/app/hall` |
 | The Oracle | One everyday question a day. Answer in a sentence; hear what your answer rests on and how two thinkers would see it. | `/app/oracle` |
 | Your Landscape | Every belief you have tested stands as its own temple, drawn from how the debate went; conversations leave lamps. | `/app/landscape` |
 
@@ -83,13 +83,13 @@ every push to the tracked branch redeploys the app automatically.
 2. The opening is conversational too: only the one or two philosophers most
    provoked by what you said speak first; the others join when they have
    something to add.
-3. Then the agreed 3D order: the Sanctuary hill, the Hall of Minds (using
-   `client/src/marble/statue.ts` busts), the Oracle and the Landscape, and
-   replies that appear word by word.
+3. Then the agreed 3D order: the Sanctuary hill, the Oracle and the
+   Landscape, and replies that appear word by word. (The Hall of Minds is
+   now 3D.)
 
 ## Still to do
 
 - Accounts and sign-in, so the daily allowance and saved history follow a person rather than a device.
-- Matching artwork for the 47 busts in the Hall of Minds (currently stand-ins).
+- More detailed faces for the marble statues (`client/src/marble/statue.ts`).
 - Packaging as an iPhone app and App Store submission.
 - Profile and Settings still use the earlier light style.

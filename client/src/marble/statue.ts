@@ -194,8 +194,14 @@ const curlField = (x: number, y: number, z: number, f: number) => {
 }
 
 /** Deforms a unit sphere vertex by vertex: `shape` gets the direction and returns the new position. */
+let detail = 1
+/** Fewer polygons for scenes with many statues (the Hall); 1 is full detail. */
+export function setStatueDetail(d: number) {
+  detail = Math.max(0.4, Math.min(1, d))
+}
+
 function sculpt(segW: number, segH: number, shape: (d: THREE.Vector3, out: THREE.Vector3) => void) {
-  const geo = new THREE.SphereGeometry(1, segW, segH)
+  const geo = new THREE.SphereGeometry(1, Math.max(16, Math.round(segW * detail)), Math.max(12, Math.round(segH * detail)))
   const pos = geo.attributes.position as THREE.BufferAttribute
   const d = new THREE.Vector3()
   const out = new THREE.Vector3()

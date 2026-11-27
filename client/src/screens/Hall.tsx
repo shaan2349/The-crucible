@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Search, X } from 'lucide-react'
@@ -9,10 +9,14 @@ import { loadBios, saveBios } from '../lib/storage'
 import { usePreferencesContext } from '../context/PreferencesContext'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
 
+// The 3D gallery loads with the Hall itself, keeping the rest of the app light.
+const Hall3D = lazy(() => import('../hall/Hall3D'))
+
 /**
  * The Hall of Minds: a lamplit gallery where the forty-seven thinkers stand
- * as marble busts, wing by wing through history. Tap a bust and it wakes:
- * the lamp above it brightens, the marble warms, and its plaque opens.
+ * as marble busts in a moonlit stoa, wing by wing through history. Tap a
+ * bust and it wakes: a warm light finds it, it turns to you, and its plaque
+ * opens.
  * From there you can talk to that thinker alone, or seat them at the
  * Symposium.
  */
@@ -27,14 +31,11 @@ const WINGS: { name: string; sub: string; ids: string[] }[] = [
   { name: 'Living Thinkers', sub: 'THE CONVERSATION CONTINUES', ids: ['anscombe', 'thomson', 'sen', 'parfit', 'singer', 'nussbaum'] },
 ]
 
-const BEARDED = new Set(['socrates', 'plato', 'aristotle', 'epicurus', 'marcus', 'confucius', 'mencius', 'laozi', 'ibnrushd', 'augustine', 'marx', 'hegel'])
-const LAURELED = new Set(['marcus', 'plato', 'aristotle'])
 
 export function Hall() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [awake, setAwake] = useState<string | null>(null)
-  const bustRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   // every philosopher should be in exactly one wing; anyone missing gets a home
   const wings = useMemo(() => {
@@ -52,8 +53,10 @@ export function Hall() {
 
   function wake(id: string) {
     setAwake(id)
-    requestAnimationFrame(() => bustRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' }))
   }
+
+  const results = useMemo(() => (q ? wings.flatMap((w) => w.ids).filter((id) => philosopherById(id) && visible(id)) : []), [q, wings])
+  const matches = useMemo(() => (q ? new Set(results) : null), [q, results])
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: C.night, color: C.ivory, fontFamily: F.ui }}>
@@ -95,52 +98,27 @@ export function Hall() {
         </label>
       </header>
 
-      <main className="relative min-h-0 flex-1 overflow-y-auto" style={{ background: 'linear-gradient(180deg, #0b0d11 0%, #130f0c 100%)' }}>
-        {wings.map((w, wi) => {
-          const ids = w.ids.filter((id) => philosopherById(id) && visible(id))
-          if (!ids.length) return null
-          return (
-            <section key={w.name} className="hall-enter relative pt-7" style={{ animationDelay: `${Math.min(wi, 4) * 0.08}s` }} aria-labelledby={`wing-${wi}`}>
-              <WingBackdrop />
-              <div className="relative flex flex-col items-center gap-1 px-4 text-center">
-                <h2 id={`wing-${wi}`} style={{ fontFamily: F.display, fontSize: 22, fontWeight: 400, margin: 0 }}>
-                  {w.name}
-                </h2>
-                <span style={{ fontFamily: F.inscr, fontSize: 9.5, fontWeight: 600, letterSpacing: '.24em', color: C.gilt }}>{w.sub}</span>
-              </div>
-              <div className="hall-row relative flex gap-2 overflow-x-auto px-6 pb-8 pt-4" style={{ justifyContent: 'safe center' }}>
-                {ids.map((id) => {
-                  const p = philosopherById(id)!
-                  return (
-                    <button
-                      key={id}
-                      ref={(el) => {
-                        bustRefs.current[id] = el
-                      }}
-                      type="button"
-                      onClick={() => wake(id)}
-                      className={`hall-btn hall-bust flex w-[132px] shrink-0 flex-col items-center gap-1 rounded-md pb-2 pt-1 ${awake === id ? 'awake' : ''}`}
-                      aria-label={`${p.name}, ${p.era}. ${PHILOSOPHER_TAGS[id] ?? ''}`}
-                      aria-pressed={awake === id}
-                    >
-                      <MarbleBust id={id} awake={awake === id} />
-                      <span style={{ fontFamily: F.display, fontSize: 16, lineHeight: 1.1 }}>{p.name}</span>
-                      <span style={{ fontFamily: F.inscr, fontSize: 8.5, fontWeight: 600, letterSpacing: '.16em', color: awake === id ? C.gold : C.gilt }}>
-                        {(PHILOSOPHER_TAGS[id] ?? '').toUpperCase()}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </section>
-          )
-        })}
-        {q && !PHILOSOPHERS.some((p) => visible(p.id)) && (
-          <p className="px-6 pt-16 text-center" style={{ fontFamily: F.read, fontStyle: 'italic', color: C.muted }}>
-            No one in the hall matches “{query}”.
-          </p>
+      <main className="relative min-h-0 flex-1">
+        <Suspense fallback={<div className="absolute inset-0" style={{ background: C.night }} />}>
+          <Hall3D wings={wings} awake={awake} matches={matches} onWake={wake} />
+        </Suspense>
+        {q && (
+          <div className="absolute left-1/2 top-3 z-[2] w-[min(92%,420px)] -translate-x-1/2 overflow-hidden rounded border" style={{ background: 'rgba(17,20,26,.96)', borderColor: C.lineStrong }} role="region" aria-label="Thinkers matching your search">
+            {results.length ? (
+              results.slice(0, 6).map((id) => {
+                const p = philosopherById(id)!
+                return (
+                  <button key={id} type="button" onClick={() => { wake(id); setQuery('') }} className="hall-btn flex w-full items-baseline justify-between gap-3 border-b px-4 py-2.5 text-left last:border-b-0" style={{ borderColor: C.line }}>
+                    <span style={{ fontFamily: F.display, fontSize: 16 }}>{p.name}</span>
+                    <span style={{ fontFamily: F.inscr, fontSize: 9, letterSpacing: '.16em', color: C.gilt }}>{(PHILOSOPHER_TAGS[id] ?? '').toUpperCase()}</span>
+                  </button>
+                )
+              })
+            ) : (
+              <p className="px-4 py-3" style={{ fontFamily: F.read, fontStyle: 'italic', color: C.muted }}>No one in the hall matches “{query}”.</p>
+            )}
+          </div>
         )}
-        <div style={{ height: 'max(24px, env(safe-area-inset-bottom))' }} />
       </main>
 
       {awake && philosopherById(awake) && (
@@ -154,68 +132,6 @@ export function Hall() {
       )}
     </div>,
     document.body,
-  )
-}
-
-/* --------------------------------- the busts --------------------------------- */
-
-function MarbleBust({ id, awake }: { id: string; awake: boolean }) {
-  const bearded = BEARDED.has(id)
-  const laurel = LAURELED.has(id)
-  const marble = awake ? '#EBD3B0' : '#CFC6B1'
-  const shade = awake ? '#C9A57A' : '#9E957F'
-  const gid = `bust-${id}`
-  return (
-    <svg viewBox="0 0 120 170" width="120" height="170" aria-hidden="true">
-      <defs>
-        <radialGradient id={`${gid}-lamp`} cx="50%" cy="10%" r="70%">
-          <stop offset="0" stopColor="#FFD9A0" stopOpacity=".75" />
-          <stop offset=".5" stopColor="#F09A50" stopOpacity=".18" />
-          <stop offset="1" stopColor="#F09A50" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id={`${gid}-m`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor={shade} />
-          <stop offset=".45" stopColor={marble} />
-          <stop offset="1" stopColor={shade} />
-        </linearGradient>
-      </defs>
-      <rect className="lamp" x="0" y="0" width="120" height="150" fill={`url(#${gid}-lamp)`} />
-      {/* plinth */}
-      <rect x="30" y="128" width="60" height="40" fill="#2a241f" />
-      <rect x="26" y="124" width="68" height="6" fill="#3a322b" />
-      <rect x="26" y="164" width="68" height="6" fill="#3a322b" />
-      <g className="bust-body">
-        {/* shoulders and drapery */}
-        <path className="marble" d="M24 124 C 26 104, 38 94, 46 90 C 50 95, 70 95, 74 90 C 82 94, 94 104, 96 124 Z" fill={`url(#${gid}-m)`} />
-        <path d="M46 92 C 56 104, 64 112, 90 120" stroke={shade} strokeOpacity=".7" strokeWidth="3" fill="none" />
-        {/* neck */}
-        <rect className="marble" x="52" y="74" width="16" height="20" fill={`url(#${gid}-m)`} />
-        {/* head */}
-        <ellipse className="marble" cx="60" cy="56" rx="19" ry="23" fill={`url(#${gid}-m)`} />
-        <path d="M45 52 Q 60 46 75 52" stroke={shade} strokeOpacity=".55" strokeWidth="1.5" fill="none" />
-        <path d="M56 58 L54 66 L58 67" stroke={shade} strokeOpacity=".7" strokeWidth="1.3" fill="none" />
-        {bearded && <path className="marble" d="M42 60 C 44 82, 76 82, 78 60 C 74 70, 66 74, 60 74 C 54 74, 46 70, 42 60 Z" fill={shade} opacity=".85" />}
-        {laurel && (
-          <g stroke="#7d8a55" strokeWidth="2.4" strokeLinecap="round">
-            {[-14, -8, -2, 4, 10].map((dx) => (
-              <path key={dx} d={`M${60 + dx} 37 l${dx < 0 ? -4 : 4} -4`} />
-            ))}
-          </g>
-        )}
-      </g>
-      {awake && <circle cx="60" cy="6" r="3" fill="#FFE3A0" />}
-    </svg>
-  )
-}
-
-function WingBackdrop() {
-  return (
-    <svg className="pointer-events-none absolute inset-0 h-full w-full" preserveAspectRatio="none" viewBox="0 0 100 100" aria-hidden="true">
-      {[8, 30, 52, 74, 96].map((x) => (
-        <rect key={x} x={x - 2} y="22" width="4" height="78" fill="#1a1612" opacity=".7" />
-      ))}
-      <rect x="0" y="98" width="100" height="2" fill="#241e19" />
-    </svg>
   )
 }
 
