@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Mic } from 'lucide-react'
@@ -8,11 +8,15 @@ import { philosopherById } from '../data/philosophers'
 import { usePreferencesContext } from '../context/PreferencesContext'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
+import type { OracleMood } from '../oracle/OracleScene'
+
+// The 3D ledge and fire load with the Oracle; the drawn flame shows if 3D is unavailable.
+const Oracle3D = lazy(() => import('../oracle/Oracle3D'))
 
 /**
- * The Oracle: one question a day, for when you are simply curious. A flame
- * burns on a rock under the stars and the day's question rises out of its
- * smoke. Answer in a sentence or two; the Oracle answers back with what
+ * The Oracle: one question a day, for when you are simply curious. A bronze
+ * tripod burns on a ledge among the ruins of an old shrine (3D, src/oracle),
+ * and its fire answers what happens on the page. Answer in a sentence or two; the Oracle answers back with what
  * your answer rests on and how two thinkers would see it. No scores.
  */
 
@@ -39,6 +43,8 @@ export function Oracle() {
   const [thinking, setThinking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const asked = useRef(false)
+  const [scroll, setScroll] = useState(0)
+  const [no3d, setNo3d] = useState(false)
   const date = today()
   const day = days.find((d) => d.date === date)
   const earlier = days.filter((d) => d.date !== date && d.answer).slice().reverse()
@@ -89,8 +95,17 @@ export function Oracle() {
       .finally(() => setLoading(false))
   }
 
+  const mood: OracleMood = thinking ? 'thinking' : day?.reply ? 'answered' : day ? 'waiting' : 'gathering'
+
   return createPortal(
     <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: C.night, color: C.ivory, fontFamily: F.ui }}>
+      {!no3d && (
+        <div className="pointer-events-none absolute inset-0">
+          <Suspense fallback={null}>
+            <Oracle3D mood={mood} scroll={scroll} onFail={() => setNo3d(true)} />
+          </Suspense>
+        </div>
+      )}
       <style>{`
         .or-btn:focus-visible, .or-wrap textarea:focus-visible { outline: 2px solid ${C.gold}; outline-offset: 2px; }
         .or-enter { animation: orEnter 1.1s cubic-bezier(.16,1,.3,1) both; }
@@ -108,7 +123,7 @@ export function Oracle() {
         @media (prefers-reduced-motion: reduce) { .or-enter, .or-rise, .or-flame, .or-smoke, .or-glow, .or-star { animation: none; } }
       `}</style>
 
-      <header className="flex items-center gap-3 border-b px-4 py-2" style={{ borderColor: C.line, paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
+      <header className="relative z-[1] flex items-center gap-3 border-b px-4 py-2" style={{ borderColor: C.line, background: 'rgba(11,13,17,.72)', backdropFilter: 'blur(6px)', paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
         <button type="button" onClick={() => navigate('/app')} className="or-btn flex h-11 w-11 items-center justify-center rounded-full" aria-label="Back to the sanctuary">
           <ArrowLeft className="h-5 w-5" />
         </button>
@@ -118,18 +133,32 @@ export function Oracle() {
         </div>
       </header>
 
-      <main className="or-wrap min-h-0 flex-1 overflow-y-auto">
-        <div className="relative mx-auto flex max-w-[620px] flex-col items-center px-5 pb-10">
-          <OracleFlame />
+      <main className="or-wrap relative z-[1] min-h-0 flex-1 overflow-y-auto" onScroll={(e) => setScroll(e.currentTarget.scrollTop / Math.max(1, e.currentTarget.clientHeight))}>
+        {/* the fire shows through the top of the page; the words sit on a dark wash below it */}
+        {no3d ? (
+          <div className="mx-auto flex max-w-[620px] justify-center px-5">
+            <OracleFlame />
+          </div>
+        ) : (
+          <div style={{ height: 'min(46svh, 420px)' }} aria-hidden="true" />
+        )}
+        <div className="relative mx-auto flex max-w-[620px] flex-col items-center px-5 pb-10" style={no3d ? undefined : { paddingTop: 8 }}>
+          {!no3d && (
+            <div
+              className="pointer-events-none absolute inset-x-[-50vw] -top-28 bottom-0 -z-[1]"
+              style={{ background: 'linear-gradient(180deg, rgba(11,13,17,0) 0%, rgba(11,13,17,.6) 110px, rgba(11,13,17,.8) 280px)' }}
+              aria-hidden="true"
+            />
+          )}
 
           {loading && (
-            <p className="or-enter -mt-2 text-center" style={{ fontFamily: F.read, fontStyle: 'italic', color: C.muted }}>
+            <p className="or-enter -mt-2 text-center" style={{ fontFamily: F.read, fontStyle: 'italic', color: C.body }}>
               The smoke is gathering into a question…
             </p>
           )}
 
           {day && (
-            <div className="-mt-4 flex w-full flex-col items-center gap-3 text-center">
+            <div className={`${no3d ? '-mt-4' : ''} flex w-full flex-col items-center gap-3 text-center`}>
               <span className="or-enter" style={{ fontFamily: F.inscr, fontSize: 10.5, fontWeight: 600, letterSpacing: '.28em', color: C.gilt }}>
                 TODAY’S QUESTION
               </span>
