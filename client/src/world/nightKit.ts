@@ -28,12 +28,15 @@ export function createPost(
   renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
   camera: THREE.Camera,
-  opts: { strength?: number; radius?: number; threshold?: number; vignette?: number } = {},
+  opts: { strength?: number; radius?: number; threshold?: number; vignette?: number; frameMs?: number } = {},
 ): Post {
   const small = isSmallScreen()
-  const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: small ? 2 : 4 }))
+  // sharp enough without drawing four times the pixels on high-density screens
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.25 : 1.5))
+  const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: small ? 0 : 2 }))
   composer.addPass(new RenderPass(scene, camera))
-  composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), opts.strength ?? 0.55, opts.radius ?? 0.5, opts.threshold ?? 0.78))
+  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), opts.strength ?? 0.55, opts.radius ?? 0.5, opts.threshold ?? 0.78)
+  composer.addPass(bloom)
   composer.addPass(
     new ShaderPass({
       uniforms: { tDiffuse: { value: null }, uAmount: { value: opts.vignette ?? 0.45 } },
@@ -43,11 +46,55 @@ export function createPost(
     }),
   )
   composer.addPass(new OutputPass())
-  return {
-    render: () => composer.render(),
-    setSize: (w, h) => {
+
+  // A quality governor: if frames take too long on this device, step down
+  // (glow off, then fewer pixels, then no shadows) until it runs smoothly.
+  const target = opts.frameMs ?? 16.7
+  let w = 1
+  let h = 1
+  let last = 0
+  let slow = 0
+  let samples = 0
+  let level = 0
+  const stepDown = () => {
+    level++
+    if (level === 1) bloom.enabled = false
+    if (level === 2) {
+      renderer.setPixelRatio(Math.min(renderer.getPixelRatio(), 1))
       composer.setPixelRatio(renderer.getPixelRatio())
-      composer.setSize(Math.max(1, w), Math.max(1, h))
+      composer.setSize(w, h)
+    }
+    if (level === 3) {
+      renderer.shadowMap.autoUpdate = false
+      renderer.setPixelRatio(0.75)
+      composer.setPixelRatio(0.75)
+      composer.setSize(w, h)
+    }
+  }
+  return {
+    render: () => {
+      const now = performance.now()
+      if (last && !document.hidden) {
+        const dt = now - last
+        // ignore long gaps (tab switches, pauses)
+        if (dt < 250) {
+          samples++
+          if (dt > target * 1.6) slow++
+          if (samples >= 90) {
+            if (slow > 45 && level < 3) stepDown()
+            samples = 0
+            slow = 0
+          }
+        }
+      }
+      last = now
+      composer.render()
+    },
+    setSize: (nw, nh) => {
+      w = Math.max(1, nw)
+      h = Math.max(1, nh)
+      composer.setPixelRatio(renderer.getPixelRatio())
+      composer.setSize(w, h)
     },
     dispose: () => composer.dispose(),
   }

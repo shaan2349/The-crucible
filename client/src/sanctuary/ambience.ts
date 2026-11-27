@@ -239,8 +239,9 @@ export function createAmbience(preset: AmbiencePreset = 'sanctuary'): Ambience {
 
   const onVisibility = () => {
     if (!ctx) return
-    if (document.hidden) void ctx.suspend()
-    else if (!muted) void ctx.resume()
+    if (ctx.state === 'closed') return
+    if (document.hidden) ctx.suspend().catch(() => {})
+    else if (!muted) ctx.resume().catch(() => {})
   }
 
   return {
@@ -251,7 +252,7 @@ export function createAmbience(preset: AmbiencePreset = 'sanctuary'): Ambience {
       started = true
       ctx = new Ctor()
       build(ctx)
-      void ctx.resume()
+      ctx.resume().catch(() => {})
       master!.gain.setTargetAtTime(VOLUME, ctx.currentTime, 1.2)
       document.addEventListener('visibilitychange', onVisibility)
     },
@@ -265,9 +266,11 @@ export function createAmbience(preset: AmbiencePreset = 'sanctuary'): Ambience {
       if (m) {
         master.gain.setTargetAtTime(0, ctx.currentTime, 0.3)
         const c = ctx
-        window.setTimeout(() => !muted && c.state === 'running' ? null : void c.suspend(), 1200)
+        window.setTimeout(() => {
+          if (muted && c.state === 'running') c.suspend().catch(() => {})
+        }, 1200)
       } else {
-        void ctx.resume()
+        ctx.resume().catch(() => {})
         master.gain.setTargetAtTime(VOLUME, ctx.currentTime, 0.6)
       }
     },
@@ -277,7 +280,9 @@ export function createAmbience(preset: AmbiencePreset = 'sanctuary'): Ambience {
       const c = ctx
       if (c && master) {
         master.gain.setTargetAtTime(0, c.currentTime, 0.35)
-        window.setTimeout(() => void c.close(), 1500)
+        window.setTimeout(() => {
+          if (c.state !== 'closed') c.close().catch(() => {})
+        }, 1500)
       }
       ctx = null
       master = null

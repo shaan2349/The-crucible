@@ -83,7 +83,7 @@ export class BackdropScene {
     this.ticks.push(addMist(s, [[-30, -40, 50, 0.6], [20, -55, 60, 0.8], [-5, -80, 70, 0.7], [45, -30, 40, 0.5], [-55, -25, 40, 0.6]], 0.3))
     this.ticks.push(addShootingStars(s, { distance: 140 }))
 
-    this.post = createPost(this.renderer, s, this.camera, { strength: 0.5, threshold: 0.8, vignette: 0.5 })
+    this.post = createPost(this.renderer, s, this.camera, { strength: 0.5, threshold: 0.8, vignette: 0.5, frameMs: 34 })
     this.raf = requestAnimationFrame(this.frame)
   }
 

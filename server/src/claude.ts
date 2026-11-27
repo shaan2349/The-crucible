@@ -25,6 +25,18 @@ const supportsFallbacks = (model: string) => /^claude-(opus-5-5|opus-5$|sonnet-5
  */
 const MIN_MAX_TOKENS = 16000
 
+/** Routes whose replies are conversational and short, where speed matters more than deep deliberation. */
+const QUICK = new Set([
+  'record_conversation', // the Symposium's back-and-forth
+  'begin_reflection', // who sits at the table and their first words
+  'record_reflection_response',
+  'record_reply', // the Journey
+  'record_stop',
+  'respond_to_choices', // thought experiments
+  'record_oracle_reply',
+  'record_question',
+])
+
 /**
  * Runs a prompt and has Claude respond through a single tool call matching
  * `schema`, so the response is parsed JSON instead of free text. Current
@@ -41,8 +53,13 @@ export async function structured<T>(opts: {
   maxTokens?: number
   /** 'light' runs on the cheaper model; anything a philosopher says stays on the main one. */
   tier?: 'main' | 'light'
+  /** How hard the model thinks before answering. Lower is faster. Defaults by route (see QUICK). */
+  effort?: 'low' | 'medium' | 'high'
 }): Promise<T> {
   const model = opts.tier === 'light' ? CLAUDE_LIGHT_MODEL : CLAUDE_MODEL
+  // Short spoken replies and hidden jobs answer at low effort, which is much
+  // faster; judging a debate and writing its verdict keep medium.
+  const effort = opts.effort ?? (opts.tier === 'light' || QUICK.has(opts.toolName) ? 'low' : 'medium')
   const system = `${opts.system}\n\nAlways respond by calling the ${opts.toolName} tool exactly once. Do not reply in plain text.`
   const tool = { name: opts.toolName, description: opts.toolDescription, input_schema: opts.schema }
 
@@ -54,6 +71,7 @@ export async function structured<T>(opts: {
       messages: [{ role: 'user', content: opts.prompt }],
       tools: [tool],
       tool_choice: { type: 'auto' },
+      output_config: { effort },
       ...(supportsFallbacks(model) ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } : {}),
     } as Anthropic.Beta.MessageCreateParamsNonStreaming)
 

@@ -16,6 +16,23 @@ export interface StyleParams {
 // at the backend's public URL, set at build time via a dashboard env var.
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
+/**
+ * The free server sleeps after a quiet spell and takes up to a minute to
+ * wake. Knocking as soon as the app opens means it is usually awake by the
+ * time someone asks their first question. Repeats every few minutes while
+ * the app is open so it does not doze off mid-visit.
+ */
+let warmed = false
+export function wakeServer() {
+  if (warmed || typeof window === 'undefined') return
+  warmed = true
+  const knock = () => void fetch(`${API_BASE}/api/health`, { cache: 'no-store' }).catch(() => {})
+  knock()
+  window.setInterval(() => {
+    if (!document.hidden) knock()
+  }, 8 * 60 * 1000)
+}
+
 async function postJSON<T>(path: string, body: unknown, attempts = 3): Promise<T> {
   let lastErr: unknown
   for (let i = 0; i < attempts; i++) {

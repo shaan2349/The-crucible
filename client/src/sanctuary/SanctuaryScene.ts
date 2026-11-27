@@ -1,11 +1,7 @@
 import * as THREE from 'three'
 import { marbleTexture, statueMaterials } from '../marble/statue'
 import { surface } from '../world/textures'
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
+import { createPost, type Post } from '../world/nightKit'
 import { buildGalley, buildHearthSmoke, buildHillside, buildMist, buildSea, buildShootingStars, type Update, type World } from './atmosphere'
 
 /**
@@ -68,8 +64,7 @@ export class SanctuaryScene {
   private smoke: THREE.Sprite[] = []
   private lamps: THREE.Sprite[] = []
   private clouds: THREE.Sprite[] = []
-  private composer: EffectComposer
-  private bloom: UnrealBloomPass
+  private post: Post
   private updates: Update[] = []
   private houses: { x: number; z: number; y: number; h: number }[] = []
   private stars!: THREE.Points
@@ -156,19 +151,7 @@ export class SanctuaryScene {
     )
 
     // lamps, windows and the moon bloom softly; a gentle vignette draws the eye to the hill
-    this.composer = new EffectComposer(this.renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: small ? 2 : 4 }))
-    this.composer.addPass(new RenderPass(this.scene, this.camera))
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.55, 0.5, 0.78)
-    this.composer.addPass(this.bloom)
-    this.composer.addPass(
-      new ShaderPass({
-        uniforms: { tDiffuse: { value: null } },
-        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-        fragmentShader:
-          'uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c = texture2D(tDiffuse, vUv); vec2 d = vUv - 0.5; float v = smoothstep(0.85, 0.25, length(d * vec2(1.0, 1.15))); c.rgb *= mix(0.55, 1.0, v); c.rgb = mix(c.rgb, c.rgb * vec3(0.96, 0.99, 1.06), 0.5); gl_FragColor = c; }',
-      }),
-    )
-    this.composer.addPass(new OutputPass())
+    this.post = createPost(this.renderer, this.scene, this.camera, { strength: 0.55, radius: 0.5, threshold: 0.78 })
 
     this.onDown = (e) => {
       this.dragging = true
@@ -245,8 +228,7 @@ export class SanctuaryScene {
     this.W = Math.max(1, w)
     this.H = Math.max(1, h)
     this.renderer.setSize(this.W, this.H, false)
-    this.composer.setPixelRatio(this.renderer.getPixelRatio())
-    this.composer.setSize(this.W, this.H)
+    this.post?.setSize(this.W, this.H)
     this.camera.aspect = this.W / this.H
     this.fit = clamp(1.35 / this.camera.aspect, 0.85, 2.4)
     this.camera.fov = this.camera.aspect < 1 ? 50 : 38
@@ -263,7 +245,7 @@ export class SanctuaryScene {
       const m = o as THREE.Mesh
       if (m.geometry) m.geometry.dispose()
     })
-    this.composer.dispose()
+    this.post.dispose()
     this.renderer.dispose()
   }
 
@@ -1204,7 +1186,7 @@ export class SanctuaryScene {
 
     if (!still) for (const u of this.updates) u(t, dt)
     else if (this.clock === dt) for (const u of this.updates) u(0, 0)
-    this.composer.render()
+    this.post.render()
     this.raf = requestAnimationFrame(this.frame)
   }
 }

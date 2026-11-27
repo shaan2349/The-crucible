@@ -1,19 +1,19 @@
-import { useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { liftVeil } from './night/veil'
 import { Landing } from './screens/Landing'
-import { Onboarding } from './screens/Onboarding'
+const Onboarding = lazy(() => import('./screens/Onboarding').then((m) => ({ default: m.Onboarding })))
 import { AppShell } from './components/AppShell'
-import { Debate } from './screens/Debate'
-import { Council } from './screens/Council'
-import { Profile } from './screens/Profile'
-import { Settings } from './screens/Settings'
+const Debate = lazy(() => import('./screens/Debate').then((m) => ({ default: m.Debate })))
+const Council = lazy(() => import('./screens/Council').then((m) => ({ default: m.Council })))
+const Profile = lazy(() => import('./screens/Profile').then((m) => ({ default: m.Profile })))
+const Settings = lazy(() => import('./screens/Settings').then((m) => ({ default: m.Settings })))
 import { Sanctuary } from './screens/Sanctuary'
-import { Symposium } from './screens/Symposium'
-import { Landscape } from './screens/Landscape'
-import { Hall } from './screens/Hall'
-import { Experiments } from './screens/Experiments'
-import { Journey } from './screens/Journey'
+const Symposium = lazy(() => import('./screens/Symposium').then((m) => ({ default: m.Symposium })))
+const Landscape = lazy(() => import('./screens/Landscape').then((m) => ({ default: m.Landscape })))
+const Hall = lazy(() => import('./screens/Hall').then((m) => ({ default: m.Hall })))
+const Experiments = lazy(() => import('./screens/Experiments').then((m) => ({ default: m.Experiments })))
+const Journey = lazy(() => import('./screens/Journey').then((m) => ({ default: m.Journey })))
 import { DuotoneDefs } from './components/DuotoneDefs'
 import { DebateProvider } from './context/DebateContext'
 import { ReflectProvider } from './context/ReflectContext'
@@ -39,6 +39,7 @@ function App() {
       <PreferencesProvider>
         <DebateProvider>
           <ReflectProvider>
+            <Suspense fallback={<div className="fixed inset-0" style={{ background: '#0B0D11' }} />}>
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/onboarding" element={<Onboarding />} />
@@ -70,6 +71,7 @@ function App() {
                 <Route path="settings" element={<Settings />} />
               </Route>
             </Routes>
+            </Suspense>
           </ReflectProvider>
         </DebateProvider>
       </PreferencesProvider>
