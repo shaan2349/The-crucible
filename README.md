@@ -74,17 +74,19 @@ every push to the tracked branch redeploys the app automatically.
 
 ## Next session: start here
 
-1. **Try the new Symposium with the real AI.** It now runs as a conversation:
-   one call to `/reflect/discuss` writes the next 1 to 4 turns, only those
-   with something to say speak, they answer each other by name, the speaker
-   turns to whoever they address and listeners nod or shake their heads. The
-   English level (Simple, Everyday, Philosophical) is chosen at the table.
-   Check how it reads and how long a reply takes; tune the prompt from there.
-2. The opening is conversational too: only the one or two philosophers most
-   provoked by what you said speak first; the others join when they have
-   something to add.
-3. Then: replies that appear word by word. (Every place is now 3D: the
-   Sanctuary hill, Temple, Symposium, Hall of Minds, Oracle and Landscape.)
+1. **Listen to the night sounds** on the home screen and adjust volume or feel.
+2. **A proper session with the real AI**: go through the Temple, Symposium and
+   Oracle with real questions, then tune what the philosophers say (length,
+   tone, how natural the Symposium conversation feels).
+3. **Replies that appear word by word**, plus something to watch while a
+   philosopher thinks, so the 10-30 second waits feel shorter.
+4. **Check it on a real phone**: smoothness, battery, heat on the 3D home screen.
+5. Optional polish: lantern and village lights reflected in the bay, a fuller
+   ruin on the far island, more detailed statue faces.
+
+Later, before the App Store: accounts and sign-in (Apple or email), packaging
+as an iPhone app, the Apple developer account ($99/year), and a monthly
+spending cap in the Anthropic console.
 
 ## Still to do
 
