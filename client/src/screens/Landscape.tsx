@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, X } from 'lucide-react'
@@ -8,12 +8,16 @@ import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
 import { ENDING_COPY, STATUS_WORD, endingOf, numeral, premiseText } from '../temple/ending'
 import type { Debate, PremiseStatus, ReflectSession, TempleEnding } from '../types'
 
+// The 3D hill loads with the Landscape; the drawn hillside remains wherever 3D is unavailable.
+const Landscape3D = lazy(() => import('../landscape/Landscape3D'))
+
 /**
  * Your Landscape: every belief you have tested stands on your hillside as
  * its own small temple, drawn from how the debate actually went. Gold
  * veins where you defended a premise, a fresh column where you rewrote
  * one, drums in the grass where one fell, ruins where the roof came down.
  * Conversations from the Symposium burn as lamps along the lower path.
+ * The hill is 3D (src/landscape) and can be turned all the way round.
  */
 
 type Selected = { kind: 'temple'; d: Debate } | { kind: 'lamp'; s: ReflectSession } | null
@@ -54,6 +58,23 @@ export function Landscape() {
   }, [debates])
 
   const empty = debates.length === 0 && sessions.length === 0
+  const [no3d, setNo3d] = useState(false)
+  const temples3d = useMemo(
+    () =>
+      debates.map((d) => {
+        const e = endingOf(d)
+        return { key: `t-${d.id}`, statuses: d.premises.map((p) => p.status), ending: e, label: clip(d.claim, 46), color: ENDING_COPY[e].color, word: ENDING_COPY[e].eyebrow }
+      }),
+    [debates],
+  )
+  const lamps3d = useMemo(() => sessions.map((s) => `l-${s.id}`), [sessions])
+  function pick(key: string) {
+    const d = debates.find((x) => `t-${x.id}` === key)
+    if (d) return setSelected({ kind: 'temple', d })
+    const s = sessions.find((x) => `l-${x.id}` === key)
+    if (s) setSelected({ kind: 'lamp', s })
+  }
+  const selectedKey = selected ? (selected.kind === 'temple' ? `t-${selected.d.id}` : `l-${selected.s.id}`) : null
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: C.night, color: C.ivory, fontFamily: F.ui }}>
@@ -85,8 +106,33 @@ export function Landscape() {
         </div>
       </header>
 
-      <div ref={wrapRef} className="relative min-h-0 flex-1 overflow-y-auto">
-        {empty ? (
+      <div ref={wrapRef} className={`relative min-h-0 flex-1 ${no3d ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+        {!no3d && (
+          <Suspense fallback={null}>
+            <Landscape3D temples={temples3d} lamps={lamps3d} selected={selectedKey} onPick={pick} onFail={() => setNo3d(true)} />
+          </Suspense>
+        )}
+        {!no3d ? (
+          empty ? (
+            <div className="absolute inset-x-0 bottom-0 z-[1] px-4 pb-6" style={{ background: 'linear-gradient(180deg, rgba(11,13,17,0), rgba(11,13,17,.92) 30%)' }}>
+              <EmptyHill onTemple={() => navigate('/app/debate')} onSymposium={() => navigate('/app/symposium')} />
+            </div>
+          ) : (
+            <>
+              {debates.length > 0 && <Tally counts={counts} />}
+              {sessions.length > 0 && (
+                <nav aria-label="Conversations" className="absolute inset-x-0 bottom-0 z-[1] flex items-center gap-2 overflow-x-auto px-3 py-2.5" style={{ background: 'rgba(11,13,17,.82)', borderTop: `1px solid ${C.line}`, paddingBottom: 'max(10px, env(safe-area-inset-bottom))' }}>
+                  <span className="shrink-0" style={{ fontFamily: F.inscr, fontSize: 9.5, fontWeight: 600, letterSpacing: '.2em', color: C.gilt }}>LAMPS</span>
+                  {sessions.map((s) => (
+                    <button key={s.id} type="button" onClick={() => setSelected({ kind: 'lamp', s })} className="ls-btn min-h-[40px] max-w-[220px] shrink-0 truncate rounded-full border px-3.5" style={{ borderColor: C.line, color: C.body, fontFamily: F.read, fontSize: 13.5 }}>
+                      {clip(s.situation, 34)}
+                    </button>
+                  ))}
+                </nav>
+              )}
+            </>
+          )
+        ) : empty ? (
           <EmptyHill onTemple={() => navigate('/app/debate')} onSymposium={() => navigate('/app/symposium')} />
         ) : (
           <>

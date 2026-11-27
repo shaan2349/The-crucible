@@ -14,7 +14,7 @@ The app opens on **the Sanctuary**, a moonlit 3D hill above the sea with five pl
 | The Symposium | Talk something real through with philosophers seated as marble statues around a lamplit table. Speak to one or to everyone; only those with something to say reply, and they argue with each other. Choose how simple the English is. | `/app/symposium` |
 | Hall of Minds | A moonlit 3D gallery of 47 marble busts in lit niches, wing by wing through history. Walk along it, tap a bust to read its plaque, talk to them alone, or seat them at the Symposium. | `/app/hall` |
 | The Oracle | A bronze tripod burning among the ruins of an old shrine (3D); its fire reacts as you answer. One everyday question a day. Answer in a sentence; hear what your answer rests on and how two thinkers would see it. | `/app/oracle` |
-| Your Landscape | Every belief you have tested stands as its own temple, drawn from how the debate went; conversations leave lamps. | `/app/landscape` |
+| Your Landscape | A 3D hill you can turn all the way round. Every belief you have tested stands as its own small temple, built from how the debate went (gold veins, new marble, cracks, fallen drums, ruins); conversations leave lamps. | `/app/landscape` |
 
 Older routes (`/app/reflect`, `/app/archive`, `/app/train`, `/app/mythinking`)
 redirect to their new places. The product vision and build plan live in the
@@ -83,8 +83,8 @@ every push to the tracked branch redeploys the app automatically.
 2. The opening is conversational too: only the one or two philosophers most
    provoked by what you said speak first; the others join when they have
    something to add.
-3. Then: the Landscape in 3D, and replies that appear word by word. (The
-   Sanctuary hill, Symposium, Hall of Minds and Oracle are now 3D.)
+3. Then: replies that appear word by word. (Every place is now 3D: the
+   Sanctuary hill, Temple, Symposium, Hall of Minds, Oracle and Landscape.)
 
 ## Still to do
 
