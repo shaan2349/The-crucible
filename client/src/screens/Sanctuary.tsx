@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { User, Volume2, VolumeX } from '../night/icons'
 import { createAmbience, loadMuted, type Ambience } from '../sanctuary/ambience'
 import { useDebateContext } from '../context/DebateContext'
+import { quotesForToday } from '../data/quotes'
 import { loadDebates } from '../lib/storage'
 import type { PlaceId } from '../sanctuary/SanctuaryScene'
 import { NightSky } from '../night/NightSky'
@@ -53,13 +54,7 @@ const PLACES: Place[] = [
   { id: 'landscape', to: '/app/landscape', name: 'Your Landscape', sub: 'WHAT YOU HAVE TESTED', lx: 738, ly: 666, px: 760, py: 700, delay: 1.45, description: 'Every belief you have tested' },
 ]
 
-const QUOTES = [
-  ['The unexamined life is not worth living.', 'SOCRATES'],
-  ['Sapere aude.', 'KANT'],
-  ['Reason is, and ought only to be the slave of the passions.', 'HUME'],
-  ['Man is by nature a political animal.', 'ARISTOTLE'],
-  ['One is not born, but rather becomes, a woman.', 'DE BEAUVOIR'],
-] as const
+const QUOTES = quotesForToday()
 
 /** Deterministic star field, so it doesn't reshuffle on every render. */
 const STARS = Array.from({ length: 140 }, (_, i) => {
@@ -180,7 +175,7 @@ export function Sanctuary() {
         .sanctuary .label { animation: sRise .9s cubic-bezier(.16,1,.3,1) both; }
         .sanctuary .shimmer { animation: sShimmer 3s ease-in-out infinite; }
         .sanctuary .meteor { animation: sMeteor 14s ease-in 3s infinite; }
-        .sanctuary .ticker { animation: sTicker 70s linear infinite; }
+        .sanctuary .ticker { animation: sTicker ${QUOTES.length * 9}s linear infinite; }
         .sanctuary .place { cursor: pointer; outline: none; }
         .sanctuary .place .halo { opacity: .55; transition: opacity .4s ease; }
         .sanctuary .place:hover .halo, .sanctuary .place:focus-visible .halo { opacity: 1; }
