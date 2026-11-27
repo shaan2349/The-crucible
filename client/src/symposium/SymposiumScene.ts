@@ -3,7 +3,7 @@ import { surface } from '../world/textures'
 import { arrival } from '../night/veil'
 import { addMilkyWay, addSea, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
 import { addHorizon } from '../world/nightKit'
-import { buildSeated, statueMaterials, marbleTexture, type Statue } from '../marble/statue'
+import { buildSeated, statueMaterials, marbleTexture, setStatueDetail, type Statue } from '../marble/statue'
 
 /**
  * The Symposium in 3D: an open colonnade on a hill at night, a round marble
@@ -49,6 +49,7 @@ export class SymposiumScene {
   private post!: Post
   private ticks: Tick[] = []
   private raf = 0
+  private halted = false
   private last = performance.now()
   private clock = 0
   private born = performance.now()
@@ -155,7 +156,11 @@ export class SymposiumScene {
     this.ticks.push(addShootingStars(this.scene, { distance: 90 }))
 
     this.post = createPost(this.renderer, this.scene, this.camera, { strength: 0.32, threshold: 0.95 })
-    this.raf = requestAnimationFrame(this.frame)
+    // prepare every shader in the background before the first frame, so the page doesn't freeze while it compiles
+    const start = () => {
+      if (!this.halted) this.raf = requestAnimationFrame(this.frame)
+    }
+    this.renderer.compileAsync(this.scene, this.camera).then(start, start)
   }
 
   /* ------------------------------- public API ------------------------------- */
@@ -168,6 +173,8 @@ export class SymposiumScene {
       this.scene.remove(s.statue.root, s.spot, s.spot.target, s.glow)
       s.spot.dispose()
     }
+    // phones carve the statues in lighter detail, so the table appears without a long pause
+    setStatueDetail(Math.min(window.innerWidth, window.innerHeight) < 600 ? 0.6 : 1)
     const angles = next.length === 1 ? [Math.PI] : next.length === 2 ? [Math.PI - 0.62, Math.PI + 0.62] : [Math.PI - 1.15, Math.PI, Math.PI + 1.15]
     this.seats = next.map((id, i) => {
       const angle = angles[i]
@@ -228,9 +235,23 @@ export class SymposiumScene {
     this.post?.setSize(w, h)
     this.camera.aspect = this.W / this.H
     this.fit()
+    this.applyShift?.()
+  }
+
+  private shift = 0
+  /** Moves the picture up by this fraction of the screen, for layouts that lay a panel over the lower part. */
+  setShift(f: number) {
+    this.shift = f
+    this.applyShift()
+  }
+
+  private applyShift() {
+    if (this.shift) this.camera.setViewOffset(this.W, this.H, 0, this.H * this.shift, this.W, this.H)
+    else this.camera.clearViewOffset()
   }
 
   dispose() {
+    this.halted = true
     cancelAnimationFrame(this.raf)
     this.canvas.removeEventListener('pointerdown', this.onDown)
     this.canvas.removeEventListener('pointermove', this.onMove)
@@ -250,7 +271,7 @@ export class SymposiumScene {
   private fit() {
     const aspect = this.W / this.H
     // the table and three guests span about 4.6 units across
-    this.cam.fit = clamp(1.25 / aspect, 0.85, 2.1)
+    this.cam.fit = clamp(1.25 / aspect, 0.85, 2.7)
     this.camera.updateProjectionMatrix()
   }
 

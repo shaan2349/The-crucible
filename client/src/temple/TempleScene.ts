@@ -112,6 +112,7 @@ export class TempleScene {
   private clock = 0
   private last = performance.now()
   private raf = 0
+  private halted = false
   private disposed = false
   private tweens: Tween[] = []
   private later: { t: number; fn: () => void }[] = []
@@ -283,7 +284,11 @@ export class TempleScene {
     this.ticks.push(addMist(this.scene, [[-30, -40, 40, -6.4], [25, -50, 46, -6.6], [-5, -70, 60, -6.5], [45, -30, 30, -6.8], [-50, -25, 30, -6.6]], 0.3))
 
     this.post = createPost(this.renderer, this.scene, this.camera, { strength: 0.5, threshold: 0.8 })
-    this.raf = requestAnimationFrame(this.frame)
+    // prepare every shader in the background before the first frame, so the page doesn't freeze while it compiles
+    const start = () => {
+      if (!this.halted) this.raf = requestAnimationFrame(this.frame)
+    }
+    this.renderer.compileAsync(this.scene, this.camera).then(start, start)
   }
 
   /* ------------------------------- public API ------------------------------ */
@@ -588,9 +593,23 @@ export class TempleScene {
     this.renderer.setSize(this.W, this.H, false)
     this.post?.setSize(w, h)
     this.fitCamera()
+    this.applyShift?.()
+  }
+
+  private shift = 0
+  /** Moves the picture up by this fraction of the screen, for layouts that lay a panel over the lower part. */
+  setShift(f: number) {
+    this.shift = f
+    this.applyShift()
+  }
+
+  private applyShift() {
+    if (this.shift) this.camera.setViewOffset(this.W, this.H, 0, this.H * this.shift, this.W, this.H)
+    else this.camera.clearViewOffset()
   }
 
   dispose() {
+    this.halted = true
     this.disposed = true
     cancelAnimationFrame(this.raf)
     this.canvas.removeEventListener('pointerdown', this.onPointerDown)

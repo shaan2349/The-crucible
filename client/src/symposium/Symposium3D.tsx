@@ -40,6 +40,8 @@ export default function Symposium3D({
     const ro = new ResizeObserver(() => {
       const r = wrap.getBoundingClientRect()
       scene.resize(r.width, r.height)
+      // on an upright phone the conversation lies over the lower screen; lift the table above it
+      scene.setShift(window.matchMedia('(max-width: 899px) and (orientation: portrait)').matches ? 0.2 : 0)
     })
     ro.observe(wrap)
     // name plates follow the statues every frame, without re-rendering React
@@ -53,7 +55,9 @@ export default function Symposium3D({
           el.style.opacity = '0'
           return
         }
-        el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -100%)`
+        const half = el.offsetWidth / 2 + 6
+        const x = Math.min(Math.max(p.x, half), wrap.clientWidth - half)
+        el.style.transform = `translate(${x}px, ${p.y}px) translate(-50%, -100%)`
         el.style.opacity = '1'
       })
       raf = requestAnimationFrame(follow)

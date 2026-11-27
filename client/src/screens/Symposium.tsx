@@ -49,6 +49,7 @@ function wait(ms: number) {
 
 export function Symposium() {
   useAmbience('symposium')
+  const [expanded, setExpanded] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   // Arriving from the Hall of Minds: a chosen thinker is saved a seat, or
@@ -282,6 +283,14 @@ export function Symposium() {
           .symposium-bar { grid-column: 1 / -1; }
           .symposium-panel { max-height: none !important; border-top: none !important; border-left: 1px solid ${C.line}; }
         }
+        /* upright phones: the scene fills the screen and the conversation lies over its lower part */
+        @media (max-width: 899px) and (orientation: portrait) {
+          .symposium-grid { grid-template-rows: auto minmax(0,1fr) !important; }
+          .symposium-stage { grid-row: 2; grid-column: 1; }
+          .symposium-panel { grid-row: 2; grid-column: 1; align-self: end; position: relative; z-index: 2; max-height: 52svh !important; border-top: none !important; background: linear-gradient(180deg, rgba(11,13,17,0) 0, rgba(11,13,17,.82) 44px, rgba(11,13,17,.93) 120px) !important; transition: max-height .45s cubic-bezier(.16,1,.3,1); }
+          .symposium-panel[data-expanded="true"] { max-height: 86svh !important; }
+          .panel-handle { display: flex !important; }
+        }
         .sym-enter { animation: symEnter .8s cubic-bezier(.16,1,.3,1) both; }
         @keyframes symEnter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
         .sym-btn:focus-visible, .symposium-panel textarea:focus-visible { outline: 2px solid ${C.gold}; outline-offset: 2px; }
@@ -305,7 +314,7 @@ export function Symposium() {
           )}
         </header>
 
-        <div className="relative min-h-0 overflow-hidden">
+        <div className="symposium-stage relative min-h-0 overflow-hidden">
           <Suspense fallback={<div className="absolute inset-0" style={{ background: C.night }} />}>
             <Symposium3D seats={seats} speaking={speaking} thinking={thinkingIndex} lookAt={lookAt} reactions={reactions} />
           </Suspense>
@@ -314,9 +323,19 @@ export function Symposium() {
         <section
           ref={panelRef}
           className="symposium-panel overflow-y-auto border-t"
+          data-expanded={expanded}
           style={{ background: C.panel, borderColor: C.line, maxHeight: '50vh', paddingBottom: 'max(18px, env(safe-area-inset-bottom))' }}
           aria-live="polite"
         >
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Show less of the conversation' : 'Show more of the conversation'}
+            className="panel-handle sticky top-0 z-[1] mx-auto hidden h-7 w-full items-center justify-center"
+          >
+            <span className="block h-1 w-10 rounded-full" style={{ background: 'rgba(194,161,94,.6)' }} />
+          </button>
           <div className="mx-auto flex max-w-[560px] flex-col gap-3 px-[18px] pt-4">
             {!session && (
               <div className="sym-enter flex flex-col gap-3">

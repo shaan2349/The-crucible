@@ -21,6 +21,10 @@ export interface PlaceAnchor {
 }
 
 const L = Math.PI
+const PORTRAIT_BACK = 14
+const PORTRAIT_UP = 7
+const PORTRAIT_LOOK = 3.4
+const PORTRAIT_FOV = 46
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 const damp = (cur: number, target: number, rate: number, dt: number) => cur + (target - cur) * (1 - Math.exp(-rate * dt))
 const rand = (a: number, b: number) => a + Math.random() * (b - a)
@@ -50,6 +54,7 @@ export class SanctuaryScene {
   private canvas: HTMLCanvasElement
   private reduced: boolean
   private raf = 0
+  private halted = false
   private last = performance.now()
   private clock = 0
   private W = 1
@@ -187,7 +192,11 @@ export class SanctuaryScene {
     canvas.addEventListener('pointerup', this.onUp)
     canvas.addEventListener('pointercancel', () => (this.dragging = false))
 
-    this.raf = requestAnimationFrame(this.frame)
+    // prepare every shader in the background before the first frame, so the page doesn't freeze while it compiles
+    const start = () => {
+      if (!this.halted) this.raf = requestAnimationFrame(this.frame)
+    }
+    this.renderer.compileAsync(this.scene, this.camera).then(start, start)
   }
 
   /* ------------------------------- public API ------------------------------- */
@@ -231,12 +240,13 @@ export class SanctuaryScene {
     this.post?.setSize(this.W, this.H)
     this.camera.aspect = this.W / this.H
     this.fit = clamp(1.35 / this.camera.aspect, 0.85, 2.4)
-    this.camera.fov = this.camera.aspect < 1 ? 50 : 38
-    this.restLook.set(0, this.camera.aspect < 1 ? 2.6 : 4.7, this.camera.aspect < 1 ? -1.6 : -2.4)
+    this.camera.fov = this.camera.aspect < 1 ? PORTRAIT_FOV : 38
+    this.restLook.set(0, this.camera.aspect < 1 ? PORTRAIT_LOOK : 4.7, this.camera.aspect < 1 ? -2.2 : -2.4)
     this.camera.updateProjectionMatrix()
   }
 
   dispose() {
+    this.halted = true
     cancelAnimationFrame(this.raf)
     this.canvas.removeEventListener('pointerdown', this.onDown)
     this.canvas.removeEventListener('pointermove', this.onMove)
@@ -252,11 +262,12 @@ export class SanctuaryScene {
   /* --------------------------------- camera --------------------------------- */
 
   private restPosition(out: THREE.Vector3) {
-    // wide screens look across the hill to the sea; tall ones look down on it so the places spread down the screen
+    // every screen looks across the hill toward the sea, as on a laptop; tall
+    // screens stand further back and a little higher so the whole hill fits
     const tall = clamp((this.fit - 1) / 1.4, 0, 1)
-    const r = 22 + 12 * tall
+    const r = 22 + PORTRAIT_BACK * tall
     const yaw = this.orbit.yaw
-    return out.set(Math.sin(yaw) * r, 11 + 18 * tall + this.orbit.pitch * 10, Math.cos(yaw) * r + 2 - 4 * tall)
+    return out.set(Math.sin(yaw) * r, 11 + PORTRAIT_UP * tall + this.orbit.pitch * 10, Math.cos(yaw) * r + 2)
   }
 
   private restLook = new THREE.Vector3(0, 4.2, -2)
@@ -371,7 +382,8 @@ export class SanctuaryScene {
   private buildLand() {
     const scene = this.scene
     // the hill
-    const geo = new THREE.PlaneGeometry(90, 90, 180, 180)
+    const seg = Math.min(window.innerWidth, window.innerHeight) < 600 ? 120 : 180
+    const geo = new THREE.PlaneGeometry(90, 90, seg, seg)
     geo.rotateX(-Math.PI / 2)
     const p = geo.attributes.position as THREE.BufferAttribute
     const colors = new Float32Array(p.count * 3)

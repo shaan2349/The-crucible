@@ -43,6 +43,7 @@ export class OracleScene {
   private post!: Post
   private ticks: Tick[] = []
   private raf = 0
+  private halted = false
   private last = performance.now()
   private clock = 0
 
@@ -123,7 +124,11 @@ export class OracleScene {
     this.ticks.push(addMist(this.scene, [[-20, -30, 30, -5], [15, -38, 34, -5.2], [-5, -50, 40, -5], [30, -24, 22, -5.4]], 0.32))
 
     this.post = createPost(this.renderer, this.scene, this.camera, { strength: 0.45, threshold: 0.82 })
-    this.raf = requestAnimationFrame(this.frame)
+    // prepare every shader in the background before the first frame, so the page doesn't freeze while it compiles
+    const start = () => {
+      if (!this.halted) this.raf = requestAnimationFrame(this.frame)
+    }
+    this.renderer.compileAsync(this.scene, this.camera).then(start, start)
   }
 
   /* ------------------------------- public API ------------------------------- */
@@ -146,6 +151,7 @@ export class OracleScene {
   }
 
   dispose() {
+    this.halted = true
     cancelAnimationFrame(this.raf)
     window.removeEventListener('pointermove', this.onMove)
     this.scene.traverse((o) => {

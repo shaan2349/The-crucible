@@ -14,6 +14,7 @@ export class BackdropScene {
   private post: Post
   private ticks: Tick[] = []
   private raf = 0
+  private halted = false
   private clock = 0
   private last = performance.now()
   private reduced: boolean
@@ -84,7 +85,11 @@ export class BackdropScene {
     this.ticks.push(addShootingStars(s, { distance: 140 }))
 
     this.post = createPost(this.renderer, s, this.camera, { strength: 0.5, threshold: 0.8, vignette: 0.5, frameMs: 34 })
-    this.raf = requestAnimationFrame(this.frame)
+    // prepare every shader in the background before the first frame, so the page doesn't freeze while it compiles
+    const start = () => {
+      if (!this.halted) this.raf = requestAnimationFrame(this.frame)
+    }
+    this.renderer.compileAsync(this.scene, this.camera).then(start, start)
   }
 
   resize(w: number, h: number) {
@@ -96,6 +101,7 @@ export class BackdropScene {
   }
 
   dispose() {
+    this.halted = true
     cancelAnimationFrame(this.raf)
     this.scene.traverse((o) => {
       const m = o as THREE.Mesh

@@ -59,6 +59,7 @@ export class HallScene {
   private post!: Post
   private ticks: Tick[] = []
   private raf = 0
+  private halted = false
   private last = performance.now()
   private clock = 0
   private W = 1
@@ -166,7 +167,11 @@ export class HallScene {
     this.ticks.push(addDust(this.scene, new THREE.Box3(new THREE.Vector3(-3, 0.5, WALL_Z + 0.2), new THREE.Vector3(80, 3.2, WALL_Z + 2.6)), this.glowTex, 420))
 
     this.post = createPost(this.renderer, this.scene, this.camera, { strength: 0.45, threshold: 0.8, vignette: 0.5 })
-    this.raf = requestAnimationFrame(this.frame)
+    // prepare every shader in the background before the first frame, so the page doesn't freeze while it compiles
+    const start = () => {
+      if (!this.halted) this.raf = requestAnimationFrame(this.frame)
+    }
+    this.renderer.compileAsync(this.scene, this.camera).then(start, start)
   }
 
   /* ------------------------------- public API ------------------------------- */
@@ -260,6 +265,7 @@ export class HallScene {
   }
 
   dispose() {
+    this.halted = true
     cancelAnimationFrame(this.raf)
     this.canvas.removeEventListener('pointerdown', this.onDown)
     this.canvas.removeEventListener('pointermove', this.onMove)

@@ -32,7 +32,8 @@ export function createPost(
 ): Post {
   const small = isSmallScreen()
   // sharp enough without drawing four times the pixels on high-density screens
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.25 : 1.5))
+  const fullRatio = Math.min(window.devicePixelRatio || 1, small ? 2 : 1.5)
+  renderer.setPixelRatio(fullRatio)
   const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: small ? 0 : 2 }))
   composer.addPass(new RenderPass(scene, camera))
   const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), opts.strength ?? 0.55, opts.radius ?? 0.5, opts.threshold ?? 0.78)
@@ -47,43 +48,49 @@ export function createPost(
   )
   composer.addPass(new OutputPass())
 
-  // A quality governor: if frames take too long on this device, step down
-  // (glow off, then fewer pixels, then no shadows) until it runs smoothly.
+  // A quality governor. Phones often run at 30-50 frames a second, which is
+  // fine; only a device that is truly struggling (under about 22 a second,
+  // for several seconds, after the opening moments have settled) gives up
+  // the glow, then some resolution, never below the screen's normal 1x.
+  // A device that later runs smoothly gets them back.
   const target = opts.frameMs ?? 16.7
+  const slowMs = Math.max(45, target * 1.6)
+  const born = performance.now()
   let w = 1
   let h = 1
   let last = 0
-  let slow = 0
+  let total = 0
   let samples = 0
   let level = 0
-  const stepDown = () => {
-    level++
-    if (level === 1) bloom.enabled = false
-    if (level === 2) {
-      renderer.setPixelRatio(Math.min(renderer.getPixelRatio(), 1))
-      composer.setPixelRatio(renderer.getPixelRatio())
-      composer.setSize(w, h)
-    }
-    if (level === 3) {
-      renderer.shadowMap.autoUpdate = false
-      renderer.setPixelRatio(0.75)
-      composer.setPixelRatio(0.75)
+  const apply = () => {
+    bloom.enabled = level < 1
+    const ratio = level >= 2 ? Math.max(1, Math.min(fullRatio, 1.25)) : fullRatio
+    if (renderer.getPixelRatio() !== ratio) {
+      renderer.setPixelRatio(ratio)
+      composer.setPixelRatio(ratio)
       composer.setSize(w, h)
     }
   }
   return {
     render: () => {
       const now = performance.now()
-      if (last && !document.hidden) {
+      if (last && !document.hidden && now - born > 5000) {
         const dt = now - last
         // ignore long gaps (tab switches, pauses)
         if (dt < 250) {
           samples++
-          if (dt > target * 1.6) slow++
-          if (samples >= 90) {
-            if (slow > 45 && level < 3) stepDown()
+          total += dt
+          if (samples >= 180) {
+            const avg = total / samples
+            if (avg > slowMs && level < 2) {
+              level++
+              apply()
+            } else if (avg < target * 1.15 && level > 0) {
+              level--
+              apply()
+            }
             samples = 0
-            slow = 0
+            total = 0
           }
         }
       }

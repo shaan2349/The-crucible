@@ -54,6 +54,7 @@ export class LandscapeScene {
   private post!: Post
   private ticks: Tick[] = []
   private raf = 0
+  private halted = false
   private last = performance.now()
   private clock = 0
   private W = 1
@@ -176,7 +177,11 @@ export class LandscapeScene {
     this.ticks.push(addShootingStars(this.scene, { distance: 95 }))
 
     this.post = createPost(this.renderer, this.scene, this.camera, { strength: 0.5, threshold: 0.78 })
-    this.raf = requestAnimationFrame(this.frame)
+    // prepare every shader in the background before the first frame, so the page doesn't freeze while it compiles
+    const start = () => {
+      if (!this.halted) this.raf = requestAnimationFrame(this.frame)
+    }
+    this.renderer.compileAsync(this.scene, this.camera).then(start, start)
   }
 
   /* ------------------------------- public API ------------------------------- */
@@ -270,6 +275,7 @@ export class LandscapeScene {
   }
 
   dispose() {
+    this.halted = true
     cancelAnimationFrame(this.raf)
     this.canvas.removeEventListener('pointerdown', this.onDown)
     this.canvas.removeEventListener('pointermove', this.onMove)

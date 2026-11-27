@@ -34,6 +34,7 @@ export function TempleDebate({
   onExit: () => void
 }) {
   useAmbience('temple')
+  const [expanded, setExpanded] = useState(false)
   const navigate = useNavigate()
   const { preferences } = usePreferencesContext()
   const tts = useTextToSpeech()
@@ -78,6 +79,8 @@ export function TempleDebate({
     const ro = new ResizeObserver(() => {
       const r = stage.getBoundingClientRect()
       scene.resize(r.width, r.height)
+      // on an upright phone the conversation lies over the lower screen; lift the temple above it
+      scene.setShift(window.matchMedia('(max-width: 899px) and (orientation: portrait)').matches ? 0.18 : 0)
     })
     ro.observe(stage)
     let raf = 0
@@ -306,6 +309,14 @@ export function TempleDebate({
           .temple-bar { grid-column: 1 / -1; }
           .temple-panel { max-height: none !important; border-top: none !important; border-left: 1px solid ${C.line}; }
         }
+        /* upright phones: the scene fills the screen and the conversation lies over its lower part */
+        @media (max-width: 899px) and (orientation: portrait) {
+          .temple-grid { grid-template-rows: auto minmax(0,1fr) !important; }
+          .temple-stage { grid-row: 2; grid-column: 1; }
+          .temple-panel { grid-row: 2; grid-column: 1; align-self: end; position: relative; z-index: 2; max-height: 52svh !important; border-top: none !important; background: linear-gradient(180deg, rgba(11,13,17,0) 0, rgba(11,13,17,.82) 44px, rgba(11,13,17,.93) 120px) !important; transition: max-height .45s cubic-bezier(.16,1,.3,1); }
+          .temple-panel[data-expanded="true"] { max-height: 86svh !important; }
+          .panel-handle { display: flex !important; }
+        }
         .temple-enter { animation: templeEnter .8s cubic-bezier(.16,1,.3,1) both; }
         @keyframes templeEnter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
         @media (prefers-reduced-motion: reduce) { .temple-enter { animation: none; } }
@@ -342,7 +353,7 @@ export function TempleDebate({
           </button>
         </header>
 
-        <div ref={stageRef} className="relative min-h-0 overflow-hidden" style={{ touchAction: 'pan-y' }}>
+        <div ref={stageRef} className="temple-stage relative min-h-0 overflow-hidden" style={{ touchAction: 'pan-y' }}>
           <canvas
             ref={canvasRef}
             className="block h-full w-full"
@@ -392,9 +403,19 @@ export function TempleDebate({
         <section
           ref={panelRef}
           className="temple-panel overflow-y-auto border-t"
+          data-expanded={expanded}
           style={{ background: C.panel, borderColor: C.line, maxHeight: '48vh', paddingBottom: 'max(18px, env(safe-area-inset-bottom))' }}
           aria-live="polite"
         >
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Show less of the conversation' : 'Show more of the conversation'}
+            className="panel-handle sticky top-0 z-[1] mx-auto hidden h-7 w-full items-center justify-center"
+          >
+            <span className="block h-1 w-10 rounded-full" style={{ background: 'rgba(194,161,94,.6)' }} />
+          </button>
           <div className="mx-auto flex max-w-[560px] flex-col gap-3 px-[18px] pt-4">
             {debate.error ? (
               <div className="flex flex-col gap-3">
