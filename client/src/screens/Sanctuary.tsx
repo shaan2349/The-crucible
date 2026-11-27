@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { User } from 'lucide-react'
+import { User, Volume2, VolumeX } from 'lucide-react'
+import { createAmbience, loadMuted, type Ambience } from '../sanctuary/ambience'
 import { useDebateContext } from '../context/DebateContext'
 import { loadDebates } from '../lib/storage'
 import type { PlaceId } from '../sanctuary/SanctuaryScene'
@@ -128,6 +129,27 @@ export function Sanctuary() {
   const live = debate && debate.phase !== 'verdict'
   const [three, setThree] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [temples] = useState(() => loadDebates().length)
+
+  // waves and crickets; sound can only begin after the visitor's first touch
+  const [muted, setMuted] = useState(loadMuted)
+  const ambience = useRef<Ambience | null>(null)
+  useEffect(() => {
+    const a = createAmbience()
+    ambience.current = a
+    const begin = () => a.start()
+    window.addEventListener('pointerdown', begin, { once: true })
+    window.addEventListener('keydown', begin, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', begin)
+      window.removeEventListener('keydown', begin)
+      a.dispose()
+    }
+  }, [])
+  function toggleSound() {
+    const next = !muted
+    setMuted(next)
+    ambience.current?.setMuted(next)
+  }
   // on a slow connection, show the drawn hill rather than an empty sky
   useEffect(() => {
     const t = setTimeout(() => setThree((v) => (v === 'loading' ? 'failed' : v)), 12000)
@@ -181,6 +203,17 @@ export function Sanctuary() {
             ΓΝΩΘΙ ΣΕΑΥΤΟΝ
           </span>
         </div>
+        <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-label={muted ? 'Turn on the sound of the sea and crickets' : 'Turn off the sound'}
+          aria-pressed={!muted}
+          className="flex h-11 w-11 items-center justify-center rounded-full border"
+          style={{ borderColor: 'rgba(194,161,94,.45)', color: C.ivory }}
+        >
+          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+        </button>
         <Link
           to="/app/profile"
           aria-label="Profile and settings"
@@ -189,6 +222,7 @@ export function Sanctuary() {
         >
           <User className="h-4 w-4" />
         </Link>
+        </div>
       </header>
 
       <div ref={stageRef} className="relative min-h-0 flex-1">
