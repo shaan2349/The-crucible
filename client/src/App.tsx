@@ -12,14 +12,14 @@ import { Sanctuary } from './screens/Sanctuary'
 import { Symposium } from './screens/Symposium'
 import { Landscape } from './screens/Landscape'
 import { Hall } from './screens/Hall'
-import { Oracle } from './screens/Oracle'
+import { Experiments } from './screens/Experiments'
 import { DuotoneDefs } from './components/DuotoneDefs'
 import { DebateProvider } from './context/DebateContext'
 import { ReflectProvider } from './context/ReflectContext'
 import { PreferencesProvider } from './context/PreferencesContext'
 
 /** Places drawn in 3D lift the veil themselves once drawn; every other page lifts it straight away. */
-const SELF_LIFTING = ['/app', '/app/symposium', '/app/hall', '/app/oracle', '/app/landscape']
+const SELF_LIFTING = ['/app', '/app/symposium', '/app/hall', '/app/landscape']
 function VeilOnRouteChange() {
   const { pathname } = useLocation()
   useEffect(() => {
@@ -51,9 +51,12 @@ function App() {
                 <Route path="hall" element={<Hall />} />
                 {/* The Library became the Hall of Minds. */}
                 <Route path="archive" element={<Navigate to="/app/hall" replace />} />
-                <Route path="oracle" element={<Oracle />} />
+                <Route path="experiments" element={<Experiments />} />
+                <Route path="experiments/:id" element={<Experiments />} />
+                {/* The Oracle became the Thought Experiments. */}
+                <Route path="oracle" element={<Navigate to="/app/experiments" replace />} />
                 {/* Training became the Oracle. */}
-                <Route path="train" element={<Navigate to="/app/oracle" replace />} />
+                <Route path="train" element={<Navigate to="/app/experiments" replace />} />
                 <Route path="landscape" element={<Landscape />} />
                 {/* My Thinking became Your Landscape. */}
                 <Route path="mythinking" element={<Navigate to="/app/landscape" replace />} />

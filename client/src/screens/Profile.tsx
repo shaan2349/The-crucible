@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight } from '../night/icons'
-import { loadDebates, loadInterests, loadOracleDays, loadReflectSessions } from '../lib/storage'
+import { loadDebates, loadExperiments, loadInterests, loadReflectSessions } from '../lib/storage'
 import { endingOf, ENDING_COPY } from '../temple/ending'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
 import { NightPage, Panel } from '../night/NightPage'
@@ -16,7 +16,7 @@ export function Profile() {
     return {
       temples: debates.length,
       lamps: loadReflectSessions().length,
-      oracle: loadOracleDays().filter((d) => d.answer).length,
+      oracle: Object.keys(loadExperiments()).length,
       counts,
       interests: loadInterests(),
     }
@@ -29,7 +29,7 @@ export function Profile() {
         {[
           ['Temples', stats.temples, '/app/landscape'],
           ['Lamps', stats.lamps, '/app/landscape'],
-          ['Oracle answers', stats.oracle, '/app/oracle'],
+          ['Experiments played', stats.oracle, '/app/experiments'],
         ].map(([label, n, to]) => (
           <button key={label as string} type="button" onClick={() => navigate(to as string)} className="panel-stone night-btn flex flex-col items-center gap-1 rounded px-2 py-4" style={{ background: 'rgba(17,20,26,.85)', border: `1px solid ${C.line}` }}>
             <span style={{ fontFamily: F.display, fontSize: 32, lineHeight: 1, color: C.ivory }}>{n as number}</span>

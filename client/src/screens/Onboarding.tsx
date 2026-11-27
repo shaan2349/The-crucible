@@ -10,7 +10,7 @@ const STEPS = [
   {
     eyebrow: 'A WORLD TO THINK IN',
     headline: 'The Crucible is a sanctuary at night.',
-    body: 'Each place on its hill is a different way of thinking: a temple where your beliefs are tested, a table where philosophers talk things through with you, a hall of great minds, and an oracle with one question a day.',
+    body: 'Each place on its hill is a different way of thinking: a temple where your beliefs are tested, a table where philosophers talk things through with you, a hall of great minds, and the great thought experiments of philosophy to play.',
   },
   {
     eyebrow: 'HOW IT WORKS',

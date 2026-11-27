@@ -17,6 +17,7 @@ const KEYS = {
   interests: 'crucible:interests',
   trainTopics: 'crucible:trainTopics',
   oracle: 'crucible:oracle',
+  experiments: 'crucible:experiments',
 } as const
 
 export type Language = 'simple' | 'standard' | 'scholarly'
@@ -219,4 +220,23 @@ export function loadOracleDays(): OracleDay[] {
 }
 export function saveOracleDays(days: OracleDay[]): void {
   save(KEYS.oracle, days.slice(-60))
+}
+
+/** A played thought experiment: the two choices, and the reply if it arrived. */
+export interface ExperimentResult {
+  choice: 'a' | 'b'
+  twistChoice: 'a' | 'b'
+  why?: string
+  reading?: string
+  reactions?: { philosopherId: string; text: string }[]
+  question?: string
+  at: number
+}
+
+export function loadExperiments(): Record<string, ExperimentResult> {
+  return load<Record<string, ExperimentResult>>(KEYS.experiments, {})
+}
+
+export function saveExperiment(id: string, r: ExperimentResult): void {
+  save(KEYS.experiments, { ...loadExperiments(), [id]: r })
 }

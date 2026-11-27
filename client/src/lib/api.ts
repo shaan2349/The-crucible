@@ -263,3 +263,23 @@ export interface OracleReply {
 export function answerOracle(question: string, answer: string, style?: StyleParams) {
   return postJSON<OracleReply>('/claude/oracle/answer', { question, answer, ...style })
 }
+
+export interface ExperimentReply {
+  reading: string
+  reactions: { philosopherId: string; text: string }[]
+  question: string
+}
+/** Two philosophers respond to the visitor's choices in a thought experiment. */
+export function reactToExperiment(params: {
+  title: string
+  setup: string
+  question: string
+  choice: string
+  twist: string
+  twistQuestion: string
+  twistChoice: string
+  why?: string
+  thinkers?: string[]
+} & StyleParams) {
+  return postJSON<ExperimentReply>('/claude/experiments/react', params)
+}
