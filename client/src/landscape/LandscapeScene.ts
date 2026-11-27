@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { arrival } from '../night/veil'
 import { addMilkyWay, addMist, addSea, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
 import { marbleTexture, statueMaterials } from '../marble/statue'
 import type { PremiseStatus, TempleEnding } from '../types'
@@ -68,6 +69,7 @@ export class LandscapeScene {
   private hovered: string | null = null
   private selected: string | null = null
 
+  private born = performance.now()
   private yaw = 0.4
   private targetYaw = 0.4
   private pitch = 0.42
@@ -526,7 +528,7 @@ export class LandscapeScene {
     this.yaw = this.reduced ? this.targetYaw : damp(this.yaw, this.targetYaw, 3, dt)
     this.pitch = damp(this.pitch, this.targetPitch, 3, dt)
     const portrait = this.camera.aspect < 0.8
-    const dist = (this.R * 1.55 + 2.5) * this.zoom * (portrait ? 1.12 : 1) * (sel ? 0.75 : 1)
+    const dist = (this.R * 1.55 + 2.5) * (1 + 0.5 * (1 - arrival(this.born, 2400))) * this.zoom * (portrait ? 1.12 : 1) * (sel ? 0.75 : 1)
     const target = sel ? sel.group.position.clone().setY(sel.group.position.y + 0.6) : new THREE.Vector3(0, this.HILL * 0.45, 0)
     this.camera.position.set(Math.sin(this.yaw) * Math.cos(this.pitch) * dist + target.x * 0.6, Math.sin(this.pitch) * dist + target.y, Math.cos(this.yaw) * Math.cos(this.pitch) * dist + target.z * 0.6)
     this.camera.lookAt(target)

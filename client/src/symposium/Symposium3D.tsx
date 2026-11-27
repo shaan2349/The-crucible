@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { liftVeilSoon } from '../night/veil'
 import { SymposiumScene } from './SymposiumScene'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
 
@@ -35,6 +36,7 @@ export default function Symposium3D({
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const scene = new SymposiumScene(canvas, { reducedMotion: reduced })
     sceneRef.current = scene
+    liftVeilSoon()
     const ro = new ResizeObserver(() => {
       const r = wrap.getBoundingClientRect()
       scene.resize(r.width, r.height)

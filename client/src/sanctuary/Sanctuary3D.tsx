@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { SanctuaryScene, type PlaceId } from './SanctuaryScene'
+import { liftVeilSoon, startVeil } from '../night/veil'
 
 export interface SanctuaryPlace {
   id: PlaceId
@@ -47,6 +48,7 @@ export default function Sanctuary3D({
       go.current(id)
     }
     scene.flyTo(id, leave)
+    setTimeout(startVeil, 650)
     // never leave someone waiting on a slow device
     setTimeout(leave, 1500)
   }
@@ -89,7 +91,10 @@ export default function Sanctuary3D({
         el.style.opacity = a.visible ? '1' : '0'
         el.style.pointerEvents = a.visible ? 'auto' : 'none'
       }
-      if (++frames === 3) onReady()
+      if (++frames === 3) {
+        onReady()
+        liftVeilSoon()
+      }
       raf = requestAnimationFrame(follow)
     }
     raf = requestAnimationFrame(follow)

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { liftVeilSoon } from '../night/veil'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { HallScene, type HallWing } from './HallScene'
 import { PHILOSOPHER_TAGS, philosopherById } from '../data/philosophers'
@@ -39,6 +40,7 @@ export default function Hall3D({
       onSelect: (id) => wakeRef.current(id),
     })
     sceneRef.current = scene
+    liftVeilSoon()
     scene.setWings(wings)
     const ro = new ResizeObserver(() => {
       const r = wrap.getBoundingClientRect()

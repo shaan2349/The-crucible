@@ -377,10 +377,10 @@ function EmptyHill({ onTemple, onSymposium }: { onTemple: () => void; onSymposiu
         Every belief you defend in the Temple will stand here as its own temple, showing where it held, cracked, changed or fell. Conversations from the Symposium leave a lamp.
       </p>
       <div className="flex w-full gap-2.5">
-        <button type="button" onClick={onSymposium} className="ls-btn min-h-[50px] flex-1 rounded border" style={{ borderColor: C.lineStrong, color: '#E9D5A6', fontWeight: 500 }}>
+        <button type="button" onClick={onSymposium} className="btn-bronze ls-btn min-h-[50px] flex-1 rounded border" style={{ borderColor: C.lineStrong, color: '#E9D5A6', fontWeight: 500 }}>
           Go to the Symposium
         </button>
-        <button type="button" onClick={onTemple} className="ls-btn min-h-[50px] flex-1 rounded" style={{ background: C.gilt, color: C.night, fontWeight: 600 }}>
+        <button type="button" onClick={onTemple} className="btn-gilt ls-btn min-h-[50px] flex-1 rounded" style={{ background: C.gilt, color: C.night, fontWeight: 600 }}>
           Test a belief
         </button>
       </div>
@@ -399,10 +399,11 @@ function Sheet({ children, onClose }: { children: ReactNode; onClose: () => void
       <div
         role="dialog"
         aria-modal="true"
-        className="ls-enter relative max-h-[82vh] w-full max-w-[560px] overflow-y-auto rounded-t-lg border md:rounded-lg"
+        className="panel-stone ls-enter relative max-h-[82vh] w-full max-w-[560px] overflow-y-auto rounded-t-lg border md:rounded-lg"
         style={{ background: C.panel, borderColor: C.line, paddingBottom: 'max(18px, env(safe-area-inset-bottom))' }}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="greek-key mx-4 mt-2 shrink-0" aria-hidden="true" />
         <button type="button" onClick={onClose} aria-label="Close" className="ls-btn absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full" style={{ color: C.muted }}>
           <X className="h-5 w-5" />
         </button>
@@ -441,7 +442,7 @@ function TempleDetail({ d, onAgain }: { d: Debate; onAgain: () => void }) {
         ))}
       </ol>
       {d.verdict?.sharpenedClaim && (
-        <div className="rounded p-3.5" style={{ background: C.raised }}>
+        <div className="panel-stone rounded p-3.5" style={{ background: C.raised }}>
           <Eyebrow>A STRONGER VERSION</Eyebrow>
           <p className="mt-1" style={{ fontFamily: F.display, fontSize: 18, lineHeight: 1.3 }}>
             {d.verdict.sharpenedClaim}
@@ -449,14 +450,14 @@ function TempleDetail({ d, onAgain }: { d: Debate; onAgain: () => void }) {
         </div>
       )}
       {d.userReflection && (
-        <div className="rounded p-3.5" style={{ background: C.raised, borderLeft: `2px solid ${C.gilt}` }}>
+        <div className="panel-stone rounded p-3.5" style={{ background: C.raised, borderLeft: `2px solid ${C.gilt}` }}>
           <Eyebrow>WHAT YOU TOOK AWAY</Eyebrow>
           <p className="mt-1" style={{ fontFamily: F.read, fontSize: 15, lineHeight: 1.55, color: C.body }}>
             {d.userReflection}
           </p>
         </div>
       )}
-      <button type="button" onClick={onAgain} className="ls-btn mt-1 min-h-[50px] rounded" style={{ background: C.gilt, color: C.night, fontWeight: 600 }}>
+      <button type="button" onClick={onAgain} className="btn-gilt ls-btn mt-1 min-h-[50px] rounded" style={{ background: C.gilt, color: C.night, fontWeight: 600 }}>
         Test it again
       </button>
     </>
@@ -474,13 +475,13 @@ function LampDetail({ s }: { s: ReflectSession }) {
       {names.length > 0 && <p style={{ fontFamily: F.read, fontStyle: 'italic', fontSize: 14.5, color: C.muted }}>With {names.join(', ')}.</p>}
       {s.ending && (
         <>
-          <div className="rounded p-3.5" style={{ background: C.raised }}>
+          <div className="panel-stone rounded p-3.5" style={{ background: C.raised }}>
             <Eyebrow>THE TENSION</Eyebrow>
             <p className="mt-1" style={{ fontFamily: F.read, fontSize: 15, lineHeight: 1.55, color: C.body }}>
               {s.ending.tension}
             </p>
           </div>
-          <div className="rounded p-3.5" style={{ background: C.raised }}>
+          <div className="panel-stone rounded p-3.5" style={{ background: C.raised }}>
             <Eyebrow>A QUESTION TO CARRY</Eyebrow>
             <p className="mt-1" style={{ fontFamily: F.display, fontSize: 18, lineHeight: 1.3 }}>
               {s.ending.question}
@@ -489,7 +490,7 @@ function LampDetail({ s }: { s: ReflectSession }) {
         </>
       )}
       {s.userReflection && (
-        <div className="rounded p-3.5" style={{ background: C.raised, borderLeft: `2px solid ${C.gilt}` }}>
+        <div className="panel-stone rounded p-3.5" style={{ background: C.raised, borderLeft: `2px solid ${C.gilt}` }}>
           <Eyebrow>WHAT YOU TOOK AWAY</Eyebrow>
           <p className="mt-1" style={{ fontFamily: F.read, fontSize: 15, lineHeight: 1.55, color: C.body }}>
             {s.userReflection}

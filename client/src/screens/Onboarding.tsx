@@ -74,7 +74,7 @@ export function Onboarding() {
                     type="button"
                     aria-pressed={on}
                     onClick={() => toggle(name)}
-                    className="night-btn min-h-[44px] rounded-full border px-4"
+                    className={`${on ? 'btn-gilt ' : ''}night-btn min-h-[44px] rounded-full border px-4`}
                     style={on ? { background: C.gilt, borderColor: C.gilt, color: C.night, fontWeight: 600 } : { borderColor: C.lineStrong, color: C.body }}
                   >
                     {name}
@@ -88,7 +88,7 @@ export function Onboarding() {
           <button
             type="button"
             onClick={() => (last ? finish() : setStep(step + 1))}
-            className="night-btn min-h-[52px] rounded"
+            className="btn-gilt night-btn min-h-[52px] rounded"
             style={{ background: C.gilt, color: C.night, fontWeight: 600, fontSize: 16 }}
           >
             {last ? 'Enter the sanctuary' : 'Continue'}

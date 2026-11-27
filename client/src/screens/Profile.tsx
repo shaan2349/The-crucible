@@ -31,7 +31,7 @@ export function Profile() {
           ['Lamps', stats.lamps, '/app/landscape'],
           ['Oracle answers', stats.oracle, '/app/oracle'],
         ].map(([label, n, to]) => (
-          <button key={label as string} type="button" onClick={() => navigate(to as string)} className="night-btn flex flex-col items-center gap-1 rounded px-2 py-4" style={{ background: 'rgba(17,20,26,.85)', border: `1px solid ${C.line}` }}>
+          <button key={label as string} type="button" onClick={() => navigate(to as string)} className="panel-stone night-btn flex flex-col items-center gap-1 rounded px-2 py-4" style={{ background: 'rgba(17,20,26,.85)', border: `1px solid ${C.line}` }}>
             <span style={{ fontFamily: F.display, fontSize: 32, lineHeight: 1, color: C.ivory }}>{n as number}</span>
             <span style={{ fontFamily: F.inscr, fontSize: 9.5, fontWeight: 600, letterSpacing: '.18em', color: C.gilt }}>{(label as string).toUpperCase()}</span>
           </button>
@@ -65,7 +65,7 @@ export function Profile() {
         </Panel>
       )}
 
-      <button type="button" onClick={() => navigate('/app/settings')} className="night-btn flex min-h-[56px] w-full items-center justify-between rounded px-4" style={{ background: 'rgba(17,20,26,.85)', border: `1px solid ${C.lineStrong}` }}>
+      <button type="button" onClick={() => navigate('/app/settings')} className="panel-stone night-btn flex min-h-[56px] w-full items-center justify-between rounded px-4" style={{ background: 'rgba(17,20,26,.85)', border: `1px solid ${C.lineStrong}` }}>
         <span className="flex flex-col items-start">
           <span style={{ fontFamily: F.display, fontSize: 18 }}>Settings</span>
           <span style={{ fontSize: 13, color: C.muted }}>How they speak, voice, motion, your data</span>

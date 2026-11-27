@@ -10,6 +10,7 @@ import { usePreferencesContext } from '../context/PreferencesContext'
 import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
+import { Thinking } from '../night/Thinking'
 import type { ReflectRound, ReflectSession, ReflectTurn, TableLevel } from '../types'
 
 // The 3D table loads with the Symposium itself, keeping the rest of the app light.
@@ -296,7 +297,7 @@ export function Symposium() {
             </span>
           </div>
           {session && session.phase !== 'ended' && (
-            <button type="button" onClick={leaveForNew} className="sym-btn ml-auto min-h-[44px] rounded-full border px-3 text-sm" style={{ borderColor: C.lineStrong }}>
+            <button type="button" onClick={leaveForNew} className="btn-bronze sym-btn ml-auto min-h-[44px] rounded-full border px-3 text-sm" style={{ borderColor: C.lineStrong }}>
               New conversation
             </button>
           )}
@@ -338,7 +339,7 @@ export function Symposium() {
                     }}
                     rows={4}
                     placeholder="Write freely…"
-                    className="w-full resize-none rounded p-3.5 pr-12 outline-none"
+                    className="panel-stone w-full resize-none rounded p-3.5 pr-12 outline-none"
                     style={{ background: C.raised, border: `1px solid ${C.lineStrong}`, color: C.ivory, fontFamily: F.read, fontSize: 16, lineHeight: 1.55 }}
                   />
                   {stt.supported && <MicButton listening={stt.listening} onClick={() => toggleMic(setSituation)} label="Dictate what is on your mind" />}
@@ -436,7 +437,7 @@ export function Symposium() {
                           role="radio"
                           aria-checked={addressee === s.id}
                           onClick={() => setAddressee(s.id)}
-                          className="sym-btn min-h-[36px] rounded-full border px-3 text-sm"
+                          className={`${addressee === s.id ? 'btn-gilt ' : ''}sym-btn min-h-[36px] rounded-full border px-3 text-sm`}
                           style={
                             addressee === s.id
                               ? { background: C.gilt, borderColor: C.gilt, color: C.night, fontWeight: 600 }
@@ -460,7 +461,7 @@ export function Symposium() {
                         }}
                         rows={3}
                         placeholder={ids.length === 1 ? `Say something to ${seats[0]?.name}…` : addressee === 'all' ? 'Say something to the table…' : `Say something to ${seats.find((s) => s.id === addressee)?.name}…`}
-                        className="w-full resize-none rounded p-3.5 pr-12 outline-none"
+                        className="panel-stone w-full resize-none rounded p-3.5 pr-12 outline-none"
                         style={{ background: C.raised, border: `1px solid ${C.lineStrong}`, color: C.ivory, fontFamily: F.read, fontSize: 16, lineHeight: 1.55 }}
                       />
                       {stt.supported && <MicButton listening={stt.listening} onClick={() => toggleMic(setMessage)} label="Dictate your reply" />}
@@ -501,7 +502,7 @@ export function Symposium() {
                     onChange={(e) => setTakeaway(e.target.value)}
                     rows={3}
                     placeholder="One or two sentences, in your own words."
-                    className="w-full resize-none rounded p-3.5 outline-none"
+                    className="panel-stone w-full resize-none rounded p-3.5 outline-none"
                     style={{ background: C.raised, border: `1px solid ${C.lineStrong}`, color: C.ivory, fontFamily: F.read, fontSize: 16 }}
                   />
                   <PrimaryButton onClick={keep}>Keep this conversation</PrimaryButton>
@@ -521,17 +522,12 @@ function Eyebrow({ children, color = C.gilt }: { children: ReactNode; color?: st
 }
 
 function Waiting({ text }: { text: string }) {
-  return (
-    <p className="sym-enter flex items-center gap-3" style={{ fontFamily: F.read, fontStyle: 'italic', fontSize: 15, color: C.muted }}>
-      <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: C.gilt }} />
-      {text}
-    </p>
-  )
+  return <Thinking text={text} className="sym-enter" />
 }
 
 function Turn({ who, color, text, onSpeak, speaking, to }: { who: string; color: string; text: string; onSpeak?: () => void; speaking?: boolean; to?: string }) {
   return (
-    <article className="sym-enter flex flex-col gap-1.5 rounded p-3.5" style={{ background: C.raised, borderLeft: `2px solid ${color}` }}>
+    <article className="panel-stone sym-enter flex flex-col gap-1.5 rounded p-3.5" style={{ background: C.raised, borderLeft: `2px solid ${color}` }}>
       <div className="flex items-start justify-between gap-2">
         <span>
           <Eyebrow color={color}>{who}</Eyebrow>
@@ -550,7 +546,7 @@ function Turn({ who, color, text, onSpeak, speaking, to }: { who: string; color:
 
 function Detail({ label, text, big }: { label: string; text: string; big?: boolean }) {
   return (
-    <div className="sym-enter rounded p-3.5" style={{ background: C.raised }}>
+    <div className="panel-stone sym-enter rounded p-3.5" style={{ background: C.raised }}>
       <Eyebrow>{label}</Eyebrow>
       <p className="mt-1" style={{ fontFamily: big ? F.display : F.read, fontSize: big ? 19 : 15, lineHeight: big ? 1.3 : 1.55, color: C.ivory }}>
         {text}
@@ -579,7 +575,7 @@ function PrimaryButton({ children, onClick, disabled }: { children: ReactNode; o
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="sym-btn min-h-[50px] w-full flex-1 rounded px-3 transition-colors disabled:opacity-40"
+      className="btn-gilt sym-btn min-h-[50px] w-full flex-1 rounded px-3 transition-colors disabled:opacity-40"
       style={{ background: C.gilt, color: C.night, fontFamily: F.ui, fontWeight: 600, fontSize: 16 }}
     >
       {children}
@@ -589,7 +585,7 @@ function PrimaryButton({ children, onClick, disabled }: { children: ReactNode; o
 
 function GhostButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="sym-btn min-h-[50px] w-full flex-1 rounded border px-3" style={{ borderColor: C.lineStrong, color: '#E9D5A6', fontFamily: F.ui, fontWeight: 500, fontSize: 15 }}>
+    <button type="button" onClick={onClick} className="btn-bronze sym-btn min-h-[50px] w-full flex-1 rounded border px-3" style={{ borderColor: C.lineStrong, color: '#E9D5A6', fontFamily: F.ui, fontWeight: 500, fontSize: 15 }}>
       {children}
     </button>
   )

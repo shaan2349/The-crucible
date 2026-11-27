@@ -64,7 +64,7 @@ export function Settings() {
 
       <Panel label="YOUR DATA">
         <p className="m-0" style={{ fontFamily: F.read, color: C.body }}>Everything you write stays on this device. Nothing is sold.</p>
-        <button type="button" onClick={handleExport} className="night-btn min-h-[46px] rounded border" style={{ borderColor: C.lineStrong, color: '#E9D5A6' }}>
+        <button type="button" onClick={handleExport} className="btn-bronze night-btn min-h-[46px] rounded border" style={{ borderColor: C.lineStrong, color: '#E9D5A6' }}>
           Export all data
         </button>
         {!confirmingDelete ? (
@@ -78,7 +78,7 @@ export function Settings() {
               <button type="button" onClick={handleDelete} className="night-btn min-h-[44px] flex-1 rounded" style={{ background: C.ember, color: C.night, fontWeight: 600 }}>
                 Delete everything
               </button>
-              <button type="button" onClick={() => setConfirmingDelete(false)} className="night-btn min-h-[44px] flex-1 rounded border" style={{ borderColor: C.lineStrong, color: C.body }}>
+              <button type="button" onClick={() => setConfirmingDelete(false)} className="btn-bronze night-btn min-h-[44px] flex-1 rounded border" style={{ borderColor: C.lineStrong, color: C.body }}>
                 Cancel
               </button>
             </div>

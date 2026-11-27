@@ -8,6 +8,7 @@ import { philosopherById } from '../data/philosophers'
 import { usePreferencesContext } from '../context/PreferencesContext'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
+import { Thinking } from '../night/Thinking'
 import type { OracleMood } from '../oracle/OracleScene'
 
 // The 3D ledge and fire load with the Oracle; the drawn flame shows if 3D is unavailable.
@@ -152,9 +153,9 @@ export function Oracle() {
           )}
 
           {loading && (
-            <p className="or-enter -mt-2 text-center" style={{ fontFamily: F.read, fontStyle: 'italic', color: C.body }}>
-              The smoke is gathering into a question…
-            </p>
+            <div className="or-enter -mt-2 flex justify-center">
+              <Thinking text="The smoke is gathering into a question" />
+            </div>
           )}
 
           {day && (
@@ -175,7 +176,7 @@ export function Oracle() {
             <div className="mt-6 flex w-full flex-col items-center gap-3 text-center">
               <p style={{ fontFamily: F.read, color: C.ember }}>{error}</p>
               {!day && (
-                <button type="button" onClick={retryQuestion} className="or-btn min-h-[46px] rounded border px-5" style={{ borderColor: C.lineStrong, color: '#E9D5A6' }}>
+                <button type="button" onClick={retryQuestion} className="btn-bronze or-btn min-h-[46px] rounded border px-5" style={{ borderColor: C.lineStrong, color: '#E9D5A6' }}>
                   Ask again
                 </button>
               )}
@@ -197,7 +198,7 @@ export function Oracle() {
                   }}
                   rows={3}
                   placeholder="A sentence or two. There is no wrong answer, only an unexamined one."
-                  className="w-full resize-none rounded p-3.5 pr-12 outline-none"
+                  className="panel-stone w-full resize-none rounded p-3.5 pr-12 outline-none"
                   style={{ background: C.raised, border: `1px solid ${C.lineStrong}`, color: C.ivory, fontFamily: F.read, fontSize: 16, lineHeight: 1.55 }}
                 />
                 {stt.supported && (
@@ -216,11 +217,16 @@ export function Oracle() {
                 type="button"
                 onClick={offer}
                 disabled={!answer.trim() || thinking}
-                className="or-btn min-h-[50px] rounded transition-colors disabled:opacity-40"
+                className="btn-gilt or-btn min-h-[50px] rounded transition-colors disabled:opacity-40"
                 style={{ background: C.gilt, color: C.night, fontWeight: 600, fontSize: 16 }}
               >
                 {thinking ? 'The Oracle is considering…' : 'Offer your answer'}
               </button>
+              {thinking && (
+                <div className="flex justify-center pt-1">
+                  <Thinking text="The fire is reading your answer" />
+                </div>
+              )}
             </div>
           )}
 
@@ -248,12 +254,12 @@ export function Oracle() {
                     <button
                       type="button"
                       onClick={() => navigate('/app/symposium', { state: { prefill: `${day.question} I said: ${day.answer}` } })}
-                      className="or-btn min-h-[50px] flex-1 rounded border"
+                      className="btn-bronze or-btn min-h-[50px] flex-1 rounded border"
                       style={{ borderColor: C.lineStrong, color: '#E9D5A6', fontWeight: 500 }}
                     >
                       Talk it over at the Symposium
                     </button>
-                    <button type="button" onClick={() => navigate('/app')} className="or-btn min-h-[50px] flex-1 rounded" style={{ background: C.gilt, color: C.night, fontWeight: 600 }}>
+                    <button type="button" onClick={() => navigate('/app')} className="btn-gilt or-btn min-h-[50px] flex-1 rounded" style={{ background: C.gilt, color: C.night, fontWeight: 600 }}>
                       Back to the sanctuary
                     </button>
                   </div>
@@ -270,7 +276,7 @@ export function Oracle() {
               </h2>
               <ul className="m-0 flex list-none flex-col gap-2 p-0">
                 {earlier.map((d) => (
-                  <li key={d.date} className="rounded p-3.5" style={{ background: C.raised }}>
+                  <li key={d.date} className="panel-stone rounded p-3.5" style={{ background: C.raised }}>
                     <span style={{ fontFamily: F.inscr, fontSize: 9.5, fontWeight: 600, letterSpacing: '.18em', color: C.muted }}>{prettyDate(d.date).toUpperCase()}</span>
                     <p className="mt-1" style={{ fontFamily: F.display, fontSize: 17, lineHeight: 1.3 }}>
                       {d.question}
@@ -292,7 +298,7 @@ export function Oracle() {
 
 function Card({ label, color, delay, children }: { label: string; color: string; delay: number; children: ReactNode }) {
   return (
-    <article className="or-enter flex flex-col gap-1.5 rounded p-4" style={{ background: C.raised, borderLeft: `2px solid ${color}`, animationDelay: `${delay}s` }}>
+    <article className="panel-stone or-enter flex flex-col gap-1.5 rounded p-4" style={{ background: C.raised, borderLeft: `2px solid ${color}`, animationDelay: `${delay}s` }}>
       <span style={{ fontFamily: F.inscr, fontSize: 10.5, fontWeight: 600, letterSpacing: '.22em', color }}>{label}</span>
       {children}
     </article>

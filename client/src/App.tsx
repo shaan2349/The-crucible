@@ -1,4 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { liftVeil } from './night/veil'
 import { Landing } from './screens/Landing'
 import { Onboarding } from './screens/Onboarding'
 import { AppShell } from './components/AppShell'
@@ -16,10 +18,23 @@ import { DebateProvider } from './context/DebateContext'
 import { ReflectProvider } from './context/ReflectContext'
 import { PreferencesProvider } from './context/PreferencesContext'
 
+/** Places drawn in 3D lift the veil themselves once drawn; every other page lifts it straight away. */
+const SELF_LIFTING = ['/app', '/app/symposium', '/app/hall', '/app/oracle', '/app/landscape']
+function VeilOnRouteChange() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    if (SELF_LIFTING.includes(pathname.replace(/\/$/, '') || '/')) return
+    const t = window.setTimeout(liftVeil, 250)
+    return () => window.clearTimeout(t)
+  }, [pathname])
+  return null
+}
+
 function App() {
   return (
     <BrowserRouter>
       <DuotoneDefs />
+      <VeilOnRouteChange />
       <PreferencesProvider>
         <DebateProvider>
           <ReflectProvider>

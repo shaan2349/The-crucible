@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { liftVeilSoon } from '../night/veil'
 import { OracleScene, type OracleMood } from './OracleScene'
 
 /** The 3D ledge and fire behind the Oracle's page. `scroll` is 0–1 as the reader moves down the page. */
@@ -19,6 +20,7 @@ export default function Oracle3D({ mood, scroll, onFail }: { mood: OracleMood; s
       return
     }
     sceneRef.current = scene
+    liftVeilSoon()
     const ro = new ResizeObserver(() => {
       const r = wrap.getBoundingClientRect()
       scene.resize(r.width, r.height)

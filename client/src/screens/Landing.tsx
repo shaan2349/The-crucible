@@ -26,12 +26,12 @@ export function Landing() {
           <button
             type="button"
             onClick={() => navigate(hasOnboarded() ? '/app' : '/onboarding')}
-            className="night-btn min-h-[52px] rounded"
+            className="btn-gilt night-btn min-h-[52px] rounded"
             style={{ background: C.gilt, color: C.night, fontWeight: 600, fontSize: 16 }}
           >
             Enter the sanctuary
           </button>
-          <button type="button" onClick={() => navigate('/app/hall')} className="night-btn min-h-[48px] rounded border" style={{ borderColor: C.lineStrong, color: '#E9D5A6', fontWeight: 500 }}>
+          <button type="button" onClick={() => navigate('/app/hall')} className="btn-bronze night-btn min-h-[48px] rounded border" style={{ borderColor: C.lineStrong, color: '#E9D5A6', fontWeight: 500 }}>
             Meet the thinkers first
           </button>
         </div>

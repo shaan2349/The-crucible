@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { liftVeilSoon } from '../night/veil'
 import { LandscapeScene, type TempleSpec } from './LandscapeScene'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
 
@@ -45,6 +46,7 @@ export default function Landscape3D({
       return
     }
     sceneRef.current = scene
+    liftVeilSoon()
     scene.setLandscape(temples, lamps)
     const ro = new ResizeObserver(() => {
       const r = wrap.getBoundingClientRect()

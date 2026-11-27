@@ -174,9 +174,10 @@ function Plaque({ p, onClose, onGoTo, onTalk, onSeat }: { p: Philosopher; onClos
       role="dialog"
       aria-modal="false"
       aria-label={`${p.name}'s plaque`}
-      className="hall-enter fixed inset-x-0 bottom-0 z-[2] mx-auto flex max-h-[72vh] w-full max-w-[600px] flex-col overflow-y-auto rounded-t-lg border md:bottom-4 md:right-4 md:left-auto md:max-h-[86vh] md:w-[420px] md:rounded-lg"
+      className="panel-stone hall-enter fixed inset-x-0 bottom-0 z-[2] mx-auto flex max-h-[72vh] w-full max-w-[600px] flex-col overflow-y-auto rounded-t-lg border md:bottom-4 md:right-4 md:left-auto md:max-h-[86vh] md:w-[420px] md:rounded-lg"
       style={{ background: C.panel, borderColor: C.lineStrong, boxShadow: '0 -12px 40px rgba(0,0,0,.5)', paddingBottom: 'max(18px, env(safe-area-inset-bottom))' }}
     >
+      <div className="greek-key mx-4 mt-2 shrink-0" aria-hidden="true" />
       <button type="button" onClick={onClose} aria-label="Close the plaque" className="hall-btn absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full" style={{ color: C.muted }}>
         <X className="h-5 w-5" />
       </button>
@@ -197,7 +198,7 @@ function Plaque({ p, onClose, onGoTo, onTalk, onSeat }: { p: Philosopher; onClos
                 if (!other) return null
                 return (
                   <li key={l.otherId}>
-                    <button type="button" onClick={() => onGoTo(l.otherId)} className="hall-btn flex w-full items-center justify-between gap-3 rounded px-3 py-2 text-left" style={{ background: C.raised }}>
+                    <button type="button" onClick={() => onGoTo(l.otherId)} className="panel-stone hall-btn flex w-full items-center justify-between gap-3 rounded px-3 py-2 text-left" style={{ background: C.raised }}>
                       <span className="flex flex-col">
                         <span style={{ fontFamily: F.display, fontSize: 16 }}>{other.name}</span>
                         <span style={{ fontFamily: F.read, fontSize: 13.5, color: C.body }}>{l.note}</span>
@@ -225,10 +226,10 @@ function Plaque({ p, onClose, onGoTo, onTalk, onSeat }: { p: Philosopher; onClos
         )}
         {bioError && <p style={{ fontFamily: F.read, fontSize: 14, color: C.ember }}>{bioError}</p>}
         <div className="flex gap-2.5 pt-1">
-          <button type="button" onClick={onSeat} className="hall-btn min-h-[50px] flex-1 rounded border" style={{ borderColor: C.lineStrong, color: '#E9D5A6', fontWeight: 500, fontSize: 15 }}>
+          <button type="button" onClick={onSeat} className="btn-bronze hall-btn min-h-[50px] flex-1 rounded border" style={{ borderColor: C.lineStrong, color: '#E9D5A6', fontWeight: 500, fontSize: 15 }}>
             Seat at the Symposium
           </button>
-          <button type="button" onClick={onTalk} className="hall-btn min-h-[50px] flex-1 rounded" style={{ background: C.gilt, color: C.night, fontWeight: 600, fontSize: 15 }}>
+          <button type="button" onClick={onTalk} className="btn-gilt hall-btn min-h-[50px] flex-1 rounded" style={{ background: C.gilt, color: C.night, fontWeight: 600, fontSize: 15 }}>
             Talk to {p.name}
           </button>
         </div>
@@ -243,7 +244,7 @@ function Eyebrow({ children, color = C.gilt }: { children: ReactNode; color?: st
 
 function Block({ label, text, big }: { label: string; text: string; big?: boolean }) {
   return (
-    <div className="rounded p-3.5" style={{ background: C.raised }}>
+    <div className="panel-stone rounded p-3.5" style={{ background: C.raised }}>
       <Eyebrow>{label}</Eyebrow>
       <p className="mt-1" style={{ fontFamily: big ? F.display : F.read, fontSize: big ? 18 : 15, lineHeight: big ? 1.3 : 1.55, color: C.ivory }}>
         {text}

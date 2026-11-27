@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { arrival } from '../night/veil'
 import { addMilkyWay, addMist, addSea, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
 import { marbleTexture, statueMaterials } from '../marble/statue'
 
@@ -44,6 +45,7 @@ export class OracleScene {
   private clock = 0
 
   private mood: OracleMood = 'gathering'
+  private born = performance.now()
   private heat = 0.5
   private gold = 0
   private scroll = 0
@@ -407,7 +409,7 @@ export class OracleScene {
     // the camera stands back looking at the shrine, and lowers toward the fire as you read down the page
     const s = this.scroll
     const portrait = this.camera.aspect < 0.8
-    const dist = (portrait ? 8.5 : 8.2) - 1.6 * s
+    const dist = (portrait ? 8.5 : 8.2) - 1.6 * s + 4 * (1 - arrival(this.born, 2200))
     const px = still ? 0 : this.pointer.x * 0.6 + 0.25 * Math.sin(t * 0.09)
     this.camera.position.set(px, 2.2 - 0.5 * s - this.pointer.y * 0.3, dist)
     this.camera.lookAt(0, (portrait ? 0.6 : 1.25) - 0.3 * s, 0)

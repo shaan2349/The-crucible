@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { arrival } from '../night/veil'
 import { addDust, createPost, type Post, type Tick } from '../world/nightKit'
 import { buildBust, marbleTexture, statueMaterials, setStatueDetail, type Statue } from '../marble/statue'
 
@@ -74,6 +75,7 @@ export class HallScene {
   private glowTex: THREE.CanvasTexture
 
   private camX = 0
+  private born = performance.now()
   private targetX = 0
   private zoom = 0
   private fit = 1
@@ -439,7 +441,7 @@ export class HallScene {
 
     this.camX = still ? this.targetX : damp(this.camX, this.targetX, 3.2, dt)
     this.zoom = damp(this.zoom, this.awake ? 1 : 0, 2.5, dt)
-    const dist = (5.3 - 1.4 * this.zoom) * this.fit
+    const dist = (5.3 - 1.4 * this.zoom) * this.fit * (1 + 0.45 * (1 - arrival(this.born, 2000)))
     const sway = still ? 0 : 0.04 * Math.sin(t * 0.3)
     this.camera.position.set(this.camX + sway, 1.75 + 0.2 * (this.fit - 1), WALL_Z + 0.6 + dist)
     this.camera.lookAt(this.camX, 1.3 - 0.05 * this.zoom, WALL_Z + 0.4)

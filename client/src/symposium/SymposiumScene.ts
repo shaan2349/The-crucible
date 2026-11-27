@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { arrival } from '../night/veil'
 import { addMilkyWay, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
 import { buildSeated, statueMaterials, marbleTexture, type Statue } from '../marble/statue'
 
@@ -48,6 +49,7 @@ export class SymposiumScene {
   private raf = 0
   private last = performance.now()
   private clock = 0
+  private born = performance.now()
   private W = 1
   private H = 1
 
@@ -248,7 +250,7 @@ export class SymposiumScene {
   }
 
   private placeCamera() {
-    const r = 4.3 * this.cam.fit
+    const r = 4.3 * this.cam.fit * (1 + 0.35 * (1 - arrival(this.born, 2200)))
     const th = this.cam.theta
     const h = 1.95 + 0.35 * (this.cam.fit - 1) + this.cam.tilt
     this.camera.position.set(Math.sin(th) * r, h, Math.cos(th) * r)

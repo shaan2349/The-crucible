@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Mic } from 'lucide-react'
 import { NIGHT, NIGHT_FONT } from '../night/theme'
 import { NightSky } from '../night/NightSky'
+import { Thinking } from '../night/Thinking'
 // The 3D temple (and the 3D library behind it) loads only when a debate
 // starts, so the rest of the app stays quick to open.
 const TempleDebate = lazy(() => import('./TempleDebate').then((m) => ({ default: m.TempleDebate })))
@@ -244,7 +245,7 @@ export function Debate() {
                   {stt.listening && <span style={{ fontFamily: F.read, fontStyle: 'italic', fontSize: 13, color: C.muted }}>Listening…</span>}
                   {!stt.listening && stt.error && <span style={{ fontSize: 12, color: C.ember }}>{stt.error}</span>}
                 </div>
-                <button type="button" onClick={enter} disabled={!claim.trim() || submitting} className="night-btn flex min-h-11 items-center gap-2 rounded px-5 disabled:opacity-40" style={{ background: C.gilt, color: C.night, fontWeight: 600 }}>
+                <button type="button" onClick={enter} disabled={!claim.trim() || submitting} className="btn-gilt night-btn flex min-h-11 items-center gap-2 rounded px-5 disabled:opacity-40" style={{ background: C.gilt, color: C.night, fontWeight: 600 }}>
                   Raise the temple <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
@@ -255,7 +256,7 @@ export function Debate() {
                 <p className="mb-2.5" style={{ fontFamily: F.inscr, fontSize: 10, fontWeight: 600, letterSpacing: '.24em', color: C.muted }}>OR BEGIN WITH ONE OF THESE</p>
                 <div className="flex flex-wrap justify-center gap-2">
                   {suggestions.map((t) => (
-                    <button key={t.short} type="button" onClick={() => setClaim(t.label)} className="night-btn min-h-[40px] rounded-full border px-4" style={{ borderColor: C.lineStrong, color: C.body, fontSize: 14 }}>
+                    <button key={t.short} type="button" onClick={() => setClaim(t.label)} className="btn-bronze night-btn min-h-[40px] rounded-full border px-4" style={{ borderColor: C.lineStrong, color: C.body, fontSize: 14 }}>
                       {t.short}
                     </button>
                   ))}
@@ -264,7 +265,7 @@ export function Debate() {
             )}
 
             {savedDraft && !claim && (
-              <button type="button" onClick={resumeDraft} className="night-btn mt-2 flex w-full items-center justify-between gap-3 rounded px-4 py-3 text-left" style={{ background: C.panel, border: `1px solid ${C.line}` }}>
+              <button type="button" onClick={resumeDraft} className="panel-stone night-btn mt-2 flex w-full items-center justify-between gap-3 rounded px-4 py-3 text-left" style={{ background: C.panel, border: `1px solid ${C.line}` }}>
                 <span className="min-w-0">
                   <span className="block" style={{ fontFamily: F.inscr, fontSize: 10, letterSpacing: '.2em', color: C.muted }}>UNFINISHED</span>
                   <span className="block truncate" style={{ fontFamily: F.read, fontSize: 14, color: C.body }}>{savedDraft}</span>
@@ -281,8 +282,8 @@ export function Debate() {
                 <p className="m-0" style={{ fontFamily: F.read, color: C.body }}>The philosophers could not be reached.</p>
                 <p className="m-0" style={{ fontSize: 13, color: C.muted }}>{enterError}</p>
                 <div className="flex gap-2">
-                  <button type="button" onClick={enter} className="night-btn min-h-11 rounded px-5" style={{ background: C.gilt, color: C.night, fontWeight: 600 }}>Try again</button>
-                  <button type="button" onClick={() => { setEntering(false); setEnterError(null) }} className="night-btn min-h-11 rounded border px-5" style={{ borderColor: C.lineStrong, color: C.body }}>Edit belief</button>
+                  <button type="button" onClick={enter} className="btn-gilt night-btn min-h-11 rounded px-5" style={{ background: C.gilt, color: C.night, fontWeight: 600 }}>Try again</button>
+                  <button type="button" onClick={() => { setEntering(false); setEnterError(null) }} className="btn-bronze night-btn min-h-11 rounded border px-5" style={{ borderColor: C.lineStrong, color: C.body }}>Edit belief</button>
                 </div>
               </>
             ) : assembled ? (
@@ -298,7 +299,7 @@ export function Debate() {
                 </div>
               </>
             ) : (
-              <p className="m-0" style={{ fontFamily: F.read, fontStyle: 'italic', color: C.muted }}>Choosing who will challenge it…</p>
+              <Thinking text="Choosing who will challenge it" />
             )}
           </div>
         )}

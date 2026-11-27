@@ -10,6 +10,8 @@ import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import { usePreferencesContext } from '../context/PreferencesContext'
 import { NIGHT, NIGHT_FONT } from '../night/theme'
+import { Thinking } from '../night/Thinking'
+import { liftVeilSoon } from '../night/veil'
 import type { Debate as DebateState, Premise, PremiseStatus, Round } from '../types'
 import { ENDING_COPY, STATUS_WORD, numeral, participationLevel, premiseText, templeEnding } from '../temple/ending'
 
@@ -70,6 +72,7 @@ export function TempleDebate({
       return
     }
     sceneRef.current = scene
+    liftVeilSoon()
     const ro = new ResizeObserver(() => {
       const r = stage.getBoundingClientRect()
       scene.resize(r.width, r.height)
@@ -329,7 +332,7 @@ export function TempleDebate({
             type="button"
             onClick={toggleSound}
             aria-pressed={soundOn}
-            className="temple-btn ml-auto flex h-11 items-center gap-2 rounded-full border px-3 text-sm"
+            className="btn-bronze temple-btn ml-auto flex h-11 items-center gap-2 rounded-full border px-3 text-sm"
             style={{ borderColor: C.lineStrong }}
           >
             {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
@@ -442,7 +445,7 @@ export function TempleDebate({
                         }}
                         rows={4}
                         placeholder="Defend your premise, rewrite it, or give it up. In your own words."
-                        className="w-full resize-none rounded p-3.5 pr-12 outline-none"
+                        className="panel-stone w-full resize-none rounded p-3.5 pr-12 outline-none"
                         style={{ background: C.raised, border: `1px solid ${C.lineStrong}`, color: C.ivory, fontFamily: F.read, fontSize: 16, lineHeight: 1.55 }}
                       />
                       {stt.supported && (
@@ -532,12 +535,7 @@ function Eyebrow({ children, color = C.gilt }: { children: ReactNode; color?: st
 }
 
 function Waiting({ text }: { text: string }) {
-  return (
-    <p className="temple-enter flex items-center gap-3" style={{ fontFamily: F.read, fontStyle: 'italic', fontSize: 15, color: C.muted }}>
-      <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: C.gilt }} />
-      {text}
-    </p>
-  )
+  return <Thinking text={text} className="temple-enter" />
 }
 
 function PrimaryButton({ children, onClick, disabled }: { children: ReactNode; onClick: () => void; disabled?: boolean }) {
@@ -546,7 +544,7 @@ function PrimaryButton({ children, onClick, disabled }: { children: ReactNode; o
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="temple-btn min-h-[50px] w-full flex-1 rounded transition-colors disabled:opacity-40"
+      className="btn-gilt temple-btn min-h-[50px] w-full flex-1 rounded transition-colors disabled:opacity-40"
       style={{ background: C.gilt, color: C.night, fontFamily: F.ui, fontWeight: 600, fontSize: 16 }}
     >
       {children}
@@ -559,7 +557,7 @@ function GhostButton({ children, onClick }: { children: ReactNode; onClick: () =
     <button
       type="button"
       onClick={onClick}
-      className="temple-btn min-h-[50px] w-full flex-1 rounded border"
+      className="btn-bronze temple-btn min-h-[50px] w-full flex-1 rounded border"
       style={{ borderColor: C.lineStrong, color: '#E9D5A6', fontFamily: F.ui, fontWeight: 500, fontSize: 15 }}
     >
       {children}
@@ -613,7 +611,7 @@ function Objection({
   const target = premises.findIndex((p) => p.id === attack.targetPremiseId)
   const color = SIDE_COLOR[side === 1 ? 1 : 0]
   return (
-    <article className="temple-enter flex flex-col gap-2 rounded p-4" style={{ background: C.raised, borderLeft: `2px solid ${color}` }}>
+    <article className="panel-stone temple-enter flex flex-col gap-2 rounded p-4" style={{ background: C.raised, borderLeft: `2px solid ${color}` }}>
       <div className="flex items-start justify-between gap-2">
         <Eyebrow color={color}>
           OBJECTION {ROMAN[index]} · {(ph?.name ?? attack.philosopherId).toUpperCase()}
@@ -651,7 +649,7 @@ function Objection({
 
 function YourReply({ text }: { text: string }) {
   return (
-    <div className="temple-enter flex flex-col gap-1.5 rounded p-4" style={{ background: C.raised, borderLeft: `2px solid ${C.gilt}` }}>
+    <div className="panel-stone temple-enter flex flex-col gap-1.5 rounded p-4" style={{ background: C.raised, borderLeft: `2px solid ${C.gilt}` }}>
       <Eyebrow>YOU</Eyebrow>
       <p style={{ fontFamily: F.read, fontSize: 15.5, lineHeight: 1.6, color: C.body }}>{text}</p>
     </div>
@@ -672,7 +670,7 @@ function Judged({ round, premises, last, onNext }: { round: Round; premises: Pre
             const p = premises[i]
             const word = STATUS_WORD[r.status] ?? STATUS_WORD.standing
             return (
-              <li key={r.id} className="rounded p-3" style={{ background: C.raised, borderLeft: `2px solid ${word.color}` }}>
+              <li key={r.id} className="panel-stone rounded p-3" style={{ background: C.raised, borderLeft: `2px solid ${word.color}` }}>
                 <span style={{ fontFamily: F.inscr, fontSize: 11, fontWeight: 700, letterSpacing: '.14em', color: word.color }}>
                   {i >= 0 ? numeral(i, p) : ''} · {word.label.toUpperCase()}
                 </span>
@@ -741,7 +739,7 @@ function Ending({
             onChange={(ev) => setReflection(ev.target.value)}
             rows={3}
             placeholder="One or two sentences, in your own words."
-            className="w-full resize-none rounded p-3.5 outline-none"
+            className="panel-stone w-full resize-none rounded p-3.5 outline-none"
             style={{ background: C.raised, border: `1px solid ${C.lineStrong}`, color: C.ivory, fontFamily: F.read, fontSize: 16 }}
           />
           <PrimaryButton onClick={onSave}>Keep this temple</PrimaryButton>
@@ -753,7 +751,7 @@ function Ending({
 
 function Detail({ label, text, big }: { label: string; text: string; big?: boolean }) {
   return (
-    <div className="rounded p-3.5" style={{ background: C.raised }}>
+    <div className="panel-stone rounded p-3.5" style={{ background: C.raised }}>
       <Eyebrow>{label}</Eyebrow>
       <p className="mt-1" style={{ fontFamily: big ? F.display : F.read, fontSize: big ? 19 : 15, lineHeight: big ? 1.3 : 1.55, color: C.ivory }}>
         {text}

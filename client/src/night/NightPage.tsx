@@ -30,7 +30,7 @@ export function NightPage({ title, eyebrow, back = '/app', backLabel = 'Back to 
 
 export function Panel({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-3 rounded p-4" style={{ background: 'rgba(17,20,26,.85)', border: `1px solid ${C.line}` }}>
+    <section className="panel-stone flex flex-col gap-3 rounded p-4" style={{ background: 'rgba(17,20,26,.85)', border: `1px solid ${C.line}` }}>
       <h2 className="m-0" style={{ fontFamily: F.inscr, fontSize: 10.5, fontWeight: 600, letterSpacing: '.24em', color: C.gilt }}>{label}</h2>
       {children}
     </section>
