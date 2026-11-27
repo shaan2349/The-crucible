@@ -277,8 +277,8 @@ export function Symposium() {
       style={{ background: C.night, color: C.ivory, fontFamily: F.ui, gridTemplateRows: 'auto minmax(0,1fr) auto' }}
     >
       <style>{`
-        @media (min-width: 900px) {
-          .symposium-grid { grid-template-columns: minmax(0,1fr) 440px !important; grid-template-rows: auto minmax(0,1fr) !important; }
+        @media (min-width: 900px), (orientation: landscape) and (min-width: 560px) and (max-height: 560px) {
+          .symposium-grid { grid-template-columns: minmax(0,1fr) min(440px, 52vw) !important; grid-template-rows: auto minmax(0,1fr) !important; }
           .symposium-bar { grid-column: 1 / -1; }
           .symposium-panel { max-height: none !important; border-top: none !important; border-left: 1px solid ${C.line}; }
         }

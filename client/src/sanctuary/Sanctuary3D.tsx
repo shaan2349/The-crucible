@@ -81,13 +81,32 @@ export default function Sanctuary3D({
     let raf = 0
     let frames = 0
     const follow = () => {
-      for (const a of scene.anchors()) {
+      // small or short screens get compact plates (name only)
+      const compact = wrap.clientWidth < 430 || wrap.clientHeight < 420
+      wrap.classList.toggle('plates-compact', compact)
+      const placed: { x: number; y: number; w: number; h: number }[] = []
+      const anchors = scene.anchors().slice().sort((a, b) => a.y - b.y)
+      for (const a of anchors) {
         const el = plates.current[a.id]
         if (!el) continue
+        const w = el.offsetWidth
+        const h = el.offsetHeight
         // keep the plate on screen: its centre stays at least half its width from either edge
-        const half = el.offsetWidth / 2 + 6
-        const x = Math.min(Math.max(a.x, half), wrap.clientWidth - half)
-        el.style.transform = `translate(${x}px, ${a.y}px) translate(-50%, -100%)`
+        const half = w / 2 + 6
+        let x = Math.min(Math.max(a.x, half), wrap.clientWidth - half)
+        let y = a.y
+        // nudge it clear of plates already placed: sideways first, then down
+        for (let tries = 0; tries < 6; tries++) {
+          const hit = placed.find((p) => Math.abs(p.x - x) < (p.w + w) / 2 + 4 && Math.abs(p.y - y) < (p.h + h) / 2 + 3)
+          if (!hit) break
+          const push = (hit.w + w) / 2 + 6 - Math.abs(hit.x - x)
+          const side = x >= hit.x ? 1 : -1
+          const nx = x + side * push
+          if (nx - w / 2 > 4 && nx + w / 2 < wrap.clientWidth - 4) x = nx
+          else y = hit.y + (hit.h + h) / 2 + 4
+        }
+        placed.push({ x, y, w, h })
+        el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`
         el.style.opacity = a.visible ? '1' : '0'
         el.style.pointerEvents = a.visible ? 'auto' : 'none'
       }

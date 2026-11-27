@@ -484,3 +484,13 @@ h3,
 @media (prefers-reduced-motion: reduce) {
   .thinking-lamp svg .flame, .thinking-lamp svg .halo, .thinking-lamp .dots span { animation: none; }
 }
+
+/* the Sanctuary's name plates on small or short screens: name only, a little smaller */
+.plates-compact .sanctuary-plate { padding: 3px 9px !important; }
+.plates-compact .sanctuary-plate > span:first-child { font-size: 15px !important; }
+.plates-compact .sanctuary-plate > span:last-child { display: none; }
+
+/* phones turned sideways: give the hill the height the quote ticker would take */
+@media (orientation: landscape) and (max-height: 480px) {
+  .sanctuary footer { display: none; }
+}

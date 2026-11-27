@@ -301,8 +301,8 @@ export function TempleDebate({
       style={{ background: C.night, color: C.ivory, fontFamily: F.ui, gridTemplateRows: 'auto minmax(0,1fr) auto' }}
     >
       <style>{`
-        @media (min-width: 900px) {
-          .temple-grid { grid-template-columns: minmax(0,1fr) 420px !important; grid-template-rows: auto minmax(0,1fr) !important; }
+        @media (min-width: 900px), (orientation: landscape) and (min-width: 560px) and (max-height: 560px) {
+          .temple-grid { grid-template-columns: minmax(0,1fr) min(420px, 52vw) !important; grid-template-rows: auto minmax(0,1fr) !important; }
           .temple-bar { grid-column: 1 / -1; }
           .temple-panel { max-height: none !important; border-top: none !important; border-left: 1px solid ${C.line}; }
         }
