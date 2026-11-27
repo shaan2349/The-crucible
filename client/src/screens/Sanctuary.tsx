@@ -4,6 +4,7 @@ import { User } from 'lucide-react'
 import { useDebateContext } from '../context/DebateContext'
 import { loadDebates } from '../lib/storage'
 import type { PlaceId } from '../sanctuary/SanctuaryScene'
+import { NightSky } from '../night/NightSky'
 
 // The 3D hill loads after the first paint; the drawn hill below shows at
 // once and stays as the fallback wherever 3D is unavailable.
@@ -127,6 +128,11 @@ export function Sanctuary() {
   const live = debate && debate.phase !== 'verdict'
   const [three, setThree] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [temples] = useState(() => loadDebates().length)
+  // on a slow connection, show the drawn hill rather than an empty sky
+  useEffect(() => {
+    const t = setTimeout(() => setThree((v) => (v === 'loading' ? 'failed' : v)), 12000)
+    return () => clearTimeout(t)
+  }, [])
 
   return (
     <div ref={sceneRef} className="sanctuary fixed inset-0 z-[50] flex flex-col overflow-hidden" style={{ background: C.night, color: C.ivory }}>
@@ -200,9 +206,15 @@ export function Sanctuary() {
             </Suspense>
           </div>
         )}
-        <svg
-          aria-hidden={three === 'ready'}
-          style={{ visibility: three === 'ready' ? 'hidden' : 'visible', transition: 'visibility 0s 1s' }}
+        {three === 'loading' && (
+          <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-10" aria-live="polite">
+            <NightSky />
+            <p className="relative m-0" style={{ fontFamily: "'Libre Caslon Text', Georgia, serif", fontStyle: 'italic', fontSize: 14, color: C.muted, animation: 'sRise 1.2s 1.2s both' }}>
+              The lamps are being lit…
+            </p>
+          </div>
+        )}
+        {three === 'failed' && <svg
           className="absolute inset-0 h-full w-full"
           viewBox={view}
           preserveAspectRatio="xMidYMid slice"
@@ -355,7 +367,7 @@ export function Sanctuary() {
           <text x="600" y="840" textAnchor="middle" fill="#A39D90" style={{ fontFamily: "'Libre Caslon Text', Georgia, serif", fontStyle: 'italic', fontSize: 15 }} aria-hidden="true">
             Tap a place to enter
           </text>
-        </svg>
+        </svg>}
       </div>
 
       <footer

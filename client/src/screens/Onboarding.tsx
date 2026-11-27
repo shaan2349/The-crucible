@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { markOnboarded, saveInterests } from '../lib/storage'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
@@ -25,8 +25,12 @@ const STEPS = [
   },
 ] as const
 
+// Start fetching the 3D hill while the visitor reads, so it is ready when they enter.
+const warmSanctuary = () => void import('../sanctuary/Sanctuary3D').catch(() => {})
+
 export function Onboarding() {
   const navigate = useNavigate()
+  useEffect(warmSanctuary, [])
   const [step, setStep] = useState(0)
   const [interests, setInterests] = useState<string[]>([])
   const current = STEPS[step]

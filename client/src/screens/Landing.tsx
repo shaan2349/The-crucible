@@ -1,11 +1,16 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { hasOnboarded } from '../lib/storage'
 import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
 import { NightSky } from '../night/NightSky'
 
 /** The first thing anyone sees: the sanctuary's name under the night sky. */
+// Start fetching the 3D hill while the visitor reads, so it is ready when they enter.
+const warmSanctuary = () => void import('../sanctuary/Sanctuary3D').catch(() => {})
+
 export function Landing() {
   const navigate = useNavigate()
+  useEffect(warmSanctuary, [])
   return (
     <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6 text-center" style={{ background: C.night, color: C.ivory, fontFamily: F.ui }}>
       <NightSky />

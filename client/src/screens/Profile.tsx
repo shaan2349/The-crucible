@@ -1,92 +1,77 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BookOpen, Compass, Settings as SettingsIcon, Sparkles } from 'lucide-react'
-import { RotatingBackdrop } from '../components/RotatingBackdrop'
-import { loadDebates, loadReflectSessions } from '../lib/storage'
+import { ChevronRight } from 'lucide-react'
+import { loadDebates, loadInterests, loadOracleDays, loadReflectSessions } from '../lib/storage'
+import { endingOf, ENDING_COPY } from '../temple/ending'
+import { NIGHT as C, NIGHT_FONT as F } from '../night/theme'
+import { NightPage, Panel } from '../night/NightPage'
 
-/**
- * Reached only from the avatar icon in the header — deliberately thin.
- * The "who you're becoming, philosophically" insights that used to live
- * here moved to My Thinking's own Profile tab (they're the same
- * question My Thinking already asks about your sessions; keeping a
- * second, separate copy of that logic behind a hard-to-find icon was
- * the actual problem, not the insights themselves). This screen is now
- * just quick account-level navigation: a one-line honest count of your
- * history, then My Thinking / Training / Settings.
- */
+/** Your seat in the sanctuary: what you have done here so far, and the way to Settings. */
 export function Profile() {
-  const [sessionCount, setSessionCount] = useState(0)
   const navigate = useNavigate()
-
-  useEffect(() => {
-    setSessionCount(loadDebates().length + loadReflectSessions().length)
-  }, [])
+  const [stats] = useState(() => {
+    const debates = loadDebates().filter((d) => d.premises?.length)
+    const counts = { victory: 0, reshaped: 0, contested: 0, collapse: 0, untested: 0 }
+    debates.forEach((d) => (counts[endingOf(d)] += 1))
+    return {
+      temples: debates.length,
+      lamps: loadReflectSessions().length,
+      oracle: loadOracleDays().filter((d) => d.answer).length,
+      counts,
+      interests: loadInterests(),
+    }
+  })
+  const nothing = stats.temples + stats.lamps + stats.oracle === 0
 
   return (
-    <>
-      <RotatingBackdrop screen="profile" />
-      <div className="standard-container relative z-[1] px-6 pb-10 pt-8">
-        <header className="mb-6">
-          <p className="mb-1 font-display text-xs uppercase tracking-[0.15em] text-parchment-500">Profile</p>
-          <h1 className="font-display text-2xl font-medium text-parchment-900">
-            {sessionCount > 0 ? `${sessionCount} session${sessionCount === 1 ? '' : 's'} so far` : 'Nothing yet'}
-          </h1>
-          <p className="mt-1 text-sm text-parchment-600">
-            The full picture of your intellectual history — patterns, threads, and changed beliefs — lives in My Thinking.
-          </p>
-        </header>
-
-        <div className="space-y-3">
-          <button
-            type="button"
-            onClick={() => navigate('/app/landscape')}
-            className="flex w-full items-center gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left transition-transform duration-150 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
-            style={{ boxShadow: 'var(--shadow-card)' }}
-          >
-            <Sparkles className="h-5 w-5 shrink-0 text-forge-ember" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-parchment-900">My Thinking</span>
-              <span className="block text-xs text-parchment-500">Your intellectual history and philosophical profile</span>
-            </span>
+    <NightPage title="Your seat" eyebrow="WHAT YOU HAVE DONE HERE">
+      <div className="grid grid-cols-3 gap-2.5">
+        {[
+          ['Temples', stats.temples, '/app/landscape'],
+          ['Lamps', stats.lamps, '/app/landscape'],
+          ['Oracle answers', stats.oracle, '/app/oracle'],
+        ].map(([label, n, to]) => (
+          <button key={label as string} type="button" onClick={() => navigate(to as string)} className="night-btn flex flex-col items-center gap-1 rounded px-2 py-4" style={{ background: 'rgba(17,20,26,.85)', border: `1px solid ${C.line}` }}>
+            <span style={{ fontFamily: F.display, fontSize: 32, lineHeight: 1, color: C.ivory }}>{n as number}</span>
+            <span style={{ fontFamily: F.inscr, fontSize: 9.5, fontWeight: 600, letterSpacing: '.18em', color: C.gilt }}>{(label as string).toUpperCase()}</span>
           </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/app/oracle')}
-            className="flex w-full items-center gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left transition-transform duration-150 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
-            style={{ boxShadow: 'var(--shadow-card)' }}
-          >
-            <BookOpen className="h-5 w-5 shrink-0 text-forge-ember" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-parchment-900">Train your reasoning</span>
-              <span className="block text-xs text-parchment-500">Six ways to practice thinking well</span>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/app/hall')}
-            className="flex w-full items-center gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left transition-transform duration-150 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
-            style={{ boxShadow: 'var(--shadow-card)' }}
-          >
-            <Compass className="h-5 w-5 shrink-0 text-forge-ember" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-parchment-900">Browse the Library</span>
-              <span className="block text-xs text-parchment-500">47 thinkers, centuries of arguments</span>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/app/settings')}
-            className="flex w-full items-center gap-3 rounded-2xl bg-parchment-50 px-4 py-3.5 text-left transition-transform duration-150 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ember"
-            style={{ boxShadow: 'var(--shadow-card)' }}
-          >
-            <SettingsIcon className="h-5 w-5 shrink-0 text-parchment-600" />
-            <span className="text-sm font-medium text-parchment-900">Settings</span>
-          </button>
-        </div>
+        ))}
       </div>
-    </>
+
+      {nothing ? (
+        <p className="m-0 text-center" style={{ fontFamily: F.read, fontStyle: 'italic', color: C.muted }}>
+          Nothing yet. Every belief you test raises a temple; every conversation leaves a lamp.
+        </p>
+      ) : (
+        stats.temples > 0 && (
+          <Panel label="HOW YOUR BELIEFS HAVE FARED">
+            <ul className="m-0 flex list-none flex-col gap-2 p-0">
+              {(Object.keys(stats.counts) as (keyof typeof stats.counts)[])
+                .filter((k) => stats.counts[k] > 0)
+                .map((k) => (
+                  <li key={k} className="flex items-baseline justify-between">
+                    <span style={{ fontFamily: F.inscr, fontSize: 11, fontWeight: 600, letterSpacing: '.16em', color: C.body }}>{ENDING_COPY[k].eyebrow}</span>
+                    <span style={{ fontFamily: F.display, fontSize: 20, color: ENDING_COPY[k].color }}>{stats.counts[k]}</span>
+                  </li>
+                ))}
+            </ul>
+          </Panel>
+        )
+      )}
+
+      {stats.interests.length > 0 && (
+        <Panel label="WHAT DRAWS YOU IN">
+          <p className="m-0" style={{ fontFamily: F.read, color: C.body }}>{stats.interests.join(' · ')}</p>
+        </Panel>
+      )}
+
+      <button type="button" onClick={() => navigate('/app/settings')} className="night-btn flex min-h-[56px] w-full items-center justify-between rounded px-4" style={{ background: 'rgba(17,20,26,.85)', border: `1px solid ${C.lineStrong}` }}>
+        <span className="flex flex-col items-start">
+          <span style={{ fontFamily: F.display, fontSize: 18 }}>Settings</span>
+          <span style={{ fontSize: 13, color: C.muted }}>How they speak, voice, motion, your data</span>
+        </span>
+        <ChevronRight className="h-5 w-5" style={{ color: C.gilt }} />
+      </button>
+    </NightPage>
   )
 }

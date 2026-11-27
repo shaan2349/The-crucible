@@ -64,6 +64,8 @@ export class SanctuaryScene {
   private sea!: THREE.Mesh
   private glitter!: THREE.Points
   private stars!: THREE.Points
+  private windowGlow: THREE.Points | null = null
+  private boats: THREE.Group[] = []
 
   private orbit = { yaw: 0, targetYaw: 0, pitch: 0 }
   private flight: { from: THREE.Vector3; fromLook: THREE.Vector3; to: THREE.Vector3; toLook: THREE.Vector3; t: number; start: number; done: () => void } | null = null
@@ -119,6 +121,7 @@ export class SanctuaryScene {
     this.buildSky()
     this.buildLand()
     this.buildPath()
+    this.buildVillage()
     this.buildPlaces(opts.temples)
 
     this.onDown = (e) => {
@@ -412,6 +415,191 @@ export class SanctuaryScene {
       c.castShadow = true
       scene.add(c)
     }
+  }
+
+  /**
+   * A whitewashed village on the lower slopes: flat-roofed houses with lit
+   * windows, a few blue domes, a church with a bell tower, olive trees, and
+   * fishing boats with lanterns in the bay below. Built with instancing so
+   * dozens of houses cost only a handful of draw calls.
+   */
+  private buildVillage() {
+    const clusters = [
+      { x: -9.5, z: 8.5, r: 3.4, n: 26 },
+      { x: 9.8, z: 7.6, r: 3.2, n: 24 },
+      { x: -2.2, z: 11.8, r: 2.6, n: 16 },
+      { x: 3.6, z: 12.4, r: 2.4, n: 12 },
+      { x: 13.6, z: 1.5, r: 2.2, n: 10 },
+    ]
+    const spots = Object.values(SPOTS)
+    const houses: { x: number; z: number; w: number; d: number; h: number; rot: number; y: number }[] = []
+    let seed = 7
+    const r = () => {
+      seed = (seed * 16807) % 2147483647
+      return seed / 2147483647
+    }
+    for (const c of clusters) {
+      for (let tries = 0; tries < c.n * 12 && houses.filter((h) => Math.hypot(h.x - c.x, h.z - c.z) < c.r + 0.5).length < c.n; tries++) {
+        const a = r() * Math.PI * 2
+        const d = Math.sqrt(r()) * c.r
+        const x = c.x + Math.cos(a) * d
+        const z = c.z + Math.sin(a) * d
+        const w = 0.42 + r() * 0.34
+        const dd = 0.4 + r() * 0.3
+        if (Math.abs(x - pathX(z)) < 1.0) continue
+        if (spots.some((s) => Math.hypot(s.x - x, s.z - z) < 3.3)) continue
+        if (houses.some((h) => Math.hypot(h.x - x, h.z - z) < (h.w + w) * 0.62)) continue
+        const corners = [heightAt(x - w / 2, z - dd / 2), heightAt(x + w / 2, z - dd / 2), heightAt(x - w / 2, z + dd / 2), heightAt(x + w / 2, z + dd / 2)]
+        const lo = Math.min(...corners)
+        const hi = Math.max(...corners)
+        if (lo < 0.02 || hi - lo > 0.9) continue
+        houses.push({ x, z, w, d: dd, h: 0.34 + r() * 0.3 + (hi - lo), rot: (r() - 0.5) * 0.5, y: lo })
+      }
+    }
+    // the church: the biggest house in the western cluster gets a dome and a bell tower
+    const church = houses.reduce((best, h, i) => (h.x < 0 && h.w * h.d > houses[best].w * houses[best].d ? i : best), 0)
+    houses[church].w = 0.85
+    houses[church].d = 0.65
+    houses[church].h += 0.15
+
+    const n = houses.length
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xe4dfd3, roughness: 0.9 })
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0xcfc9bb, roughness: 0.95 })
+    const domeMat = new THREE.MeshStandardMaterial({ color: 0x2f5592, roughness: 0.5, metalness: 0.1 })
+    const winMat = new THREE.MeshBasicMaterial({ color: 0xffb45e })
+    const darkMat = new THREE.MeshBasicMaterial({ color: 0x1a1b22 })
+    const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), wallMat, n)
+    const roofs = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), roofMat, n)
+    const domes = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), domeMat, n)
+    const wins = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), winMat, n * 3)
+    const doors = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), darkMat, n)
+    walls.castShadow = walls.receiveShadow = roofs.castShadow = domes.castShadow = true
+    const m = new THREE.Object3D()
+    const base = new THREE.Object3D()
+    const glowPos: number[] = []
+    let wi = 0
+    let di = 0
+    houses.forEach((h, i) => {
+      base.position.set(h.x, h.y, h.z)
+      base.rotation.set(0, h.rot, 0)
+      base.updateMatrix()
+      const put = (mesh: THREE.InstancedMesh, idx: number, x: number, y: number, z: number, sx: number, sy: number, sz: number) => {
+        m.position.set(x, y, z)
+        m.rotation.set(0, 0, 0)
+        m.scale.set(sx, sy, sz)
+        m.updateMatrix()
+        m.matrix.premultiply(base.matrix)
+        mesh.setMatrixAt(idx, m.matrix)
+      }
+      put(walls, i, 0, h.h / 2 - 0.05, 0, h.w, h.h + 0.1, h.d)
+      put(roofs, i, 0, h.h + 0.03, 0, h.w + 0.06, 0.06, h.d + 0.06)
+      const domed = i === church || r() < 0.12
+      if (domed) {
+        const dr = i === church ? 0.26 : Math.min(h.w, h.d) * 0.3
+        put(domes, di++, i === church ? -0.12 : 0, h.h + 0.06, 0, dr, dr * 1.1, dr)
+      }
+      // a door and one to three windows on the side facing the bay
+      put(doors, i, (r() - 0.5) * h.w * 0.5, 0.12, h.d / 2 + 0.002, 0.11, 0.2, 1)
+      const count = 1 + Math.floor(r() * 3)
+      for (let k = 0; k < count && wi < n * 3; k++) {
+        const lit = r() < 0.55
+        const wx = (k - (count - 1) / 2) * (h.w / (count + 0.5))
+        const wy = Math.min(h.h - 0.12, 0.3 + (r() < 0.3 ? 0.18 : 0))
+        put(wins, wi++, wx, wy, h.d / 2 + 0.003, 0.07, 0.09, 1)
+        if (lit) {
+          const v = new THREE.Vector3(wx, wy, h.d / 2 + 0.05).applyMatrix4(base.matrix)
+          glowPos.push(v.x, v.y, v.z)
+        } else {
+          wins.setColorAt(wi - 1, new THREE.Color(0x2a2a33))
+        }
+      }
+    })
+    // the bell tower beside the church
+    const ch = houses[church]
+    const tower = new THREE.Group()
+    const tw = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.75, 0.24), wallMat)
+    tw.position.y = 0.375
+    const arch = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.16), darkMat)
+    arch.position.set(0, 0.58, 0.121)
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), domeMat)
+    cap.position.y = 0.75
+    const cross = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.14, 0.015), statueMaterials().gilt)
+    cross.position.y = 0.94
+    tower.add(tw, arch, cap, cross)
+    tower.position.set(ch.x + Math.cos(ch.rot) * (ch.w / 2 + 0.16), ch.y + ch.h - 0.05, ch.z - Math.sin(ch.rot) * (ch.w / 2 + 0.16))
+    tower.rotation.y = ch.rot
+    tower.traverse((o) => ((o as THREE.Mesh).castShadow = true))
+    this.scene.add(tower)
+
+    domes.count = di
+    wins.count = wi
+    if (wins.instanceColor) wins.instanceColor.needsUpdate = true
+    this.scene.add(walls, roofs, domes, wins, doors)
+
+    // a soft warm glow over each lit window, and a little light spilling into the lanes
+    const gg = new THREE.BufferGeometry()
+    gg.setAttribute('position', new THREE.Float32BufferAttribute(glowPos, 3))
+    this.windowGlow = new THREE.Points(gg, new THREE.PointsMaterial({ map: this.glowTex, size: 0.42, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffb060 }))
+    this.scene.add(this.windowGlow)
+    for (const c of clusters.slice(0, 4)) {
+      const l = new THREE.PointLight(0xffa860, 0.9 * L, 4.5, 1.8)
+      l.position.set(c.x, heightAt(c.x, c.z) + 1.2, c.z + 0.6)
+      this.scene.add(l)
+    }
+
+    // olive trees between the houses
+    const olives = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({ color: 0x323d2a, roughness: 1, flatShading: true }), 90)
+    const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.025, 0.035, 0.3, 5), new THREE.MeshStandardMaterial({ color: 0x2a2218, roughness: 1 }), 90)
+    let oi = 0
+    for (let k = 0; k < 400 && oi < 90; k++) {
+      const c = clusters[k % clusters.length]
+      const a = r() * Math.PI * 2
+      const d = c.r * (0.6 + r() * 0.9)
+      const x = c.x + Math.cos(a) * d
+      const z = c.z + Math.sin(a) * d
+      const y = heightAt(x, z)
+      if (y < 0.05 || Math.abs(x - pathX(z)) < 0.8 || houses.some((h) => Math.hypot(h.x - x, h.z - z) < 0.55) || spots.some((s) => Math.hypot(s.x - x, s.z - z) < 2.8)) continue
+      const sz = 0.16 + r() * 0.12
+      m.rotation.set(0, r() * 6, 0)
+      m.position.set(x, y + 0.28 + sz * 0.5, z)
+      m.scale.set(sz * 1.3, sz, sz * 1.3)
+      m.updateMatrix()
+      olives.setMatrixAt(oi, m.matrix)
+      m.position.set(x, y + 0.15, z)
+      m.scale.set(1, 1, 1)
+      m.updateMatrix()
+      trunks.setMatrixAt(oi, m.matrix)
+      oi++
+    }
+    olives.count = trunks.count = oi
+    olives.castShadow = true
+    this.scene.add(olives, trunks)
+
+    // fishing boats in the bay, a lantern on each
+    const hull = new THREE.MeshStandardMaterial({ color: 0x3a5f8a, roughness: 0.8 })
+    const lantern: number[] = []
+    ;[
+      [-4.5, 17.5, 0.3],
+      [-1.2, 19, -0.4],
+      [5.5, 17.8, 0.8],
+      [15.5, 9, 1.2],
+      [-14, 14, -0.6],
+    ].forEach(([x, z, rot]) => {
+      const b = new THREE.Group()
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.08, 0.7, 10, 1, false, 0, Math.PI), hull)
+      body.rotation.set(Math.PI / 2, 0, Math.PI)
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.6, 5), new THREE.MeshStandardMaterial({ color: 0x5a4a38 }))
+      mast.position.y = 0.3
+      b.add(body, mast)
+      b.position.set(x, -0.3, z)
+      b.rotation.y = rot
+      this.scene.add(b)
+      this.boats.push(b)
+      lantern.push(x, 0.08, z)
+    })
+    const lg = new THREE.BufferGeometry()
+    lg.setAttribute('position', new THREE.Float32BufferAttribute(lantern, 3))
+    this.scene.add(new THREE.Points(lg, new THREE.PointsMaterial({ map: this.glowTex, size: 0.6, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffc070 })))
   }
 
   private buildPath() {
@@ -755,6 +943,11 @@ export class SanctuaryScene {
       })
       ;(this.glitter.material as THREE.PointsMaterial).opacity = 0.45 + 0.2 * Math.sin(t * 1.7)
       this.stars.rotation.y = t * 0.0015
+      this.boats.forEach((b, i) => {
+        b.position.y = -0.3 + 0.03 * Math.sin(t * 1.2 + i * 1.7)
+        b.rotation.z = 0.05 * Math.sin(t * 0.9 + i)
+      })
+      if (this.windowGlow) (this.windowGlow.material as THREE.PointsMaterial).opacity = (0.75 + 0.1 * Math.sin(t * 2.3)) * arrive
     }
 
     this.renderer.render(this.scene, this.camera)

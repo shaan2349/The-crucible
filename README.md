@@ -91,4 +91,4 @@ every push to the tracked branch redeploys the app automatically.
 - Accounts and sign-in, so the daily allowance and saved history follow a person rather than a device.
 - Faces could go further still (hand-made models per thinker would be the next step).
 - Packaging as an iPhone app and App Store submission.
-- Profile and Settings still use the earlier light style.
+
