@@ -1,13 +1,21 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { User } from 'lucide-react'
 import { useDebateContext } from '../context/DebateContext'
+import { loadDebates } from '../lib/storage'
+import type { PlaceId } from '../sanctuary/SanctuaryScene'
+
+// The 3D hill loads after the first paint; the drawn hill below shows at
+// once and stays as the fallback wherever 3D is unavailable.
+const Sanctuary3D = lazy(() =>
+  import('../sanctuary/Sanctuary3D').catch(() => ({ default: (() => null) as unknown as typeof import('../sanctuary/Sanctuary3D').default })),
+)
 
 /**
  * The home of the app: a hilltop sanctuary at night. Each place on the hill
- * is a way in. The scene is one SVG drawn in a 1200×900 world, cropped to
- * the screen around its centre, so the hill and its five places always
- * stay in view from a narrow phone to a wide laptop.
+ * is a way in. The hill is 3D (src/sanctuary); this drawn SVG version shows
+ * while it loads and remains wherever 3D is unavailable. The SVG is drawn in
+ * a 1200×900 world, cropped to the screen around its centre.
  */
 
 const C = {
@@ -117,6 +125,8 @@ export function Sanctuary() {
   }
 
   const live = debate && debate.phase !== 'verdict'
+  const [three, setThree] = useState<'loading' | 'ready' | 'failed'>('loading')
+  const [temples] = useState(() => loadDebates().length)
 
   return (
     <div ref={sceneRef} className="sanctuary fixed inset-0 z-[50] flex flex-col overflow-hidden" style={{ background: C.night, color: C.ivory }}>
@@ -176,7 +186,23 @@ export function Sanctuary() {
       </header>
 
       <div ref={stageRef} className="relative min-h-0 flex-1">
+        {three !== 'failed' && (
+          <div className="absolute inset-0 z-[1] transition-opacity duration-1000" style={{ opacity: three === 'ready' ? 1 : 0 }}>
+            <Suspense fallback={null}>
+              <Sanctuary3D
+                places={PLACES.map((p) => ({ id: p.id as PlaceId, name: p.name, sub: p.sub, description: p.description }))}
+                live={!!live}
+                temples={temples}
+                onGo={(id) => navigate(PLACES.find((p) => p.id === id)!.to)}
+                onReady={() => setThree('ready')}
+                onFail={() => setThree('failed')}
+              />
+            </Suspense>
+          </div>
+        )}
         <svg
+          aria-hidden={three === 'ready'}
+          style={{ visibility: three === 'ready' ? 'hidden' : 'visible', transition: 'visibility 0s 1s' }}
           className="absolute inset-0 h-full w-full"
           viewBox={view}
           preserveAspectRatio="xMidYMid slice"

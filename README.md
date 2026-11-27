@@ -6,7 +6,7 @@ watch your own thinking take shape on a hillside.
 
 ## The world
 
-The app opens on **the Sanctuary**, a moonlit hill with five places:
+The app opens on **the Sanctuary**, a moonlit 3D hill above the sea with five places; tap one and the camera flies up to it:
 
 | Place | What you do there | Route |
 | --- | --- | --- |
@@ -83,9 +83,9 @@ every push to the tracked branch redeploys the app automatically.
 2. The opening is conversational too: only the one or two philosophers most
    provoked by what you said speak first; the others join when they have
    something to add.
-3. Then the agreed 3D order: the Sanctuary hill, the Oracle and the
-   Landscape, and replies that appear word by word. (The Hall of Minds is
-   now 3D.)
+3. Then the agreed 3D order: the Oracle and the Landscape, and replies
+   that appear word by word. (The Sanctuary hill, Symposium and Hall of
+   Minds are now 3D.)
 
 ## Still to do
 
