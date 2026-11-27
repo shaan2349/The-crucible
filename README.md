@@ -74,15 +74,18 @@ every push to the tracked branch redeploys the app automatically.
 
 ## Next session: start here
 
-1. **Listen to the night sounds** on the home screen and adjust volume or feel.
-2. **A proper session with the real AI**: go through the Temple, Symposium and
-   Oracle with real questions, then tune what the philosophers say (length,
-   tone, how natural the Symposium conversation feels).
-3. **Replies that appear word by word**, plus something to watch while a
-   philosopher thinks, so the 10-30 second waits feel shorter.
-4. **Check it on a real phone**: smoothness, battery, heat on the 3D home screen.
-5. Optional polish: lantern and village lights reflected in the bay, a fuller
-   ruin on the far island, more detailed statue faces.
+Aesthetics done so far: every place 3D with a shared night look (sea, sky,
+mist, bloom, the view across the bay), real scanned surfaces, carved panels
+and gilt buttons, classical icons, lamplight arrivals between places, a 3D
+welcome, night sounds in every place, and an app icon.
+
+1. **A proper session with the real AI**: go through the Temple, Symposium and
+   Oracle with real questions, then tune what the philosophers say.
+2. **Replies that appear word by word**, so the 10-30 second waits feel shorter.
+3. **Check it on a real phone**: smoothness, battery, heat. Turn effects down
+   on phones if needed (bloom, texture size, statue detail).
+4. Remaining polish: real scanned statues (needs a source with clear
+   licences), reflections in the water.
 
 Later, before the App Store: accounts and sign-in (Apple or email), packaging
 as an iPhone app, the Apple developer account ($99/year), and a monthly
