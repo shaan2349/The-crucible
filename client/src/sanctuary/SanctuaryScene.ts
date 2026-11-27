@@ -65,6 +65,8 @@ export class SanctuaryScene {
   private glitter!: THREE.Points
   private stars!: THREE.Points
   private windowGlow: THREE.Points | null = null
+  private beam: THREE.Group | null = null
+  private beamFlash: THREE.Sprite | null = null
   private boats: THREE.Group[] = []
 
   private orbit = { yaw: 0, targetYaw: 0, pitch: 0 }
@@ -122,6 +124,7 @@ export class SanctuaryScene {
     this.buildLand()
     this.buildPath()
     this.buildVillage()
+    this.buildDistance()
     this.buildPlaces(opts.temples)
 
     this.onDown = (e) => {
@@ -415,6 +418,225 @@ export class SanctuaryScene {
       c.castShadow = true
       scene.add(c)
     }
+  }
+
+  /**
+   * What lies beyond the hill: the Milky Way across the sky, islands in the
+   * bay (the nearest with its own small lit village, another with a ruined
+   * temple on its cliff, echoing the one on this hill), and a lighthouse on
+   * a rocky point whose beam sweeps the water.
+   */
+  private buildDistance() {
+    const scene = this.scene
+    let seed = 99
+    const r = () => {
+      seed = (seed * 16807) % 2147483647
+      return seed / 2147483647
+    }
+    const gauss = () => (r() + r() + r() - 1.5) / 1.5
+
+    // the Milky Way: a dense band of faint stars along one great circle, with soft clouds of light
+    // the band rises diagonally across the sky you look out at, over the sea
+    const n = new THREE.Vector3().crossVectors(new THREE.Vector3(-0.9, 0.08, -0.42), new THREE.Vector3(0.45, 0.28, -0.85)).normalize()
+    const u = new THREE.Vector3().crossVectors(n, new THREE.Vector3(0, 1, 0)).normalize()
+    const v = new THREE.Vector3().crossVectors(n, u).normalize()
+    const R = 172
+    const pos: number[] = []
+    const col: number[] = []
+    const c = new THREE.Color()
+    const p = new THREE.Vector3()
+    for (let i = 0; i < 5200; i++) {
+      const a = r() * Math.PI * 2
+      p.copy(u).multiplyScalar(Math.cos(a)).addScaledVector(v, Math.sin(a)).addScaledVector(n, gauss() * 0.16).normalize().multiplyScalar(R)
+      if (p.y < 6) continue
+      pos.push(p.x, p.y, p.z)
+      c.setHSL(r() < 0.5 ? 0.6 : 0.1, 0.3, 0.7 + r() * 0.25)
+      col.push(c.r, c.g, c.b)
+    }
+    const mg = new THREE.BufferGeometry()
+    mg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+    mg.setAttribute('color', new THREE.Float32BufferAttribute(col, 3))
+    scene.add(new THREE.Points(mg, new THREE.PointsMaterial({ size: 0.42, vertexColors: true, transparent: true, opacity: 0.9, fog: false, depthWrite: false })))
+    const haze = this.sprite((g, s) => {
+      for (let i = 0; i < 14; i++) {
+        const x = s * (0.2 + r() * 0.6)
+        const y = s * (0.35 + r() * 0.3)
+        const rr = s * (0.1 + r() * 0.2)
+        const gr = g.createRadialGradient(x, y, 0, x, y, rr)
+        gr.addColorStop(0, 'rgba(190,200,235,.16)')
+        gr.addColorStop(1, 'rgba(190,200,235,0)')
+        g.fillStyle = gr
+        g.fillRect(0, 0, s, s)
+      }
+    }, 256)
+    for (let i = 0; i < 22; i++) {
+      const a = (i / 22) * Math.PI * 2
+      p.copy(u).multiplyScalar(Math.cos(a)).addScaledVector(v, Math.sin(a)).normalize().multiplyScalar(R - 4)
+      if (p.y < 6) continue
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: haze, transparent: true, opacity: 0.55, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, rotation: r() * 6 }))
+      sp.position.copy(p)
+      sp.scale.set(46, 46, 1)
+      scene.add(sp)
+    }
+
+    // islands: rocky mounds rising from the sea
+    const rock = new THREE.MeshStandardMaterial({ color: 0x232a36, roughness: 1, flatShading: true })
+    const island = (x: number, z: number, rad: number, h: number, cliff = 0) => {
+      const prof = (dx: number, dz: number) => {
+        const d = Math.hypot(dx, dz) / rad
+        const towardCam = cliff ? Math.max(0, dz / rad) : 0
+        return h * Math.max(0, 1 - Math.pow(d, 1.6 - cliff * towardCam)) - 0.6
+      }
+      const g = new THREE.PlaneGeometry(rad * 2.4, rad * 2.4, 48, 48)
+      g.rotateX(-Math.PI / 2)
+      const pa = g.attributes.position as THREE.BufferAttribute
+      for (let i = 0; i < pa.count; i++) {
+        const dx = pa.getX(i)
+        const dz = pa.getZ(i)
+        pa.setY(i, Math.max(-1, prof(dx, dz) + (r() - 0.5) * h * 0.08))
+      }
+      g.computeVertexNormals()
+      const m = new THREE.Mesh(g, rock)
+      m.position.set(x, -0.35, z)
+      scene.add(m)
+      return (dx: number, dz: number) => prof(dx, dz) - 0.35
+    }
+
+    // the near island, with a village of lit windows on the slope facing the hill
+    const vx = -44
+    const vz = -62
+    const vh = island(vx, vz, 11, 7)
+    const houses = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0xbdb8ad, roughness: 1 }), 60)
+    const dummy = new THREE.Object3D()
+    const lights: number[] = []
+    let hi = 0
+    for (let k = 0; k < 300 && hi < 60; k++) {
+      const a = Math.PI * (0.15 + r() * 0.7)
+      const d = 2 + r() * 7
+      const dx = Math.cos(a) * d * 1.1
+      const dz = Math.sin(a) * d
+      const y = vh(dx, dz)
+      if (y < 0.3) continue
+      dummy.position.set(vx + dx, y + 0.3, vz + dz)
+      dummy.rotation.set(0, (r() - 0.5) * 0.6, 0)
+      dummy.scale.set(0.45 + r() * 0.3, 0.4 + r() * 0.2, 0.45)
+      dummy.updateMatrix()
+      houses.setMatrixAt(hi++, dummy.matrix)
+      if (r() < 0.7) lights.push(vx + dx, y + 0.35, vz + dz + 0.4)
+    }
+    houses.count = hi
+    scene.add(houses)
+    const lg = new THREE.BufferGeometry()
+    lg.setAttribute('position', new THREE.Float32BufferAttribute(lights, 3))
+    scene.add(new THREE.Points(lg, new THREE.PointsMaterial({ map: this.glowTex, size: 0.9, transparent: true, opacity: 0.9, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, color: 0xffb35a })))
+
+    // the far island with a ruined temple on its cliff, against the moon's path on the water
+    const tx = 36
+    const tz = -76
+    const th = island(tx, tz, 12, 9, 0.9)
+    const marble = new THREE.MeshStandardMaterial({ map: marbleTexture('#D9D1BF', '#776D5C'), roughness: 0.7 })
+    const top = th(0, 0)
+    const ruin = new THREE.Group()
+    const heights = [3.2, 3.2, 1.6, 3.2, 0.9, 2.4, 3.2]
+    heights.forEach((h, i) => {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, h, 12), marble)
+      col.position.set(-3.6 + i * 1.2, h / 2, 1.2)
+      ruin.add(col)
+    })
+    const back = [3.2, 2.0, 3.2]
+    back.forEach((h, i) => {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, h, 12), marble)
+      col.position.set(-3.6 + i * 1.2, h / 2, -1.2)
+      ruin.add(col)
+    })
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.45, 0.7), marble)
+    lintel.position.set(-3.0, 3.42, 1.2)
+    const lintel2 = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.45, 0.7), marble)
+    lintel2.position.set(3.0, 3.42, 1.2)
+    const base = new THREE.Mesh(new THREE.BoxGeometry(9.4, 0.4, 3.6), marble)
+    base.position.y = -0.2
+    ruin.add(lintel, lintel2, base)
+    ruin.position.set(tx, top, tz)
+    ruin.rotation.y = -0.2
+    scene.add(ruin)
+
+    // a third island, furthest out, only a shape in the haze
+    island(-62, -95, 16, 8)
+    island(58, -42, 7, 3.5)
+
+    // mountains of the mainland along the far horizon, paler with distance
+    ;[
+      { d: 150, h: 9, c: 0x18202e },
+      { d: 175, h: 15, c: 0x1b2433 },
+    ].forEach((ring, ri) => {
+      const pts: THREE.Vector2[] = []
+      const g = new THREE.BufferGeometry()
+      const verts: number[] = []
+      const segs = 120
+      for (let i = 0; i <= segs; i++) {
+        const a = -Math.PI * 0.95 + (i / segs) * Math.PI * 0.9
+        const hgt = ring.h * (0.35 + 0.65 * Math.abs(Math.sin(i * 0.21 + ri) * Math.sin(i * 0.07 + 2 * ri))) * (0.8 + 0.2 * r())
+        const x = Math.cos(a) * ring.d
+        const z = Math.sin(a) * ring.d
+        verts.push(x, -1, z, x, hgt, z)
+        pts.push(new THREE.Vector2(x, z))
+      }
+      const idx: number[] = []
+      for (let i = 0; i < segs; i++) {
+        const a = i * 2
+        idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3)
+      }
+      g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3))
+      g.setIndex(idx)
+      const mtn = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: ring.c, side: THREE.DoubleSide, fog: false }))
+      mtn.renderOrder = -1
+      scene.add(mtn)
+    })
+
+    // the lighthouse on a rocky point, its beam sweeping the bay
+    const lx = -18
+    const lz = -26
+    const lth = island(lx, lz, 4, 2.6)
+    const ly = lth(0, 0)
+    const white = new THREE.MeshStandardMaterial({ color: 0xe8e3d8, roughness: 0.8 })
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.62, 3.6, 20), white)
+    tower.position.set(lx, ly + 1.8, lz)
+    const gallery = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.12, 20), new THREE.MeshStandardMaterial({ color: 0x2b2b30 }))
+    gallery.position.set(lx, ly + 3.65, lz)
+    const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.6, 16), new THREE.MeshBasicMaterial({ color: 0xffe6b0 }))
+    lamp.position.set(lx, ly + 4.0, lz)
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.5, 16), new THREE.MeshStandardMaterial({ color: 0x3a2f2a }))
+    roof.position.set(lx, ly + 4.55, lz)
+    const house = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.8, 0.9), white)
+    house.position.set(lx + 1.1, ly + 0.4, lz + 0.4)
+    scene.add(tower, gallery, lamp, roof, house)
+    const beamMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      uniforms: {},
+      vertexShader: 'varying float vY; void main(){ vY = position.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+      fragmentShader: 'varying float vY; void main(){ float t = clamp((vY + 20.0) / 40.0, 0.0, 1.0); gl_FragColor = vec4(1.0, 0.92, 0.72, 0.22 * t * t); }',
+    })
+    const beam = new THREE.Group()
+    ;[0, Math.PI].forEach((rot) => {
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(4.5, 40, 24, 1, true), beamMat)
+      cone.position.x = 20
+      cone.rotation.z = Math.PI / 2
+      const arm = new THREE.Group()
+      arm.rotation.y = rot
+      arm.add(cone)
+      beam.add(arm)
+    })
+    beam.position.set(lx, ly + 4.0, lz)
+    beam.rotation.z = -0.04
+    scene.add(beam)
+    this.beam = beam
+    this.beamFlash = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, color: 0xffe2a8 }))
+    this.beamFlash.position.set(lx, ly + 4.0, lz)
+    this.beamFlash.scale.set(3, 3, 1)
+    scene.add(this.beamFlash)
   }
 
   /**
@@ -943,6 +1165,15 @@ export class SanctuaryScene {
       })
       ;(this.glitter.material as THREE.PointsMaterial).opacity = 0.45 + 0.2 * Math.sin(t * 1.7)
       this.stars.rotation.y = t * 0.0015
+      if (this.beam && this.beamFlash) {
+        this.beam.rotation.y = t * 0.45
+        // the lamp flares as a beam swings toward you
+        const toCam = Math.atan2(this.camera.position.x - this.beam.position.x, this.camera.position.z - this.beam.position.z)
+        const face = Math.max(Math.cos(this.beam.rotation.y - toCam + Math.PI / 2), Math.cos(this.beam.rotation.y - toCam - Math.PI / 2))
+        const k = Math.pow(Math.max(0, face), 12)
+        this.beamFlash.scale.setScalar(2.5 + 9 * k)
+        ;(this.beamFlash.material as THREE.SpriteMaterial).opacity = 0.5 + 0.5 * k
+      }
       this.boats.forEach((b, i) => {
         b.position.y = -0.3 + 0.03 * Math.sin(t * 1.2 + i * 1.7)
         b.rotation.z = 0.05 * Math.sin(t * 0.9 + i)
