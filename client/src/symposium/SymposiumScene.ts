@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { addMilkyWay, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
 import { buildSeated, statueMaterials, marbleTexture, type Statue } from '../marble/statue'
 
 /**
@@ -42,6 +43,8 @@ export class SymposiumScene {
   private camera = new THREE.PerspectiveCamera(36, 1, 0.1, 300)
   private canvas: HTMLCanvasElement
   private reduced: boolean
+  private post!: Post
+  private ticks: Tick[] = []
   private raf = 0
   private last = performance.now()
   private clock = 0
@@ -140,6 +143,11 @@ export class SymposiumScene {
     canvas.addEventListener('pointerup', this.onUp)
     canvas.addEventListener('pointercancel', this.onUp)
 
+    // the shared night: the Milky Way over the colonnade, shooting stars, dust in the lamplight
+    addMilkyWay(this.scene, { radius: 100, a: new THREE.Vector3(-0.85, 0.2, -0.5), b: new THREE.Vector3(0.5, 0.65, -0.6) })
+    this.ticks.push(addShootingStars(this.scene, { distance: 90 }))
+
+    this.post = createPost(this.renderer, this.scene, this.camera, { strength: 0.32, threshold: 0.95 })
     this.raf = requestAnimationFrame(this.frame)
   }
 
@@ -210,6 +218,7 @@ export class SymposiumScene {
     this.W = Math.max(1, w)
     this.H = Math.max(1, h)
     this.renderer.setSize(this.W, this.H, false)
+    this.post?.setSize(w, h)
     this.camera.aspect = this.W / this.H
     this.fit()
   }
@@ -224,6 +233,7 @@ export class SymposiumScene {
       const m = o as THREE.Mesh
       if (m.geometry) m.geometry.dispose()
     })
+    this.post.dispose()
     this.renderer.dispose()
   }
 
@@ -532,7 +542,8 @@ export class SymposiumScene {
       this.stars.rotation.y = t * 0.002
     }
 
-    this.renderer.render(this.scene, this.camera)
+    if (!this.reduced) for (const k of this.ticks) k(this.clock, 0)
+    this.post.render()
     this.raf = requestAnimationFrame(this.frame)
   }
 }

@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { addMilkyWay, addMist, addSea, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
 import { marbleTexture, statueMaterials } from '../marble/statue'
 import type { PremiseStatus, TempleEnding } from '../types'
 
@@ -47,6 +48,8 @@ export class LandscapeScene {
   private camera = new THREE.PerspectiveCamera(40, 1, 0.1, 300)
   private canvas: HTMLCanvasElement
   private reduced: boolean
+  private post!: Post
+  private ticks: Tick[] = []
   private raf = 0
   private last = performance.now()
   private clock = 0
@@ -164,6 +167,11 @@ export class LandscapeScene {
     canvas.addEventListener('pointercancel', () => (this.dragging = false))
     canvas.addEventListener('wheel', this.onWheel, { passive: false })
 
+    // the shared night: the Milky Way and shooting stars
+    addMilkyWay(this.scene, { radius: 110, a: new THREE.Vector3(1, 0.15, 0.2), b: new THREE.Vector3(0, 0.75, -1) })
+    this.ticks.push(addShootingStars(this.scene, { distance: 95 }))
+
+    this.post = createPost(this.renderer, this.scene, this.camera, { strength: 0.5, threshold: 0.78 })
     this.raf = requestAnimationFrame(this.frame)
   }
 
@@ -251,6 +259,7 @@ export class LandscapeScene {
     this.W = Math.max(1, w)
     this.H = Math.max(1, h)
     this.renderer.setSize(this.W, this.H, false)
+    this.post?.setSize(w, h)
     this.camera.aspect = this.W / this.H
     this.camera.fov = this.camera.aspect < 0.8 ? 52 : 40
     this.camera.updateProjectionMatrix()
@@ -266,6 +275,7 @@ export class LandscapeScene {
       const m = o as THREE.Mesh
       if (m.geometry) m.geometry.dispose()
     })
+    this.post.dispose()
     this.renderer.dispose()
   }
 
@@ -365,10 +375,15 @@ export class LandscapeScene {
     const hill = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }))
     hill.receiveShadow = true
     this.scene.add(hill)
-    const ground = new THREE.Mesh(new THREE.CircleGeometry(80, 48), new THREE.MeshStandardMaterial({ color: 0x161d18, roughness: 1 }))
-    ground.rotation.x = -Math.PI / 2
-    ground.position.y = -R * 0.36 - 0.2
-    this.scene.add(ground)
+    // the hill stands as an island in a moving sea, mist lying on the water around it
+    const level = -R * 0.36 - 0.2
+    this.ticks.push(addSea(this.scene, { level, moon: new THREE.Vector3(-40, 40, -90), size: 400 }))
+    const banks: [number, number, number, number][] = []
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2
+      banks.push([Math.sin(a) * R * 2.4, Math.cos(a) * R * 2.4, R * 2.2, level + 0.6])
+    }
+    this.ticks.push(addMist(this.scene, banks, 0.28))
     // a few cypresses on the slope, kept clear of the temples
     const cyp = new THREE.MeshStandardMaterial({ color: 0x0e1812, roughness: 1 })
     for (let i = 0; i < 14; i++) {
@@ -526,7 +541,8 @@ export class LandscapeScene {
       it.group.scale.setScalar(damp(it.group.scale.x, (it.lamp ? 1 : 0.95) * s, 8, dt))
     }
 
-    this.renderer.render(this.scene, this.camera)
+    if (!this.reduced) for (const k of this.ticks) k(this.clock, 0)
+    this.post.render()
     this.raf = requestAnimationFrame(this.frame)
   }
 }

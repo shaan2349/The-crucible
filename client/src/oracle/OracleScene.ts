@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { addMilkyWay, addMist, addSea, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
 import { marbleTexture, statueMaterials } from '../marble/statue'
 
 /**
@@ -36,6 +37,8 @@ export class OracleScene {
   private scene = new THREE.Scene()
   private camera = new THREE.PerspectiveCamera(40, 1, 0.1, 300)
   private reduced: boolean
+  private post!: Post
+  private ticks: Tick[] = []
   private raf = 0
   private last = performance.now()
   private clock = 0
@@ -108,6 +111,13 @@ export class OracleScene {
       this.pointer.y = e.clientY / window.innerHeight - 0.5
     }
     window.addEventListener('pointermove', this.onMove)
+    // the shared night: a moving sea far below, the Milky Way over the shrine, mist on the water
+    this.ticks.push(addSea(this.scene, { level: -6, moon: new THREE.Vector3(-26, 28, -80), size: 400 }))
+    addMilkyWay(this.scene, { radius: 100, a: new THREE.Vector3(-0.85, 0.15, -0.5), b: new THREE.Vector3(0.55, 0.6, -0.6) })
+    this.ticks.push(addShootingStars(this.scene, { distance: 90 }))
+    this.ticks.push(addMist(this.scene, [[-20, -30, 30, -5], [15, -38, 34, -5.2], [-5, -50, 40, -5], [30, -24, 22, -5.4]], 0.32))
+
+    this.post = createPost(this.renderer, this.scene, this.camera, { strength: 0.45, threshold: 0.82 })
     this.raf = requestAnimationFrame(this.frame)
   }
 
@@ -124,6 +134,7 @@ export class OracleScene {
 
   resize(w: number, h: number) {
     this.renderer.setSize(Math.max(1, w), Math.max(1, h), false)
+    this.post?.setSize(w, h)
     this.camera.aspect = Math.max(1, w) / Math.max(1, h)
     this.camera.fov = this.camera.aspect < 0.8 ? 52 : 40
     this.camera.updateProjectionMatrix()
@@ -136,6 +147,7 @@ export class OracleScene {
       const m = o as THREE.Mesh
       if (m.geometry) m.geometry.dispose()
     })
+    this.post.dispose()
     this.renderer.dispose()
   }
 
@@ -223,10 +235,6 @@ export class OracleScene {
       h.scale.y = sy
       scene.add(h)
     })
-    const sea = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x0b1220, roughness: 0.3, metalness: 0.5 }))
-    sea.rotation.x = -Math.PI / 2
-    sea.position.y = -6
-    scene.add(sea)
   }
 
   /** Broken columns of an older shrine in a half circle behind the fire. */
@@ -394,7 +402,7 @@ export class OracleScene {
     this.fireMat.color.setRGB(1, 0.42 + 0.3 * this.gold, 0.16 + 0.1 * this.gold)
     const gs = 2.2 + 1.2 * this.heat
     this.fireGlow.scale.set(gs * flick, gs * flick, 1)
-    ;(this.fireGlow.material as THREE.SpriteMaterial).opacity = 0.22 + 0.14 * this.heat
+    ;(this.fireGlow.material as THREE.SpriteMaterial).opacity = 0.12 + 0.08 * this.heat
 
     // the camera stands back looking at the shrine, and lowers toward the fire as you read down the page
     const s = this.scroll
@@ -455,7 +463,8 @@ export class OracleScene {
       this.stars.rotation.y = t * 0.002
     }
 
-    this.renderer.render(this.scene, this.camera)
+    if (!this.reduced) for (const k of this.ticks) k(this.clock, 0)
+    this.post.render()
     this.raf = requestAnimationFrame(this.frame)
   }
 }

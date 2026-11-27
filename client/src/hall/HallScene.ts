@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { addDust, createPost, type Post, type Tick } from '../world/nightKit'
 import { buildBust, marbleTexture, statueMaterials, setStatueDetail, type Statue } from '../marble/statue'
 
 /**
@@ -53,6 +54,8 @@ export class HallScene {
   private camera = new THREE.PerspectiveCamera(40, 1, 0.1, 300)
   private canvas: HTMLCanvasElement
   private reduced: boolean
+  private post!: Post
+  private ticks: Tick[] = []
   private raf = 0
   private last = performance.now()
   private clock = 0
@@ -156,6 +159,10 @@ export class HallScene {
     canvas.addEventListener('pointercancel', () => (this.dragging = false))
     canvas.addEventListener('wheel', this.onWheel, { passive: false })
 
+    // dust turning in the lamplight along the gallery, and a soft bloom on the lamps and braziers
+    this.ticks.push(addDust(this.scene, new THREE.Box3(new THREE.Vector3(-3, 0.5, WALL_Z + 0.2), new THREE.Vector3(80, 3.2, WALL_Z + 2.6)), this.glowTex, 420))
+
+    this.post = createPost(this.renderer, this.scene, this.camera, { strength: 0.45, threshold: 0.8, vignette: 0.5 })
     this.raf = requestAnimationFrame(this.frame)
   }
 
@@ -243,6 +250,7 @@ export class HallScene {
     this.W = Math.max(1, w)
     this.H = Math.max(1, h)
     this.renderer.setSize(this.W, this.H, false)
+    this.post?.setSize(w, h)
     this.camera.aspect = this.W / this.H
     this.fit = clamp(0.8 / this.camera.aspect, 0.9, 1.6)
     this.camera.updateProjectionMatrix()
@@ -258,6 +266,7 @@ export class HallScene {
       const m = o as THREE.Mesh
       if (m.geometry) m.geometry.dispose()
     })
+    this.post.dispose()
     this.renderer.dispose()
     setStatueDetail(1)
   }
@@ -471,7 +480,8 @@ export class HallScene {
       }
     }
 
-    this.renderer.render(this.scene, this.camera)
+    if (!this.reduced) for (const k of this.ticks) k(this.clock, 0)
+    this.post.render()
     this.raf = requestAnimationFrame(this.frame)
   }
 }

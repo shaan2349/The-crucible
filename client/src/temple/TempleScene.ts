@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { addMilkyWay, addMist, addSea, addShootingStars, createPost, type Post, type Tick } from '../world/nightKit'
 import { createTempleSound, type TempleSound } from './sound'
 
 /**
@@ -104,6 +105,8 @@ export class TempleScene {
   private target = new THREE.Vector3(0, 2.4, 0)
   private canvas: HTMLCanvasElement
   private reduced: boolean
+  private post!: Post
+  private ticks: Tick[] = []
   private clock = 0
   private last = performance.now()
   private raf = 0
@@ -270,6 +273,13 @@ export class TempleScene {
     canvas.addEventListener('pointerup', this.onPointerUp)
     canvas.addEventListener('pointercancel', this.onPointerUp)
 
+    // the shared night: a moving sea below the hill, the Milky Way, mist on the water, shooting stars
+    this.ticks.push(addSea(this.scene, { level: -7.2, moon: new THREE.Vector3(30, 29, -128), size: 500 }))
+    addMilkyWay(this.scene, { radius: 140, a: new THREE.Vector3(-0.9, 0.1, -0.42), b: new THREE.Vector3(0.45, 0.5, -0.75) })
+    this.ticks.push(addShootingStars(this.scene, { distance: 120 }))
+    this.ticks.push(addMist(this.scene, [[-30, -40, 40, -6.4], [25, -50, 46, -6.6], [-5, -70, 60, -6.5], [45, -30, 30, -6.8], [-50, -25, 30, -6.6]], 0.3))
+
+    this.post = createPost(this.renderer, this.scene, this.camera, { strength: 0.5, threshold: 0.8 })
     this.raf = requestAnimationFrame(this.frame)
   }
 
@@ -573,6 +583,7 @@ export class TempleScene {
     this.W = Math.max(1, w)
     this.H = Math.max(1, h)
     this.renderer.setSize(this.W, this.H, false)
+    this.post?.setSize(w, h)
     this.fitCamera()
   }
 
@@ -587,6 +598,7 @@ export class TempleScene {
       const m = o as THREE.Mesh
       if (m.geometry) m.geometry.dispose()
     })
+    this.post.dispose()
     this.renderer.dispose()
   }
 
@@ -1192,10 +1204,6 @@ export class TempleScene {
     scene.add(terrace)
 
     // sea and the moon's path
-    const sea = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({ color: 0x0c1522, roughness: 0.22, metalness: 0.55 }))
-    sea.rotation.x = -Math.PI / 2
-    sea.position.y = -7.2
-    scene.add(sea)
     const pathTex = this.spriteTexture((g, s) => {
       for (let i = 0; i < 260; i++) {
         const y = rand(0, s)
@@ -1490,7 +1498,8 @@ export class TempleScene {
       this.shakeAmt *= 0.88
     }
     this.camera.lookAt(this.target)
-    this.renderer.render(this.scene, this.camera)
+    if (!this.reduced) for (const k of this.ticks) k(this.clock, 0)
+    this.post.render()
     this.raf = requestAnimationFrame(this.frame)
   }
 }
