@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { REACTIONS } from '../data/experimentReactions'
 import { ExperimentArt } from '../data/experimentArt'
 import { AiNote } from '../night/AiNote'
 import { mindful } from '../night/support'
@@ -187,6 +188,14 @@ function Play({ exp, onDone, onNext }: { exp: Experiment; onDone: (r: Experiment
     setError(null)
     const base: ExperimentResult = { choice: choice.id, twistChoice: twistChoice.id, why: withWhy || undefined, at: Date.now() }
     onDone(base)
+    // with no "why" of your own, the thinkers' reactions to your two choices are already written
+    const ready = withWhy ? undefined : REACTIONS[exp.id]?.[`${choice.id}${twistChoice.id}` as 'aa']
+    if (ready) {
+      setReply(ready)
+      onDone({ ...base, reading: ready.reading, reactions: ready.reactions, question: ready.question })
+      setLoading(false)
+      return
+    }
     try {
       const r = await api.reactToExperiment({
         title: exp.title,
