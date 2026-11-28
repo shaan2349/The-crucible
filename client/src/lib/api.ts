@@ -92,12 +92,15 @@ export function attack(params: {
   philosopherId: string
   priorRounds: { round: number; userResponse: string | null }[]
   sameRoundAttacks?: { philosopherId: string; text: string }[]
+  /** Premises this objection may target, so every column gets tested. */
+  allowedTargets?: string[]
 } & StyleParams) {
   return postJSON<AttackResponse>('/claude/debate/attack', params)
 }
 
 export interface EvaluateResponse {
   statuses: { id: string; status: string; reason?: string; revisedText?: string }[]
+  revisedConclusion?: string
   note: string
 }
 export function evaluate(params: {

@@ -121,6 +121,17 @@ export function TempleDebate({
     if (!fresh) setRevealed(debate.rounds[debate.rounds.length - 1]?.attacks.length ?? 0)
   }, [debate.id, debate.premises, debate.conclusion, debate.claim, debate.rounds, debate.ending])
 
+  // When the user rewrites their position, the roof is re-carved to match.
+  const carved = useRef<string | null>(null)
+  useEffect(() => {
+    const text = debate.conclusion || debate.claim
+    if (builtFor.current !== debate.id) return
+    const key = `${debate.id}|${text}`
+    const sameDebate = carved.current?.startsWith(`${debate.id}|`)
+    if (sameDebate && carved.current !== key) sceneRef.current?.setInscription(text)
+    carved.current = key
+  }, [debate.id, debate.conclusion, debate.claim, debate.premises.length])
+
   /* ----------------------------- the debate flow ----------------------------- */
 
   useEffect(() => {
@@ -156,9 +167,15 @@ export function TempleDebate({
       const attacks: Round['attacks'] = []
       const round: Round = { round: debate.currentRound, attacks, userResponse: null }
       update((d) => ({ ...d, rounds: [...d.rounds, round] }))
+      // every premise should be tested: aim first at columns nobody has struck yet
+      const struck = new Set(debate.rounds.flatMap((r) => r.attacks.map((a) => a.targetPremiseId)))
       for (const [side, philosopherId] of debate.philosopherIds.slice(0, 2).entries()) {
         setThinkingId(philosopherId)
+        const open = debate.premises.filter((p) => p.status !== 'conceded' && !attacks.some((a) => a.targetPremiseId === p.id))
+        const untested = open.filter((p) => !struck.has(p.id))
+        const allowed = (untested.length ? untested : open).map((p) => p.id)
         const result = await api.attack({
+          allowedTargets: allowed.length ? allowed : undefined,
           claim: debate.claim,
           conclusion: debate.conclusion,
           premises: premisesForAi,
@@ -217,7 +234,8 @@ export function TempleDebate({
       update((d) => {
         const rounds = [...d.rounds]
         rounds[rounds.length - 1] = { ...rounds[rounds.length - 1], judgement }
-        return { ...d, rounds, premises: next, phase: 'judged' }
+        const conclusion = result.revisedConclusion?.trim() ? result.revisedConclusion.trim() : d.conclusion
+        return { ...d, rounds, premises: next, conclusion, phase: 'judged' }
       })
     } else if (debate.phase === 'verdict-loading') {
       const level = participationLevel(debate.rounds)
@@ -337,19 +355,20 @@ export function TempleDebate({
           </button>
           <div className="flex flex-col">
             <span style={{ fontFamily: F.display, fontSize: 19 }}>The Temple</span>
-            <span style={{ fontFamily: F.inscr, fontSize: 10, fontWeight: 600, letterSpacing: '.26em', color: C.gilt }}>
-              {debate.currentRound > 0 && debate.premises.length ? `ROUND ${Math.min(debate.currentRound, MAX_ROUNDS)} OF ${MAX_ROUNDS}` : 'II · DIALECTIC'}
+            <span className="whitespace-nowrap" style={{ fontFamily: F.inscr, fontSize: 10, fontWeight: 600, letterSpacing: '.2em', color: C.gilt }}>
+              {roundLabel(debate)}
             </span>
           </div>
           <button
             type="button"
             onClick={toggleSound}
             aria-pressed={soundOn}
-            className="btn-bronze temple-btn ml-auto flex h-11 items-center gap-2 rounded-full border px-3 text-sm"
+            aria-label="Sound"
+            className="btn-bronze temple-btn ml-auto flex h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full border px-3 text-sm"
             style={{ borderColor: C.lineStrong }}
           >
             {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            {soundOn ? 'Sound on' : 'Sound off'}
+            <span className="hidden sm:inline">{soundOn ? 'Sound on' : 'Sound off'}</span>
           </button>
         </header>
 
@@ -430,6 +449,9 @@ export function TempleDebate({
 
                 {debate.premises.length > 0 && debate.phase !== 'verdict' && debate.phase !== 'verdict-loading' && debate.rounds.length === 0 && (
                   <ThesisCard debate={debate} />
+                )}
+                {debate.premises.length > 0 && debate.phase !== 'verdict' && debate.phase !== 'verdict-loading' && debate.rounds.length > 0 && (
+                  <Columns debate={debate} />
                 )}
 
                 {(debate.phase === 'attacking' || debate.phase === 'awaiting-response') &&
@@ -588,6 +610,44 @@ function GhostButton({ children, onClick }: { children: ReactNode; onClick: () =
   )
 }
 
+/** The header line: which round, and what is happening in it. */
+function roundLabel(d: DebateState) {
+  if (!d.premises.length || d.currentRound < 1) return 'II · DIALECTIC'
+  if (d.phase === 'verdict' || d.phase === 'verdict-loading') return 'THE VERDICT'
+  const n = `ROUND ${Math.min(d.currentRound, MAX_ROUNDS)} OF ${MAX_ROUNDS}`
+  const what =
+    d.phase === 'attacking' ? 'OBJECTIONS' : d.phase === 'awaiting-response' ? 'YOUR REPLY' : d.phase === 'evaluating' ? 'BEING JUDGED' : d.phase === 'judged' ? 'JUDGED' : ''
+  return what ? `${n} · ${what}` : n
+}
+
+/** The premises, always one tap away once the debate is under way. */
+function Columns({ debate }: { debate: DebateState }) {
+  return (
+    <details className="panel-stone rounded px-4 py-2.5" style={{ background: C.raised }}>
+      <summary className="cursor-pointer select-none py-1" style={{ fontFamily: F.inscr, fontSize: 10.5, fontWeight: 600, letterSpacing: '.22em', color: C.gilt }}>
+        YOUR COLUMNS
+      </summary>
+      <p className="mt-2" style={{ fontFamily: F.display, fontSize: 17, lineHeight: 1.25 }}>“{debate.conclusion || debate.claim}”</p>
+      <ol className="m-0 mt-1 list-none p-0">
+        {debate.premises.map((p, i) => {
+          const word = STATUS_WORD[p.status] ?? STATUS_WORD.standing
+          return (
+            <li key={p.id} className="flex gap-3 border-t py-2" style={{ borderColor: C.line, fontFamily: F.read, fontSize: 14.5, color: C.body }}>
+              <b style={{ width: 24, flexShrink: 0, fontFamily: F.inscr, fontSize: 12, color: C.gilt }}>{numeral(i, p)}</b>
+              <span className="flex-1">
+                {premiseText(p)}
+                {p.status !== 'standing' && (
+                  <span style={{ marginLeft: 8, fontFamily: F.inscr, fontSize: 10, fontWeight: 700, letterSpacing: '.12em', color: word.color }}>{word.label.toUpperCase()}</span>
+                )}
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+    </details>
+  )
+}
+
 function ThesisCard({ debate }: { debate: DebateState }) {
   const names = debate.philosopherIds.slice(0, 2).map((id) => philosopherById(id)?.name ?? id)
   return (
@@ -646,6 +706,11 @@ function Objection({
           </button>
         )}
       </div>
+      {target >= 0 && (
+        <p className="border-l pl-3" style={{ borderColor: C.line, fontFamily: F.read, fontStyle: 'italic', fontSize: 14, lineHeight: 1.5, color: C.muted }}>
+          Your premise: “{premiseText(premises[target])}”
+        </p>
+      )}
       <p style={{ fontFamily: F.read, fontSize: 16, lineHeight: 1.6, color: C.ivory }}>{attack.text}</p>
       {ph && (
         <>
@@ -686,7 +751,7 @@ function Judged({ round, premises, last, onNext }: { round: Round; premises: Pre
       {round.userResponse && <YourReply text={round.userResponse} />}
       <div className="temple-enter flex flex-col gap-2.5" style={{ animationDelay: '.3s' }}>
         <Eyebrow>THE JUDGE</Eyebrow>
-        <p style={{ fontFamily: F.display, fontSize: 20, lineHeight: 1.25 }}>{j.note}</p>
+        <p style={{ fontFamily: F.display, fontSize: 18, lineHeight: 1.3 }}>{j.note}</p>
         <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {j.reasons.map((r) => {
             const i = premises.findIndex((p) => p.id === r.id)

@@ -340,6 +340,20 @@ export class TempleScene {
     }, ease.inOut)
   }
 
+  /** Re-carves the roof inscription after the user rewrites their position,
+   * with a soft glow so the change is seen. */
+  setInscription(text: string) {
+    const m = this.friezeMat
+    if (!m) return
+    const old = m.map
+    m.map = this.friezeTexture(text, this.roofW / 0.52)
+    m.needsUpdate = true
+    old?.dispose()
+    if (this.reduced) return
+    this.tween(0, 0.6, (e) => (m.emissiveIntensity = 0.45 * e), ease.inOut)
+    this.tween(0.9, 1.4, (e) => (m.emissiveIntensity = 0.45 * (1 - e)), ease.inOut)
+  }
+
   /** A philosopher's objection lands on a column. Resolves once the bolt
    * has hit, so the caller can reveal the objection's text in step. */
   strike(index: number, initial: string, side: 0 | 1): Promise<void> {
@@ -348,9 +362,9 @@ export class TempleScene {
     const tex = this.medallionTexture(initial)
     this.medallion.material.map = tex
     this.medallion.material.needsUpdate = true
-    // keep the medallion inside the frame, even on a narrow phone
-    const mx = Math.min(5.6, this.roofW / 2 + 0.2)
-    const from = new THREE.Vector3(side === 0 ? -mx : mx, 7.2, -1.5)
+    // above the pediment's slopes: inside the frame on a narrow phone, and clear of the moon
+    const mx = Math.min(1.9, this.roofW * 0.26)
+    const from = new THREE.Vector3(side === 0 ? -mx : mx, 7.5, -0.6)
     this.medallion.position.copy(from)
     this.medallionGlow.position.copy(from)
     const impact = new THREE.Vector3(col.x, STY + 2.46, 0.36)

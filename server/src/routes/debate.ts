@@ -147,7 +147,7 @@ interface AttackResult {
 }
 
 debateRouter.post('/attack', async (req, res) => {
-  const { claim, conclusion, premises, philosopherId, priorRounds, sameRoundAttacks, language, depth } = req.body ?? {}
+  const { claim, conclusion, premises, philosopherId, priorRounds, sameRoundAttacks, allowedTargets, language, depth } = req.body ?? {}
   if (typeof claim !== 'string' || !claim.trim()) return badRequest(res, 'claim is required')
   if (typeof conclusion !== 'string' || !conclusion.trim()) return badRequest(res, 'conclusion is required')
   if (!validPremises(premises)) return badRequest(res, 'premises is required')
@@ -165,6 +165,11 @@ debateRouter.post('/attack', async (req, res) => {
         .map((a: { philosopherId: string; text: string }) => `${philosopherById(a.philosopherId)?.name ?? a.philosopherId}: ${a.text}`)
         .join('\n')
     : ''
+
+  // the client steers objections towards premises nobody has tested yet
+  const ids = premises.map((p) => p.id)
+  const allowed = Array.isArray(allowedTargets) ? allowedTargets.filter((t): t is string => typeof t === 'string' && ids.includes(t)) : []
+  const targets = allowed.length ? allowed : ids
 
   const voice = philosopherVoice(philosopher.id)
   const voiceBlock = voice
@@ -186,7 +191,8 @@ Rules for your response:
 - Somewhere in your response, work in the exact wording or a close paraphrase (2-6 words) of the specific premise you're challenging, so it's clear you engaged with their specific claim — but do NOT make this the first words of your response every time. Vary where it lands: sometimes open with a challenge or a question instead, and fold the quote in mid-response.
 - Name at least one specific concept, term, or text genuinely associated with you (e.g. Kant would say "categorical imperative", Rawls would say "veil of ignorance", Nietzsche would say "ressentiment"). A response with no specific terminology is a failure.
 - Do NOT write generic philosophical pushback that any philosopher could have said about any topic. Your objection must depend on the actual content of THIS premise.
-- Target exactly one premise, and be precise about which exact word or claim in it is the problem. Never target a premise whose status is conceded. A premise marked revised is the user's new, rewritten version: test it fairly as written.
+- Target exactly one premise, and be precise about which exact word or claim in it is the problem. Never target a premise whose status is conceded.${targets.length < ids.length ? ` This turn you must target one of: ${targets.join(', ')} (the others have already been tested).` : ''}
+- Never refer to a premise by its id (p1, p2...) or its number alone: the user knows their premises by their words. Quote or paraphrase the words instead. A premise marked revised is the user's new, rewritten version: test it fairly as written.
 - Speak in first person, in a register that fits your era and temperament (e.g. Nietzsche is provocative and cutting; Kant is precise and formal; Confucius is measured).
 - Match your depth to how the user has actually been engaging (see their prior responses below): if their answers have been short and simple, ask something equally direct and concrete rather than escalating complexity on them; if they've engaged substantively, you may go deeper. If their most recent response was "I don't know" or similar uncertainty, treat that as a real, meaningful answer worth building on — help them locate WHY it's unclear (missing evidence vs. an unclear principle), don't press harder as if they dodged the question.
 ${sameRoundText ? "- Another thinker has already spoken this round (see below). This is a live discussion between you, not parallel monologues — agree with a caveat, sharpen their point, or directly and specifically contest what THEY said, not just the user's original premise." : ''}
@@ -204,7 +210,7 @@ ${styleBlock(language, depth)}`,
       schema: {
         type: 'object',
         properties: {
-          targetPremiseId: { type: 'string', enum: premises.map((p) => p.id) },
+          targetPremiseId: { type: 'string', enum: targets },
           text: {
             type: 'string',
             description: 'The formal written response, as displayed on screen. Full sentences, precise wording.',
@@ -230,6 +236,7 @@ ${styleBlock(language, depth)}`,
 
 interface EvaluateResult {
   statuses: { id: string; status: string; reason?: string; revisedText?: string }[]
+  revisedConclusion?: string
   note: string
 }
 
@@ -270,7 +277,10 @@ debateRouter.post('/evaluate', async (req, res) => {
         'addressed to the user as "you", saying exactly why it held, cracked, fell or changed, naming the objection. ' +
         'Example: "You answered whether harm can be foreseen, but not Kant\'s point that deception wrongs regardless." ' +
         'Leave reason empty for premises nobody touched.\n' +
-        'note: one short sentence to the user summing up this round, honest and specific, never flattering.' +
+        'Keep every reason under 25 words: it is read on a phone.\n' +
+        'revisedConclusion: only if the user has rewritten their overall position, or a revision changes what they now conclude, ' +
+        'give the new conclusion in first person, at most 12 words (it is carved on the temple roof). Otherwise leave it empty.\n' +
+        'note: one short sentence to the user summing up this round, at most 18 words, honest and specific, never flattering.' +
         styleBlock(language, depth),
       prompt: `Claim: "${claim}"\nConclusion: ${conclusion}\nPremises before this response:\n${premises
         .map((pr) => `${pr.id}: ${pr.text} [${pr.status ?? 'standing'}]`)
@@ -287,13 +297,14 @@ debateRouter.post('/evaluate', async (req, res) => {
               properties: {
                 id: { type: 'string', enum: premises.map((p) => p.id) },
                 status: { type: 'string', enum: [...PREMISE_STATUSES] },
-                reason: { type: 'string', description: 'One sentence to the user; empty if the premise was not touched.' },
+                reason: { type: 'string', description: 'One sentence to the user, under 25 words; empty if the premise was not touched.' },
                 revisedText: { type: 'string', description: 'Only for status revised: the new premise in one sentence.' },
               },
               required: ['id', 'status'],
             },
           },
-          note: { type: 'string', description: 'One short, honest sentence summing up this round for the user.' },
+          revisedConclusion: { type: 'string', description: 'Only if the user changed their overall position: the new conclusion, first person, at most 12 words.' },
+          note: { type: 'string', description: 'One short, honest sentence summing up this round for the user, at most 18 words.' },
         },
         required: ['statuses', 'note'],
       },
