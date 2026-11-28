@@ -365,12 +365,14 @@ export function Symposium() {
                   />
                   {stt.supported && <MicButton listening={stt.listening} onClick={() => toggleMic(setSituation)} label="Dictate what is on your mind" />}
                 </div>
-                {!situation.trim() && (
-                  <div className="flex flex-wrap gap-2">
+                {/* the suggestions fade once you write, but keep their place so nothing below them moves */}
+                {(
+                  <div className="flex flex-wrap gap-2" aria-hidden={!!situation.trim()} style={{ opacity: situation.trim() ? 0 : 1, pointerEvents: situation.trim() ? 'none' : undefined, transition: 'opacity .3s ease' }}>
                     {PROMPTS.slice(0, 4).map((p) => (
                       <button
                         key={p}
                         type="button"
+                        tabIndex={situation.trim() ? -1 : undefined}
                         onClick={() => setSituation(p)}
                         className="sym-btn rounded-full border px-3 py-2 text-left"
                         style={{ borderColor: C.line, fontFamily: F.read, fontStyle: 'italic', fontSize: 14, color: C.body }}
@@ -442,7 +444,7 @@ export function Symposium() {
                     })}
                   </div>
                 ))}
-                {thinkingId && <Waiting text={`${philosopherById(thinkingId)?.name ?? 'A philosopher'} is thinking…`} />}
+                {thinkingId && <Waiting text={`${philosopherById(thinkingId)?.name ?? 'A philosopher'} is thinking…`} eta={15} />}
                 {session.phase === 'responding' && !thinkingId && speaking === null && <Waiting text="The table is thinking…" />}
                 {session.phase === 'ending-loading' && <Waiting text="The table is gathering what it saw…" />}
                 {session.error && <p style={{ fontFamily: F.read, color: C.ember }}>{session.error}</p>}
@@ -542,8 +544,8 @@ function Eyebrow({ children, color = C.gilt }: { children: ReactNode; color?: st
   return <span style={{ fontFamily: F.inscr, fontSize: 10.5, fontWeight: 600, letterSpacing: '.24em', color }}>{children}</span>
 }
 
-function Waiting({ text }: { text: string }) {
-  return <Thinking text={text} className="sym-enter" />
+function Waiting({ text, eta }: { text: string; eta?: number }) {
+  return <Thinking text={text} eta={eta} className="sym-enter" />
 }
 
 function Turn({ who, color, text, onSpeak, speaking, to }: { who: string; color: string; text: string; onSpeak?: () => void; speaking?: boolean; to?: string }) {

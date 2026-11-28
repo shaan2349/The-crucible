@@ -494,3 +494,17 @@ h3,
 @media (orientation: landscape) and (max-height: 480px) {
   .sanctuary footer { display: none; }
 }
+
+/* loading screen (also inlined in index.html for the first paint) */
+.cl{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(70% 55% at 50% 60%,#1a1712 0%,#0B0D11 70%);color:#E9D5A6;font-family:Georgia,serif}
+      .cl-art{width:min(240px,62vw);height:auto;overflow:visible}
+      .cl-draw{stroke-dasharray:420;stroke-dashoffset:420;animation:clDraw 2.6s ease-out .2s forwards}
+      .cl-flame{transform-box:fill-box;transform-origin:50% 100%;animation:clFlame .9s ease-in-out infinite}
+      .cl-glow{animation:clGlow 2.4s ease-in-out infinite}
+      .cl-name{font-size:13px;letter-spacing:.42em;color:#C2A15E;margin:0}
+      .cl-line{font-style:italic;font-size:14px;color:#8E8778;margin:0;opacity:0;animation:clIn 1s ease 1.2s forwards}
+      @keyframes clDraw{to{stroke-dashoffset:0}}
+      @keyframes clFlame{0%,100%{transform:scale(1,1)}50%{transform:scale(.88,1.12)}}
+      @keyframes clGlow{0%,100%{opacity:.7}50%{opacity:1}}
+      @keyframes clIn{to{opacity:1}}
+      @media (prefers-reduced-motion:reduce){.cl-draw{animation:none;stroke-dashoffset:0}.cl-flame,.cl-glow{animation:none}}

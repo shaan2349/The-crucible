@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { liftVeil } from './night/veil'
+import { LampLoading } from './night/LampLoading'
 import { Landing } from './screens/Landing'
 const Onboarding = lazy(() => import('./screens/Onboarding').then((m) => ({ default: m.Onboarding })))
 import { AppShell } from './components/AppShell'
@@ -39,7 +40,7 @@ function App() {
       <PreferencesProvider>
         <DebateProvider>
           <ReflectProvider>
-            <Suspense fallback={<div className="fixed inset-0" style={{ background: '#0B0D11' }} />}>
+            <Suspense fallback={<LampLoading />}>
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/onboarding" element={<Onboarding />} />

@@ -29,7 +29,7 @@ function writeOpening(id: string, language: unknown): Promise<Opening> {
 
 Write:
 - setting: one or two sentences, second person, placing the visitor where this thinker really lived or worked (a real place and moment from their life), vivid but plain. 25-45 words.
-- greeting: what ${p.name} says on meeting the visitor, in first person, in their own manner: who they are in a phrase and what they care about most. 30-55 words. No lecture.
+- greeting: what ${p.name} says on meeting the visitor, in first person, in their own manner: who they are in a phrase and what they care about most. 30-55 words. No lecture. The greeting must contain NO question at all, not even a rhetorical one: it ends on a statement, because the visitor is asked exactly one thing, the question below.
 - question: one question ${p.name} would genuinely ask this visitor about THEIR OWN life, which leads straight into ${p.name}'s central idea. Concrete and personal (friendship, school, choices, fairness, fear, happiness...), answerable in a sentence or two. Under 30 words.
 ${AUTHENTICITY_RULES}${styleBlock(language, undefined)}`,
     prompt: `Write the stop for ${p.name}.`,
@@ -41,7 +41,15 @@ ${AUTHENTICITY_RULES}${styleBlock(language, undefined)}`,
       required: ['setting', 'greeting', 'question'],
     },
     maxTokens: 700,
-  })
+  }).then((o) => ({ ...o, greeting: withoutQuestions(o.greeting) }))
+}
+
+/** The visitor is asked one thing only: any question that slipped into the
+ * greeting is dropped, unless it is all the greeting has. */
+function withoutQuestions(text: string) {
+  const sentences = text.match(/[^.!?]+[.!?]+["'’”)]*\s*|[^.!?]+$/g) ?? [text]
+  const kept = sentences.filter((s) => !/\?["'’”)]*\s*$/.test(s))
+  return kept.length ? kept.join('').trim() : text
 }
 
 journeyRouter.post('/open', async (req, res) => {

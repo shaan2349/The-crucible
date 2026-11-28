@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight } from '../night/icons'
@@ -164,9 +164,17 @@ function Play({ exp, onDone, onNext }: { exp: Experiment; onDone: (r: Experiment
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // bring each new part of the story into view as it appears
+  const fresh = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [stage])
+    if (stage === 'setup') {
+      document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+    const id = window.setTimeout(() => fresh.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120)
+    return () => window.clearTimeout(id)
+  }, [stage, !!reply])
+  const mark = <div ref={fresh} aria-hidden="true" style={{ scrollMarginTop: 84 }} />
 
   async function reveal(withWhy: string) {
     if (!choice || !twistChoice) return
@@ -216,6 +224,7 @@ function Play({ exp, onDone, onNext }: { exp: Experiment; onDone: (r: Experiment
 
       {choice && stage !== 'setup' && <Chosen label="YOU CHOSE" text={choice.label} />}
 
+      {stage === 'twist' && mark}
       {stage !== 'setup' && (
         <>
           <Scene label="BUT THEN…" text={exp.twist} accent />
@@ -223,7 +232,8 @@ function Play({ exp, onDone, onNext }: { exp: Experiment; onDone: (r: Experiment
         </>
       )}
 
-      {twistChoice && (stage === 'why' || stage === 'reveal') && <Chosen label="AND THEN" text={twistChoice.label} />}
+      {stage === 'why' && mark}
+      {twistChoice && (stage === 'why' || stage === 'reveal') && <Chosen label="YOU ANSWERED" text={twistChoice.label} />}
 
       {stage === 'why' && (
         <div className="night-enter flex flex-col gap-2.5">
@@ -247,6 +257,7 @@ function Play({ exp, onDone, onNext }: { exp: Experiment; onDone: (r: Experiment
 
       {stage === 'reveal' && (
         <div className="flex flex-col gap-4">
+          {mark}
           {loading && (
             <div className="flex justify-center py-2">
               <Thinking text="The philosophers are weighing your choices" />

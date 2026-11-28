@@ -473,7 +473,7 @@ export function TempleDebate({
                     />
                   ))}
 
-                {debate.phase === 'attacking' && thinkingId && <Waiting text={`${philosopherById(thinkingId)?.name ?? 'A philosopher'} is preparing an objection…`} />}
+                {debate.phase === 'attacking' && thinkingId && <Waiting text={`${philosopherById(thinkingId)?.name ?? 'A philosopher'} is preparing an objection…`} eta={15} />}
 
                 {debate.phase === 'awaiting-response' && (
                   <div className="temple-enter flex flex-col gap-2.5">
@@ -517,7 +517,7 @@ export function TempleDebate({
                 {debate.phase === 'evaluating' && (
                   <>
                     {lastRound?.userResponse && <YourReply text={lastRound.userResponse} />}
-                    <Waiting text="The judge is weighing your reply…" />
+                    <Waiting text="The judge is weighing your reply…" eta={12} />
                   </>
                 )}
 
@@ -530,7 +530,7 @@ export function TempleDebate({
                   />
                 )}
 
-                {debate.phase === 'verdict-loading' && <Waiting text="The temple settles…" />}
+                {debate.phase === 'verdict-loading' && <Waiting text="The temple settles…" eta={15} />}
 
                 {debate.phase === 'verdict' && debate.ending && (
                   <Ending
@@ -579,8 +579,8 @@ function Eyebrow({ children, color = C.gilt }: { children: ReactNode; color?: st
   return <span style={{ fontFamily: F.inscr, fontSize: 10.5, fontWeight: 600, letterSpacing: '.24em', color }}>{children}</span>
 }
 
-function Waiting({ text }: { text: string }) {
-  return <Thinking text={text} className="temple-enter" />
+function Waiting({ text, eta }: { text: string; eta?: number }) {
+  return <Thinking text={text} eta={eta} className="temple-enter" />
 }
 
 function PrimaryButton({ children, onClick, disabled }: { children: ReactNode; onClick: () => void; disabled?: boolean }) {

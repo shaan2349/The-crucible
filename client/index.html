@@ -14,7 +14,20 @@
     <title>The Crucible</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="cl" role="status"><style>
+      .cl{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(70% 55% at 50% 60%,#1a1712 0%,#0B0D11 70%);color:#E9D5A6;font-family:Georgia,serif}
+      .cl-art{width:min(240px,62vw);height:auto;overflow:visible}
+      .cl-draw{stroke-dasharray:420;stroke-dashoffset:420;animation:clDraw 2.6s ease-out .2s forwards}
+      .cl-flame{transform-box:fill-box;transform-origin:50% 100%;animation:clFlame .9s ease-in-out infinite}
+      .cl-glow{animation:clGlow 2.4s ease-in-out infinite}
+      .cl-name{font-size:13px;letter-spacing:.42em;color:#C2A15E;margin:0}
+      .cl-line{font-style:italic;font-size:14px;color:#8E8778;margin:0;opacity:0;animation:clIn 1s ease 1.2s forwards}
+      @keyframes clDraw{to{stroke-dashoffset:0}}
+      @keyframes clFlame{0%,100%{transform:scale(1,1)}50%{transform:scale(.88,1.12)}}
+      @keyframes clGlow{0%,100%{opacity:.7}50%{opacity:1}}
+      @keyframes clIn{to{opacity:1}}
+      @media (prefers-reduced-motion:reduce){.cl-draw{animation:none;stroke-dashoffset:0}.cl-flame,.cl-glow{animation:none}}
+    </style><svg class="cl-art" viewBox="0 0 240 120" aria-hidden="true"><defs><radialGradient id="clGlow"><stop offset="0" stop-color="#FFC877" stop-opacity=".55"/><stop offset="1" stop-color="#FFC877" stop-opacity="0"/></radialGradient></defs><circle class="cl-glow" cx="120" cy="52" r="46" fill="url(#clGlow)"/><path d="M0 112 C 50 96, 80 70, 120 66 C 160 70, 190 96, 240 112" fill="none" stroke="#C2A15E" stroke-opacity=".5" stroke-width="1"/><g fill="none" stroke="#E9D5A6" stroke-width="1.1" stroke-linejoin="round"><path class="cl-draw" d="M92 64 H148 M95 60 H145 M97 34 L120 22 L143 34 Z M96 38 H144 M101 40 V58 M110 40 V58 M130 40 V58 M139 40 V58"/></g><path class="cl-flame" d="M120 56 C 117.5 53, 118.5 49.5, 120 46 C 121.5 49.5, 122.5 53, 120 56 Z" fill="#FFC877"/></svg><p class="cl-name">THE CRUCIBLE</p><p class="cl-line">The lamps are being lit…</p></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

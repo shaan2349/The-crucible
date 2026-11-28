@@ -1,3 +1,4 @@
+import { LampLoading } from '../night/LampLoading'
 import { Suspense, lazy, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { User, Volume2, VolumeX } from '../night/icons'
@@ -6,7 +7,6 @@ import { useDebateContext } from '../context/DebateContext'
 import { quotesForToday } from '../data/quotes'
 import { loadDebates } from '../lib/storage'
 import type { PlaceId } from '../sanctuary/SanctuaryScene'
-import { NightSky } from '../night/NightSky'
 
 // The 3D hill loads after the first paint; the drawn hill below shows at
 // once and stays as the fallback wherever 3D is unavailable.
@@ -236,11 +236,8 @@ export function Sanctuary() {
           </div>
         )}
         {three === 'loading' && (
-          <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-10" aria-live="polite">
-            <NightSky three={false} />
-            <p className="relative m-0" style={{ fontFamily: "'Libre Caslon Text', Georgia, serif", fontStyle: 'italic', fontSize: 14, color: C.muted, animation: 'sRise 1.2s 1.2s both' }}>
-              The lamps are being lit…
-            </p>
+          <div className="pointer-events-none absolute inset-0" aria-live="polite">
+            <LampLoading fixed={false} />
           </div>
         )}
         {three === 'failed' && <svg
