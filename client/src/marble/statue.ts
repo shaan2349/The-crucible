@@ -229,6 +229,11 @@ interface Face {
   long: number // face length
   age: number // 0 smooth, 1 lined
   pupils: boolean // carved pupils, as on Roman and later portraits
+  wide: number // face width
+  cheeks: number // 0 gaunt, 1 full
+  chin: number // projection of the chin
+  eyes: number // spacing of the eyes
+  tilt: number // brows: -1 drooping and sorrowful, +1 raised and alert
 }
 
 const OLD = new Set(['socrates', 'plato', 'laozi', 'confucius', 'kant', 'marx', 'hobbes', 'augustine', 'aquinas', 'bentham', 'hegel', 'popper', 'berlin', 'anscombe', 'epicurus', 'smith', 'locke', 'burke', 'mencius'])
@@ -263,20 +268,25 @@ function faceFor(id: string, look: Look): Face {
   const fem = !!look.female
   return {
     fem,
-    nose: 0.88 + r(1) * 0.3,
-    noseW: 0.9 + r(2) * 0.25,
-    hook: r(3) < 0.3 ? r(4) * 0.5 : 0,
-    jaw: fem ? r(5) * 0.35 : 0.3 + r(5) * 0.6,
-    brow: fem ? 0.4 + r(6) * 0.3 : 0.8 + r(6) * 0.4,
-    lips: (fem ? 1.1 : 0.85) + r(7) * 0.3,
-    long: 0.96 + r(8) * 0.08,
+    nose: 0.78 + r(1) * 0.55,
+    noseW: 0.82 + r(2) * 0.5,
+    hook: r(3) < 0.35 ? 0.2 + r(4) * 0.6 : 0,
+    jaw: fem ? r(5) * 0.35 : r(5),
+    brow: fem ? 0.4 + r(6) * 0.3 : 0.7 + r(6) * 0.8,
+    lips: (fem ? 1.1 : 0.75) + r(7) * 0.5,
+    long: 0.88 + r(8) * 0.26,
     age: OLD.has(id) ? 0.7 + r(9) * 0.3 : r(9) * 0.35,
     pupils: !NO_PUPILS.has(id),
+    wide: 0.84 + r(10) * 0.32,
+    cheeks: r(11),
+    chin: 0.6 + r(12) * 0.8,
+    eyes: 0.92 + r(13) * 0.16,
+    tilt: r(14) * 2 - 1,
     ...NOSES[id],
   }
 }
 
-let currentFace: Face = { fem: false, nose: 1, noseW: 1, hook: 0, jaw: 0.5, brow: 1, lips: 1, long: 1, age: 0.3, pupils: false }
+let currentFace: Face = { fem: false, nose: 1, noseW: 1, hook: 0, jaw: 0.5, brow: 1, lips: 1, long: 1, age: 0.3, pupils: false, wide: 1, cheeks: 0.5, chin: 1, eyes: 1, tilt: 0 }
 
 /**
  * Where the face's skin sits for a direction on the unit sphere. The skull
@@ -289,14 +299,16 @@ function faceShape(d: THREE.Vector3, _fem: boolean, out: THREE.Vector3) {
   const ax = Math.abs(x)
   // the skull: narrower than deep, the back fuller, the jaw tapering to the chin
   const jawT = y < 0 ? Math.min(1, -y) : 0
-  const jawW = 1 - (f.fem ? 0.34 : 0.3 - 0.14 * f.jaw) * jawT * jawT - 0.06 * jawT
-  let px = x * 0.8 * jawW
+  const jawW = 1 - (f.fem ? 0.34 : 0.36 - 0.26 * f.jaw) * jawT * jawT - 0.06 * jawT
+  let px = x * 0.8 * jawW * f.wide
   let py = y * 1.08 * f.long
   let pz = z * (z < 0 ? 1.02 : 0.92)
   // temples a little hollow, cheekbones and ears out to the side
   let side = 0
   side -= 0.035 * gauss(ax - 0.75, y - 0.3, z - 0.45, 0.14, 0.16, 0.3)
-  side += 0.05 * gauss(ax - 0.6, y + 0.08, z - 0.62, 0.16, 0.1, 0.2)
+  side += (0.02 + 0.06 * f.cheeks) * gauss(ax - 0.6, y + 0.08, z - 0.62, 0.16, 0.1, 0.2)
+  // full or hollow cheeks below the cheekbones
+  side += (f.cheeks - 0.45) * 0.16 * gauss(ax - 0.62, y + 0.32, z - 0.55, 0.22, 0.18, 0.3)
   side += (f.fem ? 0.06 : 0.085) * gauss(ax - 0.98, y - 0.04, z + 0.02, 0.1, 0.2, 0.14)
   px *= 1 + side
   pz *= 1 + side * 0.5
@@ -305,11 +317,11 @@ function faceShape(d: THREE.Vector3, _fem: boolean, out: THREE.Vector3) {
   const face = smooth(0.25, 0.75, z)
   let fwd = 0
   // brow ridge, a softer glabella between the brows
-  fwd += 0.07 * f.brow * gauss(ax - 0.28, y - 0.22, 0, 0.2, 0.06, 1) + 0.035 * f.brow * gauss(x, y - 0.2, 0, 0.08, 0.06, 1)
+  fwd += 0.07 * f.brow * gauss(ax - 0.28, y - 0.22 - f.tilt * 0.045 * (0.5 - ax) * 2, 0, 0.2, 0.06, 1) + 0.035 * f.brow * gauss(x, y - 0.2, 0, 0.08, 0.06, 1)
   // forehead rounding forward
   fwd += 0.04 * gauss(x, y - 0.5, 0, 0.45, 0.25, 1)
   // eye sockets, the eyeballs within them, the lid crease above, a line beneath
-  const ex = ax - 0.29
+  const ex = ax - 0.29 * f.eyes
   const ey = y - 0.08
   fwd -= 0.15 * gauss(ex, ey, 0, 0.17, 0.11, 1)
   fwd += 0.1 * gauss(ex, ey + 0.005, 0, 0.11, 0.05, 1) // the eye
@@ -338,7 +350,7 @@ function faceShape(d: THREE.Vector3, _fem: boolean, out: THREE.Vector3) {
   fwd -= 0.02 * gauss(ax - 0.19, y + 0.42, 0, 0.03, 0.035, 1)
   // under the lip, then the chin
   fwd -= 0.025 * gauss(x, y + 0.54, 0, 0.14, 0.03, 1)
-  fwd += (f.fem ? 0.05 : 0.08) * gauss(x, y + 0.66, 0, 0.17, 0.09, 1)
+  fwd += (f.fem ? 0.05 : 0.08) * f.chin * gauss(x, y + 0.66, 0, 0.17, 0.09, 1)
   if (!f.fem) fwd -= 0.012 * f.jaw * gauss(x, y + 0.68, 0, 0.015, 0.05, 1) // a cleft on broad jaws
   // age: folds from nose to mouth, lines on the forehead, hollows under the eyes
   if (f.age > 0.1) {
@@ -349,7 +361,7 @@ function faceShape(d: THREE.Vector3, _fem: boolean, out: THREE.Vector3) {
   }
   pz += fwd * face
   // a strong chin carries the jaw line forward
-  if (y < -0.35 && z > 0) pz += 0.05 * smooth(-0.35, -0.8, y) * z
+  if (y < -0.35 && z > 0) pz += 0.05 * f.chin * smooth(-0.35, -0.8, y) * z
   out.set(px, py, pz)
 }
 
