@@ -19,7 +19,7 @@ export const CLAUDE_LIGHT_MODEL = process.env.CLAUDE_LIGHT_MODEL ?? 'claude-haik
  * Each part of the app can run on its own model, set on Render without a
  * code change: TEMPLE_MODEL for the objections, judge and verdict;
  * TALK_MODEL for the Symposium, Journey, Thought Experiments and Hall.
- * Either falls back to CLAUDE_MODEL.
+ * The Temple falls back to CLAUDE_MODEL; conversation defaults to Haiku.
  */
 const TEMPLE_TOOLS = new Set(['record_attack', 'record_statuses', 'record_verdict'])
 const TALK_TOOLS = new Set([
@@ -35,7 +35,8 @@ const TALK_TOOLS = new Set([
 function modelFor(toolName: string, tier?: 'main' | 'light') {
   if (tier === 'light') return CLAUDE_LIGHT_MODEL
   if (TEMPLE_TOOLS.has(toolName)) return process.env.TEMPLE_MODEL || CLAUDE_MODEL
-  if (TALK_TOOLS.has(toolName)) return process.env.TALK_MODEL || CLAUDE_MODEL
+  // trying the much cheaper Haiku for conversation; set TALK_MODEL on Render to override
+  if (TALK_TOOLS.has(toolName)) return process.env.TALK_MODEL || 'claude-haiku-5-5'
   return CLAUDE_MODEL
 }
 
