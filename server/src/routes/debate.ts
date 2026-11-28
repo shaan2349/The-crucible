@@ -218,17 +218,13 @@ ${styleBlock(language, depth)}`,
             type: 'string',
             description: 'The formal written response, as displayed on screen. Full sentences, precise wording.',
           },
-          spokenText: {
-            type: 'string',
-            description:
-              "The SAME argument, rewritten for speech, not read aloud verbatim from `text`. Use shorter sentences, contractions (\"that's\", \"you're\", \"can't\"), natural discourse markers (\"But\", \"Look,\", \"Now,\"), the occasional sentence fragment or rhetorical question a real person would actually say out loud, and a little less formal precision than the written version — e.g. instead of \"Your underlying assumption appears to be...\" say something like \"But that assumes something important — why?\" Keep the same intellectual content and the same target premise; do not soften or drop the actual challenge, only its register. No filler words like um/uh/like.",
-          },
         },
-        required: ['targetPremiseId', 'text', 'spokenText'],
+        required: ['targetPremiseId', 'text'],
       },
       maxTokens: 450,
     })
-    reply.done(result)
+    // read aloud as written: a second, spoken version doubled the cost of every objection
+    reply.done({ ...result, spokenText: result.text })
   } catch (err) {
     console.error('attack failed', err)
     reply.fail(502, 'Claude request failed')
@@ -289,6 +285,7 @@ debateRouter.post('/evaluate', async (req, res) => {
         .map((pr) => `${pr.id}: ${pr.text} [${pr.status ?? 'standing'}]`)
         .join('\n')}\n\nLatest objections:\n${attacksText}\n\nUser's response: "${userResponse}"`,
       toolName: 'record_statuses',
+      cache: true,
       toolDescription: 'Records the judged status of every premise after the user\'s response.',
       schema: {
         type: 'object',

@@ -21,6 +21,10 @@ interface ReactResult {
   question: string
 }
 
+/** Reactions to the same two choices with no personal "why" are the same
+ * for everyone, so each is written once and kept. */
+const kept = new Map<string, { reading: string; reactions: { philosopherId: string; text: string }[]; question: string }>()
+
 experimentsRouter.post('/react', async (req, res) => {
   const b = req.body ?? {}
   const title = str(b.title, 120)
@@ -39,6 +43,9 @@ experimentsRouter.post('/react', async (req, res) => {
   const list = PHILOSOPHERS.map((p) => `${p.id}: ${p.name} — ${p.framework}`).join('\n')
 
   const reply = replyChannel<ReactResult>(req, res)
+  const key = why ? '' : [title, choice, twistChoice, b.language, b.depth].join('|')
+  const ready = key ? kept.get(key) : undefined
+  if (ready) return void reply.done(ready)
   try {
     const result = await structured<ReactResult>({
       onPartial: reply.onPartial,
@@ -83,7 +90,9 @@ ${list}`,
     })
     const reactions = (result.reactions ?? []).filter((r) => philosopherById(r.philosopherId) && r.text?.trim()).slice(0, 2)
     if (!result.reading || !reactions.length) throw new Error('incomplete')
-    reply.done({ reading: result.reading, reactions, question: result.question ?? '' })
+    const out = { reading: result.reading, reactions, question: result.question ?? '' }
+    if (key && kept.size < 2000) kept.set(key, out)
+    reply.done(out)
   } catch (err) {
     console.error('experiments/react failed', err)
     reply.fail(502, 'Claude request failed')

@@ -279,17 +279,18 @@ ${cast}
 
 This is a conversation, not a panel of answers. Write what would actually happen next at the table:
 - Only those who have something worth saying speak. Often that is one or two people, not everyone. Never give everyone a turn just to be fair.
-- ${target ? `The user spoke to ${target.name} by name, so ${target.name} answers first. Others join only if they genuinely want to add, object or ask.` : 'The user spoke to the whole table. Whoever is most provoked by what they said goes first.'}
+- If the user spoke to someone by name, that person answers first, and others join only if they genuinely want to add, object or ask. If they spoke to the whole table, whoever is most provoked by what they said goes first.
 - They talk to each other as well as to the user: by name, picking up a phrase someone just used, agreeing and sharpening it, or disagreeing precisely. Real friction is good; politeness that hides disagreement is not.
 - Each turn is short and spoken: 20 to 70 words, a few sentences, the way people actually talk at a table. No speeches, no lists, no summaries.
 - 1 to 4 turns in total. The last turn usually hands the conversation back to the user, often with a pointed question about their actual situation.
 - Stay specific to what the user said. Every philosopher stays true to their real views and their own manner of speaking; never put words in someone's mouth that they would not hold.
 - Not therapy, not a life coach. Warm but intellectually useful.
 - For each turn, "to" is who it is addressed to: "user" or the id of the philosopher being answered. "mood" is what the turn does. "reactions" are how the others at the table visibly respond while it is said (a nod, a shake of the head, or thinking), only where it is clear.
-- spokenText is the same turn as it would be said aloud: contractions, natural rhythm.
+- Write each turn the way it would be said aloud at a table: contractions, natural rhythm.
 ${AUTHENTICITY_RULES}${levelBlock(level)}`,
       prompt: `Situation the user brought: "${situation}"\n\n${formatHistory(openings, rounds)}\n\nUser just said${target ? ` (to ${target.name})` : ' (to everyone)'}: "${userMessage}"`,
       toolName: 'record_conversation',
+      cache: true,
       toolDescription: 'Records the next turns of the conversation at the table.',
       schema: {
         type: 'object',
@@ -305,7 +306,6 @@ ${AUTHENTICITY_RULES}${levelBlock(level)}`,
                 to: { type: 'string', enum: ['user', ...seated.map((p) => p.id)] },
                 mood: { type: 'string', enum: [...MOODS] },
                 text: { type: 'string' },
-                spokenText: { type: 'string' },
                 reactions: {
                   type: 'array',
                   items: {
@@ -318,7 +318,7 @@ ${AUTHENTICITY_RULES}${levelBlock(level)}`,
                   },
                 },
               },
-              required: ['philosopherId', 'to', 'mood', 'text', 'spokenText'],
+              required: ['philosopherId', 'to', 'mood', 'text'],
             },
           },
         },
@@ -335,7 +335,7 @@ ${AUTHENTICITY_RULES}${levelBlock(level)}`,
         to: t.to === 'user' || (ids.has(t.to) && t.to !== t.philosopherId) ? t.to : 'user',
         mood: MOODS.includes(t.mood) ? t.mood : 'answers',
         text: t.text.trim(),
-        spokenText: (t.spokenText || t.text).trim(),
+        spokenText: t.text.trim(),
         reactions: (t.reactions ?? []).filter((r) => r && ids.has(r.philosopherId) && r.philosopherId !== t.philosopherId && REACTIONS.includes(r.reaction)),
       }))
     if (!turns.length) throw new Error('no turns')
