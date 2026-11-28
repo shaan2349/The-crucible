@@ -84,12 +84,12 @@ re-carved after a rewrite, every premise tested, a clearer round counter,
 waiting times on the lamps, a loading screen, steadier forms, auto-scroll,
 one question per Journey meeting, shorter judge lines, more varied busts, a
 plate for every thought experiment, the medallion off the moon, AI-portrayal
-labels, and a support card for anyone in crisis.
+labels, and a support card for anyone in crisis. Philosophers' replies now
+appear word by word as they are written.
 
-1. **Replies that appear word by word** (streaming), so the 10-20 second waits feel shorter.
-2. **The AI cost plan**: compare models, then pre-write what can be pre-written.
-3. **Check it on a real iPhone**: frame rate and memory in the 3D places on older phones.
-4. Untested so far: Landscape with many temples, "Meet" completion on the
+1. **The AI cost plan**: compare models, then pre-write what can be pre-written.
+2. **Check it on a real iPhone**: frame rate and memory in the 3D places on older phones.
+3. Untested so far: Landscape with many temples, "Meet" completion on the
    Journey, and what happens when the API fails.
 
 Later, before the App Store: accounts and sign-in (Apple or email), packaging
