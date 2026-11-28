@@ -79,17 +79,23 @@ mist, bloom, the view across the bay), real scanned surfaces, carved panels
 and gilt buttons, classical icons, lamplight arrivals between places, a 3D
 welcome, night sounds in every place, and an app icon.
 
-1. **A proper session with the real AI**: go through the Temple, Symposium and
-   Oracle with real questions, then tune what the philosophers say.
-2. **Replies that appear word by word**, so the 10-30 second waits feel shorter.
-3. **Check it on a real phone**: smoothness, battery, heat. Turn effects down
-   on phones if needed (bloom, texture size, statue detail).
-4. Remaining polish: real scanned statues (needs a source with clear
-   licences), reflections in the water.
+Done from the 28 Nov test report: premises visible all debate, the roof
+re-carved after a rewrite, every premise tested, a clearer round counter,
+waiting times on the lamps, a loading screen, steadier forms, auto-scroll,
+one question per Journey meeting, shorter judge lines, more varied busts, a
+plate for every thought experiment, the medallion off the moon, AI-portrayal
+labels, and a support card for anyone in crisis.
+
+1. **Replies that appear word by word** (streaming), so the 10-20 second waits feel shorter.
+2. **The AI cost plan**: compare models, then pre-write what can be pre-written.
+3. **Check it on a real iPhone**: frame rate and memory in the 3D places on older phones.
+4. Untested so far: Landscape with many temples, "Meet" completion on the
+   Journey, and what happens when the API fails.
 
 Later, before the App Store: accounts and sign-in (Apple or email), packaging
-as an iPhone app, the Apple developer account ($99/year), and a monthly
-spending cap in the Anthropic console.
+as an iPhone app with real native features (sync, notifications, haptics,
+offline Hall), a privacy policy and age rating, the Apple developer account
+($99/year), and a monthly spending cap in the Anthropic console.
 
 ## Still to do
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { ExperimentArt } from '../data/experimentArt'
 import { AiNote } from '../night/AiNote'
 import { mindful } from '../night/support'
 import { createPortal } from 'react-dom'
@@ -220,6 +221,8 @@ function Play({ exp, onDone, onNext }: { exp: Experiment; onDone: (r: Experiment
         </h2>
         <span style={{ fontSize: 13, color: C.muted }}>{exp.origin}</span>
       </div>
+
+      <ExperimentArt id={exp.id} className="night-enter" />
 
       <Scene label="THE SCENE" text={exp.setup} />
 

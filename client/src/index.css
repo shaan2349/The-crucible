@@ -508,3 +508,8 @@ h3,
       @keyframes clGlow{0%,100%{opacity:.7}50%{opacity:1}}
       @keyframes clIn{to{opacity:1}}
       @media (prefers-reduced-motion:reduce){.cl-draw{animation:none;stroke-dashoffset:0}.cl-flame,.cl-glow{animation:none}}
+
+/* engraved plates on the thought experiments */
+.xa { display: block; width: 100%; max-width: 380px; height: auto; margin: -4px auto -8px; overflow: visible; filter: drop-shadow(0 0 10px rgba(255, 200, 119, 0.12)); }
+.xa-flame { transform-box: fill-box; transform-origin: 50% 100%; animation: clFlame 0.9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .xa-flame { animation: none; } }
