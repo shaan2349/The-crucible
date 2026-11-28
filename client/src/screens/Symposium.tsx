@@ -392,7 +392,7 @@ export function Symposium() {
                     ? `A question, a decision or something you have been turning over. ${chosen[0]} will answer in their own way.`
                     : chosen.length
                       ? `A decision, a worry or a question. ${chosen.join(' and ')} will be at the table, with others who see it differently.`
-                      : 'A decision, a worry or a question. Three philosophers will sit with you and talk it through.'}
+                      : 'A decision, a worry or a question. Two or three philosophers will sit with you and talk it through.'}
                 </p>
                 <div className="relative">
                   <textarea
