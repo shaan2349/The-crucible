@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { AiNote } from '../night/AiNote'
+import { mindful } from '../night/support'
 import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight } from '../night/icons'
@@ -178,6 +180,7 @@ function Play({ exp, onDone, onNext }: { exp: Experiment; onDone: (r: Experiment
 
   async function reveal(withWhy: string) {
     if (!choice || !twistChoice) return
+    if (withWhy && !(await mindful(withWhy))) return
     setStage('reveal')
     setLoading(true)
     setError(null)
@@ -273,6 +276,7 @@ function Play({ exp, onDone, onNext }: { exp: Experiment; onDone: (r: Experiment
           )}
           {reply && (
             <>
+              <AiNote className="text-center" />
               <Card label="WHAT YOUR CHOICES SAY" colour={C.gold}>
                 <p className="m-0" style={{ fontFamily: F.display, fontSize: 19, lineHeight: 1.4 }}>{reply.reading}</p>
               </Card>

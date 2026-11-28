@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import { AiNote } from '../night/AiNote'
+import { mindful } from '../night/support'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Mic, Volume2, VolumeX, Square, Play } from '../night/icons'
@@ -257,10 +259,11 @@ export function TempleDebate({
     }
   }
 
-  function submitResponse() {
+  async function submitResponse() {
     const text = response.trim()
     if (!text) return
     if (stt.listening) stt.stop()
+    if (!(await mindful(text))) return
     update((d) => {
       const rounds = [...d.rounds]
       rounds[rounds.length - 1] = { ...rounds[rounds.length - 1], userResponse: text }
@@ -473,6 +476,7 @@ export function TempleDebate({
                     />
                   ))}
 
+                {debate.phase === 'awaiting-response' && shownAttacks.length > 0 && <AiNote />}
                 {debate.phase === 'attacking' && thinkingId && <Waiting text={`${philosopherById(thinkingId)?.name ?? 'A philosopher'} is preparing an objection…`} eta={15} />}
 
                 {debate.phase === 'awaiting-response' && (

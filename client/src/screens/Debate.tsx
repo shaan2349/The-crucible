@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { mindful } from '../night/support'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Mic } from '../night/icons'
@@ -129,6 +130,7 @@ export function Debate() {
     if (submitting) return
     const trimmed = claim.trim()
     if (!trimmed) return
+    if (!(await mindful(trimmed, true))) return
     setSubmitting(true)
     setEntering(true)
     setEnterError(null)

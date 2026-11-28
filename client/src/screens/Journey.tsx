@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { AiNote } from '../night/AiNote'
+import { mindful } from '../night/support'
 import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight } from '../night/icons'
@@ -196,6 +198,7 @@ function Meeting({ id, open, met, onMet, onNext }: { id: string; open: boolean; 
   async function send() {
     const q = opening?.question ?? met?.question
     if (!answer.trim() || !q || busy) return
+    if (!(await mindful(answer))) return
     setBusy(true)
     setError(null)
     try {
@@ -253,6 +256,7 @@ function Meeting({ id, open, met, onMet, onNext }: { id: string; open: boolean; 
               <p className="night-enter m-0 text-center" style={{ fontFamily: F.read, fontStyle: 'italic', fontSize: 16.5, lineHeight: 1.6, color: C.body }}>{opening.setting}</p>
               <Panel label={`${p.name.toUpperCase()} SAYS`}>
                 <p className="m-0" style={{ fontFamily: F.read, fontSize: 17.5, lineHeight: 1.6, color: C.ivory }}>{opening.greeting}</p>
+                <AiNote className="mt-3" />
               </Panel>
             </>
           )}

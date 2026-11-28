@@ -1,4 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react'
+import { AiNote } from '../night/AiNote'
+import { mindful } from '../night/support'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Mic, Play, Square } from '../night/icons'
@@ -108,6 +110,7 @@ export function Symposium() {
     const text = situation.trim()
     if (!text || starting) return
     if (stt.listening) stt.stop()
+    if (!(await mindful(text))) return
     setStarting(true)
     setStartError(null)
     try {
@@ -168,6 +171,7 @@ export function Symposium() {
     const text = message.trim()
     if (!text || session.phase === 'responding') return
     if (stt.listening) stt.stop()
+    if (!(await mindful(text))) return
     setMessage('')
     const round: ReflectRound = { round: session.rounds.length + 1, turns: [], userMessage: text }
     update((s) => ({ ...s, rounds: [...s.rounds, round], phase: 'responding', error: null }))
@@ -444,6 +448,7 @@ export function Symposium() {
                     })}
                   </div>
                 ))}
+                {session.rounds.some((r) => r.turns.length) && <AiNote />}
                 {thinkingId && <Waiting text={`${philosopherById(thinkingId)?.name ?? 'A philosopher'} is thinking…`} eta={15} />}
                 {session.phase === 'responding' && !thinkingId && speaking === null && <Waiting text="The table is thinking…" />}
                 {session.phase === 'ending-loading' && <Waiting text="The table is gathering what it saw…" />}
