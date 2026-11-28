@@ -155,10 +155,16 @@ debateRouter.post('/attack', async (req, res) => {
   const philosopher = typeof philosopherId === 'string' ? philosopherById(philosopherId) : undefined
   if (!philosopher) return badRequest(res, 'philosopherId is invalid')
 
+  type PriorRound = { round: number; userResponse: string | null; attacks?: { philosopherId: string; targetPremiseId: string; text: string }[] }
   const priorText = Array.isArray(priorRounds)
-    ? priorRounds
-        .map((r: { round: number; userResponse: string | null }) => `Round ${r.round} user response: ${r.userResponse || '(none yet)'}`)
-        .join('\n')
+    ? (priorRounds as PriorRound[])
+        .map((r) => {
+          const said = (Array.isArray(r.attacks) ? r.attacks : [])
+            .map((a) => `${philosopherById(a.philosopherId)?.name ?? a.philosopherId} (on ${a.targetPremiseId}): ${String(a.text).slice(0, 900)}`)
+            .join('\n')
+          return `Round ${r.round}${said ? `\n${said}` : ''}\nUser's response: ${r.userResponse || '(none yet)'}`
+        })
+        .join('\n\n')
     : ''
 
   const sameRoundText = Array.isArray(sameRoundAttacks)
@@ -194,6 +200,7 @@ Rules for your response:
 - Somewhere in your response, work in the exact wording or a close paraphrase (2-6 words) of the specific premise you're challenging, so it's clear you engaged with their specific claim — but do NOT make this the first words of your response every time. Vary where it lands: sometimes open with a challenge or a question instead, and fold the quote in mid-response.
 - Name at least one specific concept, term, or text genuinely associated with you (e.g. Kant would say "categorical imperative", Rawls would say "veil of ignorance", Nietzsche would say "ressentiment"). A response with no specific terminology is a failure.
 - Do NOT write generic philosophical pushback that any philosopher could have said about any topic. Your objection must depend on the actual content of THIS premise.
+- Never repeat a point already made in an earlier round, by you or anyone (see Prior rounds). If you return to a premise, take a genuinely new angle or press on what the user's reply left open, and do not reuse your earlier opening.
 - Target exactly one premise, and be precise about which exact word or claim in it is the problem. Never target a premise whose status is conceded.${targets.length < ids.length ? ` This turn you must target one of: ${targets.join(', ')} (the others have already been tested).` : ''}
 - Never refer to a premise by its id (p1, p2...) or its number alone: the user knows their premises by their words. Quote or paraphrase the words instead. A premise marked revised is the user's new, rewritten version: test it fairly as written.
 - Speak in first person, in a register that fits your era and temperament (e.g. Nietzsche is provocative and cutting; Kant is precise and formal; Confucius is measured).

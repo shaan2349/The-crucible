@@ -166,7 +166,8 @@ export function TempleDebate({
       // give the temple time to assemble before the first strike
       if (debate.rounds.length === 0) await wait(reduced ? 300 : 3600)
       setRevealed(0)
-      const priorRounds = debate.rounds.map((r) => ({ round: r.round, userResponse: r.userResponse }))
+      // earlier objections go too, so no one repeats a point already made
+      const priorRounds = debate.rounds.map((r) => ({ round: r.round, userResponse: r.userResponse, attacks: r.attacks.map((a) => ({ philosopherId: a.philosopherId, targetPremiseId: a.targetPremiseId, text: a.text })) }))
       const premisesForAi = debate.premises.map((p) => ({ id: p.id, text: premiseText(p), status: p.status }))
       const attacks: Round['attacks'] = []
       const round: Round = { round: debate.currentRound, attacks, userResponse: null }

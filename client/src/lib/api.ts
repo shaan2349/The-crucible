@@ -149,7 +149,7 @@ export function attack(params: {
   conclusion: string
   premises: { id: string; text: string; status: string }[]
   philosopherId: string
-  priorRounds: { round: number; userResponse: string | null }[]
+  priorRounds: { round: number; userResponse: string | null; attacks?: { philosopherId: string; targetPremiseId: string; text: string }[] }[]
   sameRoundAttacks?: { philosopherId: string; text: string }[]
   /** Premises this objection may target, so every column gets tested. */
   allowedTargets?: string[]
