@@ -32,7 +32,7 @@ const TALK_TOOLS = new Set([
   'record_bio',
   'record_comparison',
 ])
-function modelFor(toolName: string, tier?: 'main' | 'light') {
+export function modelFor(toolName: string, tier?: 'main' | 'light') {
   if (tier === 'light') return CLAUDE_LIGHT_MODEL
   if (TEMPLE_TOOLS.has(toolName)) return process.env.TEMPLE_MODEL || CLAUDE_MODEL
   // trying the much cheaper Haiku for conversation; set TALK_MODEL on Render to override

@@ -9,6 +9,8 @@ import { trainRouter } from './routes/train.js'
 import { oracleRouter } from './routes/oracle.js'
 import { experimentsRouter } from './routes/experiments.js'
 import { journeyRouter } from './routes/journey.js'
+import { modelFor } from './claude.js'
+import { today } from './usage.js'
 
 const app = express()
 const port = process.env.PORT ?? 8787
@@ -78,6 +80,20 @@ app.use('/api/claude/journey', journeyRouter)
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true })
+})
+
+/** Open in a browser to see what is live: the version, which model each
+ * part of the app uses, and what has been spent since the server woke. */
+app.get('/api/status', (_req, res) => {
+  res.json({
+    version: (process.env.RENDER_GIT_COMMIT ?? 'local').slice(0, 7),
+    models: {
+      temple: modelFor('record_attack'),
+      conversation: modelFor('record_conversation'),
+      background: modelFor('select_opponents', 'light'),
+    },
+    spentSinceWaking: today(),
+  })
 })
 
 app.listen(port, () => {

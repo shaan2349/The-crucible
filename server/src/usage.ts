@@ -44,6 +44,11 @@ export function recordUsage(route: string, model: string, usage: Anthropic.Beta.
   )
 }
 
+/** Today's totals, for the status page. */
+export function today() {
+  return { date: day || new Date().toISOString().slice(0, 10), calls: dayCalls, cost: `$${dayCost.toFixed(2)}`, byPlace: summary() }
+}
+
 /** Today's spend by route, most expensive first. */
 export function summary() {
   return [...byRoute.entries()]
