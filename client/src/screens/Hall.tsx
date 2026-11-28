@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { STORIES } from '../data/stories'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Search, X } from '../night/icons'
@@ -133,13 +134,16 @@ export function Hall() {
 
 function Plaque({ p, onClose, onGoTo, onTalk, onSeat }: { p: Philosopher; onClose: () => void; onGoTo: (id: string) => void; onTalk: () => void; onSeat: () => void }) {
   const { preferences } = usePreferencesContext()
-  const [bio, setBio] = useState<api.BioResponse | null>(() => loadBios()[p.id] ?? null)
+  const written = STORIES[p.id]
+  const [bio, setBio] = useState<Pick<api.BioResponse, 'overview' | 'works' | 'legacy'> | null>(() => written ?? loadBios()[p.id] ?? null)
   const [loadingBio, setLoadingBio] = useState(false)
+  const [open, setOpen] = useState(false)
   const [bioError, setBioError] = useState<string | null>(null)
   const links = relationshipsFor(p.id)
 
   useEffect(() => {
-    setBio(loadBios()[p.id] ?? null)
+    setBio(STORIES[p.id] ?? loadBios()[p.id] ?? null)
+    setOpen(false)
     setBioError(null)
   }, [p.id])
 
@@ -150,6 +154,8 @@ function Plaque({ p, onClose, onGoTo, onTalk, onSeat }: { p: Philosopher; onClos
   }, [onClose])
 
   async function readStory() {
+    if (bio) return setOpen(true)
+    setOpen(true)
     setLoadingBio(true)
     setBioError(null)
     try {
@@ -207,7 +213,7 @@ function Plaque({ p, onClose, onGoTo, onTalk, onSeat }: { p: Philosopher; onClos
             </ul>
           </div>
         )}
-        {bio ? (
+        {bio && open ? (
           <div className="flex flex-col gap-2">
             <Block label="WHO THEY WERE" text={bio.overview} />
             {bio.works && <Block label="WHAT THEY WROTE" text={bio.works} />}

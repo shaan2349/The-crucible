@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { MEETINGS } from '../data/meetings'
 import { AiNote } from '../night/AiNote'
 import { mindful } from '../night/support'
 import { createPortal } from 'react-dom'
@@ -188,6 +189,8 @@ function Meeting({ id, open, met, onMet, onNext }: { id: string; open: boolean; 
   useEffect(() => {
     if (!open || exp || met?.reply) return
     setError(null)
+    // every meeting is written in advance, so it opens at once
+    if (MEETINGS[id]) return void setOpening(MEETINGS[id])
     api
       .openJourneyStop(id, { language: preferences.language, depth: preferences.depth })
       .then(setOpening)
