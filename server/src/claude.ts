@@ -34,7 +34,8 @@ const TALK_TOOLS = new Set([
 ])
 export function modelFor(toolName: string, tier?: 'main' | 'light') {
   if (tier === 'light') return CLAUDE_LIGHT_MODEL
-  if (TEMPLE_TOOLS.has(toolName)) return process.env.TEMPLE_MODEL || CLAUDE_MODEL
+  // trying Sonnet (half the price of Opus) for the Temple; set TEMPLE_MODEL on Render to override
+  if (TEMPLE_TOOLS.has(toolName)) return process.env.TEMPLE_MODEL || 'claude-sonnet-5-5'
   // trying the much cheaper Haiku for conversation; set TALK_MODEL on Render to override
   if (TALK_TOOLS.has(toolName)) return process.env.TALK_MODEL || 'claude-haiku-5-5'
   return CLAUDE_MODEL
