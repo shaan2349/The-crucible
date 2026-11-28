@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { replyChannel } from '../reply.js'
 import { structured } from '../claude.js'
 import { philosopherById, philosopherVoice } from '../data/philosophers.js'
 import { constitutionBlock } from '../data/constitutions.js'
@@ -86,8 +87,10 @@ journeyRouter.post('/reply', async (req, res) => {
   if (typeof question !== 'string' || !question.trim() || question.length > 400) return void res.status(400).json({ error: 'question is required' })
   if (typeof answer !== 'string' || !answer.trim() || answer.length > 1500) return void res.status(400).json({ error: 'answer is required' })
   const voice = philosopherVoice(p.id)
+  const reply = replyChannel<Reply>(req, res)
   try {
     const result = await structured<Reply>({
+      onPartial: reply.onPartial,
       system: `You are ${p.name} (${p.era}). Framework: ${p.framework}.${voice ? `\nYour voice: ${voice.style}\nYour signature move: ${voice.signature}` : ''}${constitutionBlock(p.id)}
 
 A young visitor on a journey through philosophy has met you. You asked them a question and they answered. Reply to THEIR answer, specifically, in first person and in your own manner: take what they said seriously, show them how your central idea bears on it, and where you disagree, say so plainly but warmly. 70-120 words. Then give one short takeaway: the single idea of yours they should carry on with them, in plain words, under 20 words.
@@ -98,9 +101,9 @@ ${AUTHENTICITY_RULES}${styleBlock(language, depth)}`,
       schema: { type: 'object', properties: { reply: { type: 'string' }, takeaway: { type: 'string' } }, required: ['reply', 'takeaway'] },
       maxTokens: 700,
     })
-    res.json(result)
+    reply.done(result)
   } catch (err) {
     console.error('journey/reply failed', err)
-    res.status(502).json({ error: 'Claude request failed' })
+    reply.fail(502, 'Claude request failed')
   }
 })

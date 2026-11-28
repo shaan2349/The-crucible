@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { replyChannel } from '../reply.js'
 import { structured } from '../claude.js'
 import { PHILOSOPHERS, philosopherById, philosopherVoice } from '../data/philosophers.js'
 import { constitutionBlock } from '../data/constitutions.js'
@@ -268,8 +269,10 @@ reflectRouter.post('/discuss', async (req, res) => {
     })
     .join('\n\n')
 
+  const reply = replyChannel<DiscussResult>(req, res)
   try {
     const result = await structured<DiscussResult>({
+      onPartial: reply.onPartial,
       system: `You write the next few moments of a real conversation at a symposium table. Seated with the user:
 
 ${cast}
@@ -336,10 +339,10 @@ ${AUTHENTICITY_RULES}${levelBlock(level)}`,
         reactions: (t.reactions ?? []).filter((r) => r && ids.has(r.philosopherId) && r.philosopherId !== t.philosopherId && REACTIONS.includes(r.reaction)),
       }))
     if (!turns.length) throw new Error('no turns')
-    res.json({ turns })
+    reply.done({ turns })
   } catch (err) {
     console.error('reflect/discuss failed', err)
-    res.status(502).json({ error: 'Claude request failed' })
+    reply.fail(502, 'Claude request failed')
   }
 })
 

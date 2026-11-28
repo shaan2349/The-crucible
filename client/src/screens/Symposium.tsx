@@ -75,6 +75,8 @@ export function Symposium() {
   const [startError, setStartError] = useState<string | null>(null)
   const [speaking, setSpeaking] = useState<number | null>(null)
   const [thinkingId, setThinkingId] = useState<string | null>(null)
+  /** words are arriving for the latest turn */
+  const [writing, setWriting] = useState(false)
   const [revealedOpenings, setRevealedOpenings] = useState(Infinity)
   const panelRef = useRef<HTMLDivElement>(null)
   const revealFor = useRef<number | null>(null)
@@ -180,6 +182,7 @@ export function Symposium() {
     setThinkingId(addressee === 'all' ? null : addressee)
     setSpeaking(null)
     let shown = 0
+    let streamed = 0
     try {
       const { turns } = await api.discussReflection({
         situation: session.situation,
@@ -189,8 +192,44 @@ export function Symposium() {
         userMessage: text,
         addressedTo: addressee,
         level: session.level ?? 'standard',
+      }, (part) => {
+        // the conversation appears as it is written: whoever is speaking is lit, their words grow
+        const live: ReflectTurn[] = (part.turns ?? [])
+          .filter((t) => t && ids.includes(t.philosopherId) && typeof t.text === 'string' && t.text.trim())
+          .map((t) => ({ philosopherId: t.philosopherId, text: t.text, to: t.to, mood: t.mood }))
+        if (!live.length) return
+        if (live.length !== streamed) {
+          const cur = live[live.length - 1]
+          setThinkingId(null)
+          setSpeaking(ids.indexOf(cur.philosopherId))
+          setLookAt(cur.to && cur.to !== 'user' && ids.includes(cur.to) ? ids.indexOf(cur.to) : 'you')
+          setReactions({})
+          streamed = live.length
+        }
+        shown = live.length
+        setWriting(true)
+        update((s) => {
+          const rounds = [...s.rounds]
+          rounds[rounds.length - 1] = { ...rounds[rounds.length - 1], turns: live }
+          return { ...s, rounds }
+        })
+        scrollPanelToEnd()
       })
       setThinkingId(null)
+      setWriting(false)
+      if (streamed) {
+        // already seen as it was written: settle on the finished turns
+        const lastTurn = turns[turns.length - 1]
+        if (lastTurn) setReactions(Object.fromEntries((lastTurn.reactions ?? []).map((r) => [ids.indexOf(r.philosopherId), r.reaction])))
+        update((s) => {
+          const rounds = [...s.rounds]
+          rounds[rounds.length - 1] = { ...rounds[rounds.length - 1], turns }
+          return { ...s, rounds, phase: 'awaiting-response' }
+        })
+        setTimeout(() => setReactions({}), reduced ? 0 : 2200)
+        setTimeout(() => setSpeaking(null), reduced ? 0 : 2600)
+        return
+      }
       // play the conversation out: each speaker turns to whoever they are talking to, the others react
       const played: ReflectTurn[] = []
       for (const t of turns) {
@@ -220,6 +259,7 @@ export function Symposium() {
       setTimeout(() => setSpeaking(null), reduced ? 0 : 2600)
     } catch (e) {
       setThinkingId(null)
+      setWriting(false)
       setReactions({})
       setMessage(text)
       update((s) => {
@@ -428,7 +468,7 @@ export function Symposium() {
                     speaking={tts.speakingId === `o-${id}`}
                   />
                 ))}
-                {session.rounds.map((r) => (
+                {session.rounds.map((r, ri) => (
                   <div key={r.round} className="flex flex-col gap-3">
                     {r.userMessage && <Turn who="YOU" color={C.gilt} text={r.userMessage} />}
                     {r.turns.map((t, ti) => {
@@ -443,6 +483,7 @@ export function Symposium() {
                           to={t.to && t.to !== 'user' ? philosopherById(t.to)?.name : undefined}
                           onSpeak={tts.supported && preferences.voiceEnabled ? () => tts.speak(key, t.spokenText || t.text, t.philosopherId) : undefined}
                           speaking={tts.speakingId === key}
+                          live={writing && ri === session.rounds.length - 1 && ti === r.turns.length - 1}
                         />
                       )
                     })}
@@ -553,7 +594,7 @@ function Waiting({ text, eta }: { text: string; eta?: number }) {
   return <Thinking text={text} eta={eta} className="sym-enter" />
 }
 
-function Turn({ who, color, text, onSpeak, speaking, to }: { who: string; color: string; text: string; onSpeak?: () => void; speaking?: boolean; to?: string }) {
+function Turn({ who, color, text, onSpeak, speaking, to, live }: { who: string; color: string; text: string; onSpeak?: () => void; speaking?: boolean; to?: string; live?: boolean }) {
   return (
     <article className="panel-stone sym-enter flex flex-col gap-1.5 rounded p-3.5" style={{ background: C.raised, borderLeft: `2px solid ${color}` }}>
       <div className="flex items-start justify-between gap-2">
@@ -567,7 +608,7 @@ function Turn({ who, color, text, onSpeak, speaking, to }: { who: string; color:
           </button>
         )}
       </div>
-      <p style={{ fontFamily: F.read, fontSize: 15.5, lineHeight: 1.6, color: C.ivory, whiteSpace: 'pre-wrap' }}>{text}</p>
+      <p className={live ? 'live-text' : undefined} style={{ fontFamily: F.read, fontSize: 15.5, lineHeight: 1.6, color: C.ivory, whiteSpace: 'pre-wrap' }}>{text}</p>
     </article>
   )
 }

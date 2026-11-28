@@ -513,3 +513,18 @@ h3,
 .xa { display: block; width: 100%; max-width: 380px; height: auto; margin: -4px auto -8px; overflow: visible; filter: drop-shadow(0 0 10px rgba(255, 200, 119, 0.12)); }
 .xa-flame { transform-box: fill-box; transform-origin: 50% 100%; animation: clFlame 0.9s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .xa-flame { animation: none; } }
+
+/* words still being written: a small gilt caret at the end, breathing */
+.live-text::after {
+  content: '';
+  display: inline-block;
+  width: 0.5em;
+  height: 0.95em;
+  margin-left: 2px;
+  vertical-align: -0.1em;
+  border-radius: 1px;
+  background: linear-gradient(#ffc877, rgba(255, 200, 119, 0.25));
+  animation: liveCaret 1s ease-in-out infinite;
+}
+@keyframes liveCaret { 0%, 100% { opacity: 0.25 } 50% { opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { .live-text::after { animation: none; opacity: 0.6 } }

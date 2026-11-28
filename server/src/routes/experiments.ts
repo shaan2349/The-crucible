@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { replyChannel } from '../reply.js'
 import { structured } from '../claude.js'
 import { PHILOSOPHERS, philosopherById } from '../data/philosophers.js'
 import { styleBlock } from '../preferences.js'
@@ -37,8 +38,10 @@ experimentsRouter.post('/react', async (req, res) => {
   const suggested = (Array.isArray(b.thinkers) ? b.thinkers : []).filter((id: unknown) => typeof id === 'string' && philosopherById(id as string)).slice(0, 4)
   const list = PHILOSOPHERS.map((p) => `${p.id}: ${p.name} — ${p.framework}`).join('\n')
 
+  const reply = replyChannel<ReactResult>(req, res)
   try {
     const result = await structured<ReactResult>({
+      onPartial: reply.onPartial,
       system: `You are the host of a thought experiment in a philosophy app. The visitor has just played "${title}" and made two choices. Respond to THEIR choices, specifically.
 
 Write:
@@ -80,10 +83,10 @@ ${list}`,
     })
     const reactions = (result.reactions ?? []).filter((r) => philosopherById(r.philosopherId) && r.text?.trim()).slice(0, 2)
     if (!result.reading || !reactions.length) throw new Error('incomplete')
-    res.json({ reading: result.reading, reactions, question: result.question ?? '' })
+    reply.done({ reading: result.reading, reactions, question: result.question ?? '' })
   } catch (err) {
     console.error('experiments/react failed', err)
-    res.status(502).json({ error: 'Claude request failed' })
+    reply.fail(502, 'Claude request failed')
   }
 })
 

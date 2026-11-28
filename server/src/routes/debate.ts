@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { replyChannel } from '../reply.js'
 import { structured } from '../claude.js'
 import { PHILOSOPHERS, philosopherById, philosopherVoice } from '../data/philosophers.js'
 import { constitutionBlock } from '../data/constitutions.js'
@@ -180,8 +181,10 @@ You would never say things like: ${voice.neverSays.map((s) => `"${s}"`).join(', 
 Your signature move: ${voice.signature}`
     : ''
 
+  const reply = replyChannel<AttackResult>(req, res)
   try {
     const result = await structured<AttackResult>({
+      onPartial: reply.onPartial,
       system: `You are ${philosopher.name} (${philosopher.era}). Framework: ${philosopher.framework}. Your characteristic mode of challenge: ${philosopher.attack}.${voiceBlock}
 
 You are not trying to defeat the user — you are a real thinker in a live conversation, probing whether their reasoning holds. Expose the assumption hiding in their premise, or ask the question that forces them to defend it more precisely, the way you'd actually needle a student or a rival across a table. A strong response often ends by putting the ball back in their court — a pointed question, a demand they clarify a term — rather than delivering a closing argument.
@@ -225,10 +228,10 @@ ${styleBlock(language, depth)}`,
       },
       maxTokens: 450,
     })
-    res.json(result)
+    reply.done(result)
   } catch (err) {
     console.error('attack failed', err)
-    res.status(502).json({ error: 'Claude request failed' })
+    reply.fail(502, 'Claude request failed')
   }
 })
 

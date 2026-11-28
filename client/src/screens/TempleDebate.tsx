@@ -51,6 +51,7 @@ export function TempleDebate({
   const [response, setResponse] = useState('')
   const [reflection, setReflection] = useState('')
   const [thinkingId, setThinkingId] = useState<string | null>(null)
+  const [liveAttack, setLiveAttack] = useState(false) // an objection is still being written
   const [revealed, setRevealed] = useState(0) // attacks of the latest round shown so far
   const [openWhy, setOpenWhy] = useState<number | null>(null)
   const [soundOn, setSoundOn] = useState(false)
@@ -143,6 +144,7 @@ export function TempleDebate({
       .catch((e) => update((d) => ({ ...d, error: (e as Error)?.message || 'Something went wrong talking to Claude.' })))
       .finally(() => {
         running.current = false
+        setLiveAttack(false)
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debate.phase, debate.error])
@@ -176,6 +178,8 @@ export function TempleDebate({
         const open = debate.premises.filter((p) => p.status !== 'conceded' && !attacks.some((a) => a.targetPremiseId === p.id))
         const untested = open.filter((p) => !struck.has(p.id))
         const allowed = (untested.length ? untested : open).map((p) => p.id)
+        const ph = philosopherById(philosopherId)
+        let strike: Promise<void> | null = null
         const result = await api.attack({
           allowedTargets: allowed.length ? allowed : undefined,
           claim: debate.claim,
@@ -186,7 +190,24 @@ export function TempleDebate({
           sameRoundAttacks: attacks.map((a) => ({ philosopherId: a.philosopherId, text: a.text })),
           language: preferences.language,
           depth: preferences.depth,
+        }, (part) => {
+          // once the target is chosen the bolt flies, and the objection is written out as it lands
+          const target = debate.premises.findIndex((p) => p.id === part.targetPremiseId)
+          if (target < 0 || !part.text) return
+          if (!strike) {
+            setThinkingId(null)
+            setLiveAttack(true)
+            strike = sceneRef.current?.strike(target, ph?.name ?? '?', side === 0 ? 0 : 1) ?? Promise.resolve()
+          }
+          const live = { philosopherId, targetPremiseId: debate.premises[target].id, text: part.text, spokenText: '' }
+          update((d) => {
+            const rounds = [...d.rounds]
+            rounds[rounds.length - 1] = { ...rounds[rounds.length - 1], attacks: [...attacks, live] }
+            return { ...d, rounds }
+          })
+          setRevealed(attacks.length + 1)
         })
+        setLiveAttack(false)
         const attack = { philosopherId, targetPremiseId: result.targetPremiseId, text: result.text, spokenText: result.spokenText }
         attacks.push(attack)
         update((d) => {
@@ -196,8 +217,7 @@ export function TempleDebate({
         })
         setThinkingId(null)
         const idx = Math.max(0, debate.premises.findIndex((p) => p.id === result.targetPremiseId))
-        const ph = philosopherById(philosopherId)
-        await sceneRef.current?.strike(idx, ph?.name ?? '?', side === 0 ? 0 : 1)
+        await (strike ?? sceneRef.current?.strike(idx, ph?.name ?? '?', side === 0 ? 0 : 1))
         setRevealed(attacks.length)
         if (side === 0) await wait(reduced ? 200 : 1400)
       }
@@ -468,6 +488,7 @@ export function TempleDebate({
                       open={openWhy === i}
                       onToggleWhy={() => setOpenWhy(openWhy === i ? null : i)}
                       speaking={tts.speakingId === `${lastRound?.round}-${i}`}
+                      live={liveAttack && debate.phase === 'attacking' && i === shownAttacks.length - 1}
                       onSpeak={
                         tts.supported && preferences.voiceEnabled
                           ? () => tts.speak(`${lastRound?.round}-${i}`, a.spokenText || a.text, a.philosopherId)
@@ -684,7 +705,9 @@ function Objection({
   onToggleWhy,
   onSpeak,
   speaking,
+  live,
 }: {
+  live?: boolean
   index: number
   attack: Round['attacks'][number]
   premises: Premise[]
@@ -715,7 +738,7 @@ function Objection({
           Your premise: “{premiseText(premises[target])}”
         </p>
       )}
-      <p style={{ fontFamily: F.read, fontSize: 16, lineHeight: 1.6, color: C.ivory }}>{attack.text}</p>
+      <p className={live ? 'live-text' : undefined} style={{ fontFamily: F.read, fontSize: 16, lineHeight: 1.6, color: C.ivory }}>{attack.text}</p>
       {ph && (
         <>
           <button

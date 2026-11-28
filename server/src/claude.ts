@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { parsePartialJson } from './partialJson.js'
 
 const apiKey = process.env.ANTHROPIC_API_KEY
 if (!apiKey) {
@@ -55,6 +56,9 @@ export async function structured<T>(opts: {
   tier?: 'main' | 'light'
   /** How hard the model thinks before answering. Lower is faster. Defaults by route (see QUICK). */
   effort?: 'low' | 'medium' | 'high'
+  /** When given, the reply is streamed and this receives the tool input
+   * parsed so far, so the words can appear as they are written. */
+  onPartial?: (snapshot: Partial<T>) => void
 }): Promise<T> {
   const model = opts.tier === 'light' ? CLAUDE_LIGHT_MODEL : CLAUDE_MODEL
   // Short spoken replies and hidden jobs answer at low effort, which is much
@@ -62,25 +66,64 @@ export async function structured<T>(opts: {
   const effort = opts.effort ?? (opts.tier === 'light' || QUICK.has(opts.toolName) ? 'low' : 'medium')
   const system = `${opts.system}\n\nAlways respond by calling the ${opts.toolName} tool exactly once. Do not reply in plain text.`
   const tool = { name: opts.toolName, description: opts.toolDescription, input_schema: opts.schema }
+  const params = {
+    model,
+    max_tokens: Math.max(opts.maxTokens ?? 0, MIN_MAX_TOKENS),
+    system,
+    messages: [{ role: 'user' as const, content: opts.prompt }],
+    tool_choice: { type: 'auto' as const },
+    output_config: { effort },
+    ...(supportsFallbacks(model) ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } : {}),
+  }
+  const required = (opts.schema.required as string[] | undefined) ?? []
 
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await anthropic.beta.messages.create({
-      model,
-      max_tokens: Math.max(opts.maxTokens ?? 0, MIN_MAX_TOKENS),
-      system,
-      messages: [{ role: 'user', content: opts.prompt }],
-      tools: [tool],
-      tool_choice: { type: 'auto' },
-      output_config: { effort },
-      ...(supportsFallbacks(model) ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } : {}),
-    } as Anthropic.Beta.MessageCreateParamsNonStreaming)
+    let response: Anthropic.Beta.BetaMessage
+    if (opts.onPartial) {
+      // eager streaming sends each fragment as it is written; the input is
+      // then not validated by the API, so it is checked below before use
+      const stream = anthropic.beta.messages.stream({
+        ...params,
+        tools: [{ ...tool, eager_input_streaming: true }],
+      } as Anthropic.Beta.MessageCreateParamsStreaming)
+      // the SDK's own snapshot hides a string until it is finished, so the
+      // raw fragments are read here, keeping half-written words
+      let raw = ''
+      let last = 0
+      let sent = ''
+      const emit = () => {
+        last = Date.now()
+        const snapshot = parsePartialJson(raw)
+        const text = JSON.stringify(snapshot ?? {})
+        if (text === sent || text === '{}') return
+        sent = text
+        opts.onPartial!(snapshot as Partial<T>)
+      }
+      stream.on('inputJson', (delta) => {
+        raw += delta
+        if (Date.now() - last > 60) emit()
+      })
+      try {
+        response = await stream.finalMessage()
+      } catch (err) {
+        // input the parser could not read at all: try once more; API errors are real failures
+        if (err instanceof Anthropic.APIError || attempt === 1) throw err
+        continue
+      }
+      emit()
+    } else {
+      response = await anthropic.beta.messages.create({ ...params, tools: [tool] } as Anthropic.Beta.MessageCreateParamsNonStreaming)
+    }
 
     if (response.stop_reason === 'refusal') {
       throw new Error('Claude declined this request')
     }
     const toolUse = response.content.find((block) => block.type === 'tool_use')
-    if (toolUse && toolUse.type === 'tool_use') {
-      return toolUse.input as T
+    if (toolUse && toolUse.type === 'tool_use' && response.stop_reason !== 'max_tokens') {
+      const input = toolUse.input as Record<string, unknown> | null
+      if (input && typeof input === 'object' && required.every((k) => input[k] !== undefined && input[k] !== null)) {
+        return input as T
+      }
     }
   }
   throw new Error('Claude did not return a tool_use block')

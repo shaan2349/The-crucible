@@ -202,10 +202,14 @@ function Meeting({ id, open, met, onMet, onNext }: { id: string; open: boolean; 
     setBusy(true)
     setError(null)
     try {
-      const r = await api.replyJourneyStop({ philosopherId: id, question: q, answer: answer.trim(), language: preferences.language, depth: preferences.depth })
+      const r = await api.replyJourneyStop({ philosopherId: id, question: q, answer: answer.trim(), language: preferences.language, depth: preferences.depth }, (part) => {
+        // the reply appears as it is written
+        if (part.reply) setReply({ reply: part.reply, takeaway: part.takeaway ?? '' })
+      })
       setReply(r)
       onMet({ question: q, answer: answer.trim(), reply: r.reply, takeaway: r.takeaway, at: Date.now() })
     } catch (e) {
+      setReply(null)
       setError((e as Error)?.message || `${p?.name} could not answer just now.`)
     } finally {
       setBusy(false)
@@ -299,7 +303,7 @@ function Meeting({ id, open, met, onMet, onNext }: { id: string; open: boolean; 
           {reply && (
             <>
               <Panel label={p.name.toUpperCase()}>
-                <p className="m-0" style={{ fontFamily: F.read, fontSize: 17, lineHeight: 1.6, color: C.ivory }}>{reply.reply}</p>
+                <p className={`m-0 ${busy && !reply.takeaway ? 'live-text' : ''}`} style={{ fontFamily: F.read, fontSize: 17, lineHeight: 1.6, color: C.ivory }}>{reply.reply}</p>
               </Panel>
               {reply.takeaway && (
                 <div className="night-enter flex flex-col items-center gap-1.5 py-1 text-center">

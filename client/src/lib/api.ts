@@ -65,6 +65,65 @@ async function postJSON<T>(path: string, body: unknown, attempts = 3): Promise<T
   throw lastErr
 }
 
+/**
+ * Like postJSON, but the reply arrives as it is written: `onPartial`
+ * receives the reply so far (fields may be missing or half-finished) and the
+ * promise resolves with the finished reply. If streaming fails before any
+ * words arrive, it quietly falls back to an ordinary request.
+ */
+async function postStream<T>(path: string, body: unknown, onPartial: (partial: Partial<T>) => void): Promise<T> {
+  let heard = false
+  try {
+    const res = await fetch(`${API_BASE}/api${path}?stream=1`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+      body: JSON.stringify(body),
+    })
+    const isStream = (res.headers.get('content-type') ?? '').includes('text/event-stream')
+    // a server that does not stream answers in one piece
+    if (res.ok && !isStream) return (await res.json()) as T
+    if (!res.ok || !res.body) {
+      let message = `Request failed (HTTP ${res.status})`
+      try {
+        message = ((await res.json()) as { error?: string }).error ?? message
+      } catch {
+        /* not JSON */
+      }
+      if (res.status < 500 && res.status !== 0) throw Object.assign(new Error(message), { final: true })
+      throw new Error(message)
+    }
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
+    let buffer = ''
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += value
+      let cut: number
+      while ((cut = buffer.indexOf('\n\n')) >= 0) {
+        const block = buffer.slice(0, cut)
+        buffer = buffer.slice(cut + 2)
+        const name = /^event: (.*)$/m.exec(block)?.[1]
+        const data = /^data: (.*)$/m.exec(block)?.[1]
+        if (!name || data === undefined) continue
+        const parsed = JSON.parse(data)
+        if (name === 'partial') {
+          heard = true
+          onPartial(parsed as Partial<T>)
+        } else if (name === 'done') {
+          return parsed as T
+        } else if (name === 'error') {
+          throw Object.assign(new Error(parsed?.error ?? 'Claude request failed'), { heard: true })
+        }
+      }
+    }
+    throw new Error('The reply was cut off')
+  } catch (e) {
+    if ((e as { final?: boolean }).final || heard) throw e
+    // nothing arrived: an older server, or a proxy that will not stream
+    return postJSON<T>(path, body)
+  }
+}
+
 export interface SelectOpponentsResponse {
   ids: string[]
 }
@@ -94,8 +153,8 @@ export function attack(params: {
   sameRoundAttacks?: { philosopherId: string; text: string }[]
   /** Premises this objection may target, so every column gets tested. */
   allowedTargets?: string[]
-} & StyleParams) {
-  return postJSON<AttackResponse>('/claude/debate/attack', params)
+} & StyleParams, onPartial?: (partial: Partial<AttackResponse>) => void) {
+  return onPartial ? postStream<AttackResponse>('/claude/debate/attack', params, onPartial) : postJSON<AttackResponse>('/claude/debate/attack', params)
 }
 
 export interface EvaluateResponse {
@@ -170,8 +229,8 @@ export function discussReflection(params: {
   userMessage: string
   addressedTo: string
   level: import('../types').TableLevel
-}) {
-  return postJSON<DiscussResponse>('/claude/reflect/discuss', params)
+}, onPartial?: (partial: Partial<DiscussResponse>) => void) {
+  return onPartial ? postStream<DiscussResponse>('/claude/reflect/discuss', params, onPartial) : postJSON<DiscussResponse>('/claude/reflect/discuss', params)
 }
 
 export interface EndReflectionResponse {
@@ -300,8 +359,8 @@ export function reactToExperiment(params: {
   twistChoice: string
   why?: string
   thinkers?: string[]
-} & StyleParams) {
-  return postJSON<ExperimentReply>('/claude/experiments/react', params)
+} & StyleParams, onPartial?: (partial: Partial<ExperimentReply>) => void) {
+  return onPartial ? postStream<ExperimentReply>('/claude/experiments/react', params, onPartial) : postJSON<ExperimentReply>('/claude/experiments/react', params)
 }
 
 export interface JourneyOpening {
@@ -314,6 +373,6 @@ export function openJourneyStop(philosopherId: string, style?: StyleParams) {
   return postJSON<JourneyOpening>('/claude/journey/open', { philosopherId, ...style })
 }
 /** The thinker's reply to your answer, and one idea to carry on. */
-export function replyJourneyStop(params: { philosopherId: string; question: string; answer: string } & StyleParams) {
-  return postJSON<{ reply: string; takeaway: string }>('/claude/journey/reply', params)
+export function replyJourneyStop(params: { philosopherId: string; question: string; answer: string } & StyleParams, onPartial?: (partial: Partial<{ reply: string; takeaway: string }>) => void) {
+  return onPartial ? postStream<{ reply: string; takeaway: string }>('/claude/journey/reply', params, onPartial) : postJSON<{ reply: string; takeaway: string }>('/claude/journey/reply', params)
 }

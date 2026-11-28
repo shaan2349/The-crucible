@@ -200,10 +200,16 @@ function Play({ exp, onDone, onNext }: { exp: Experiment; onDone: (r: Experiment
         thinkers: exp.takes.map((t) => t.id).filter(Boolean) as string[],
         language: preferences.language,
         depth: preferences.depth,
+      }, (part) => {
+        // the reading and reactions appear as they are written
+        if (!part.reading) return
+        const reactions = (part.reactions ?? []).filter((x) => x && x.text && philosopherById(x.philosopherId))
+        setReply({ reading: part.reading, reactions, question: '' })
       })
       setReply(r)
       onDone({ ...base, reading: r.reading, reactions: r.reactions, question: r.question })
     } catch (e) {
+      setReply(null)
       setError((e as Error)?.message || 'The philosophers could not be reached just now.')
     } finally {
       setLoading(false)
@@ -264,7 +270,7 @@ function Play({ exp, onDone, onNext }: { exp: Experiment; onDone: (r: Experiment
       {stage === 'reveal' && (
         <div className="flex flex-col gap-4">
           {mark}
-          {loading && (
+          {loading && !reply && (
             <div className="flex justify-center py-2">
               <Thinking text="The philosophers are weighing your choices" />
             </div>
@@ -281,16 +287,16 @@ function Play({ exp, onDone, onNext }: { exp: Experiment; onDone: (r: Experiment
             <>
               <AiNote className="text-center" />
               <Card label="WHAT YOUR CHOICES SAY" colour={C.gold}>
-                <p className="m-0" style={{ fontFamily: F.display, fontSize: 19, lineHeight: 1.4 }}>{reply.reading}</p>
+                <p className={`m-0 ${loading && !reply.reactions.length ? 'live-text' : ''}`} style={{ fontFamily: F.display, fontSize: 19, lineHeight: 1.4 }}>{reply.reading}</p>
               </Card>
               {reply.reactions.map((r, i) => (
                 <Card key={r.philosopherId} label={(philosopherById(r.philosopherId)?.name ?? r.philosopherId).toUpperCase()} colour={i === 0 ? C.ember : C.iris}>
-                  <p className="m-0" style={{ fontFamily: F.read, fontSize: 16, lineHeight: 1.6, color: C.ivory }}>{r.text}</p>
+                  <p className={`m-0 ${loading && i === reply.reactions.length - 1 ? 'live-text' : ''}`} style={{ fontFamily: F.read, fontSize: 16, lineHeight: 1.6, color: C.ivory }}>{r.text}</p>
                 </Card>
               ))}
             </>
           )}
-          {(reply || error) && (
+          {(reply || error) && !loading && (
             <>
               <section className="night-enter flex flex-col gap-2.5" aria-labelledby="exp-takes">
                 <h3 id="exp-takes" className="m-0 text-center" style={{ fontFamily: F.inscr, fontSize: 10.5, fontWeight: 600, letterSpacing: '.24em', color: C.gilt }}>
